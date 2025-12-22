@@ -1,0 +1,29 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAnalytics } from 'firebase/analytics';
+import { getFunctions } from 'firebase/functions';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDIwJPSEULiqg2PB64tPv8esAHCHPBlHmQ",
+  authDomain: "education-pro1.firebaseapp.com",
+  projectId: "education-pro1",
+  storageBucket: "education-pro1.firebasestorage.app",
+  messagingSenderId: "1087873877448",
+  appId: "1:1087873877448:web:d4955231340208905b6cfd",
+  measurementId: "G-1PGC8MR2BK"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize services
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+export default app;
+
