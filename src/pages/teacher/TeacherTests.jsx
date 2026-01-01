@@ -10,7 +10,7 @@ import TestEditor from '../../components/tests/TestEditor';
 import TestResultsModal from '../../components/tests/TestResultsModal';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/helpers';
-import './Teachertests.css';
+import './TeacherTests.css';
 
 const TeacherTests = () => {
   const { userData } = useAuth();
