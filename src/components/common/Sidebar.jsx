@@ -14,7 +14,8 @@ import {
   FiStar,
   FiChevronDown,
   FiChevronRight,
-  FiCalendar
+  FiCalendar,
+  FiHelpCircle
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -56,7 +57,8 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     },
     { to: '/teacher/resources', icon: FiFileText, label: 'Fan resurslari' },
     { to: '/my-lessons', icon: FiVideo, label: 'Mening darslarim' },
-    { to: '/assignments', icon: FiFileText, label: 'Topshiriqlar' }
+    { to: '/assignments', icon: FiFileText, label: 'Topshiriqlar' },
+    { to: '/teacher/tests', icon: FiHelpCircle, label: 'Testlar' }
   ];
 
   const studentLinks = [
@@ -66,6 +68,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/resources', icon: FiFileText, label: 'Fan resurslari' },
     { to: '/lessons', icon: FiVideo, label: 'Video darslar' },
     { to: '/assignments', icon: FiFileText, label: 'Topshiriqlar' },
+    { to: '/tests', icon: FiHelpCircle, label: 'Testlar' },
     { to: '/my-grades', icon: FiStar, label: 'Baholarim' },
     { to: '/attendance', icon: FiClipboard, label: 'Davomat' }
   ];

@@ -1,8 +1,10 @@
 import { FiAlertTriangle } from 'react-icons/fi';
 import './ConfirmModal.css';
 
-const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Ha", cancelText = "Yo'q", type = "danger" }) => {
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Ha", cancelText = "Yo'q", type = "danger", isDangerous = false }) => {
   if (!isOpen) return null;
+
+  const buttonType = isDangerous ? "danger" : type;
 
   return (
     <div className="confirm-modal-overlay" onClick={onClose}>
@@ -16,7 +18,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
           <button className="btn btn-secondary" onClick={onClose}>
             {cancelText}
           </button>
-          <button className={`btn btn-${type}`} onClick={() => {
+          <button className={`btn btn-${buttonType}`} onClick={() => {
             onConfirm();
             onClose();
           }}>

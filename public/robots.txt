@@ -1,0 +1,25 @@
+# robots.txt for EduPro Online Education Platform
+
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /attendance
+Disallow: /grades
+Disallow: /assignments
+Disallow: /my-courses
+Disallow: /my-lessons
+Disallow: /course/
+
+# Allow public pages
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /forgot-password
+
+# Sitemap
+Sitemap: https://edupro.uz/sitemap.xml
+

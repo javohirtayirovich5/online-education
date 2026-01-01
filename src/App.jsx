@@ -36,11 +36,13 @@ import GroupDetail from './pages/admin/GroupDetail';
 import TeacherAttendance from './pages/teacher/TeacherAttendance';
 import TeacherGroupGrades from './pages/teacher/TeacherGroupGrades';
 import TeacherResources from './pages/teacher/TeacherResources';
+import TeacherTests from './pages/teacher/TeacherTests';
 
 // Student Pages
 import StudentSubjects from './pages/student/StudentSubjects';
 import TimeTable from './pages/student/TimeTable';
 import StudentResources from './pages/student/StudentResources';
+import StudentTests from './pages/student/StudentTests';
 
 import './App.css';
 
@@ -223,6 +225,12 @@ function App() {
               </PrivateRoute>
             } />
 
+            <Route path="/teacher/tests" element={
+              <PrivateRoute requiredRole="teacher">
+                <AppLayout><TeacherTests /></AppLayout>
+              </PrivateRoute>
+            } />
+
             {/* ====== Student Routes ====== */}
             <Route path="/my-subjects" element={
               <PrivateRoute requiredRole="student">
@@ -239,6 +247,12 @@ function App() {
             <Route path="/resources" element={
               <PrivateRoute requiredRole="student">
                 <AppLayout><StudentResources /></AppLayout>
+              </PrivateRoute>
+            } />
+
+            <Route path="/tests" element={
+              <PrivateRoute requiredRole="student">
+                <AppLayout><StudentTests /></AppLayout>
               </PrivateRoute>
             } />
 

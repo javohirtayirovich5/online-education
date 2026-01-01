@@ -11,6 +11,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { notificationService } from './notificationService';
 
 const COLLECTION_NAME = 'grades';
 
@@ -138,6 +139,21 @@ export const gradeService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      // Send notification to student
+      try {
+        await notificationService.createNotification({
+          userId: gradeData.studentId,
+          type: 'grade_posted',
+          title: 'Yangi baho',
+          message: `"${gradeData.subjectName}" fanni bo'yicha baho qo'yildi: ${gradeData.grade}/5`,
+          relatedId: docRef.id,
+          relatedType: 'grade'
+        });
+      } catch (notifError) {
+        console.error('Error sending grade notification:', notifError);
+      }
+
       return { success: true, id: docRef.id };
     } catch (error) {
       console.error('Add grade error:', error);

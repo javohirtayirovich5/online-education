@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FiMenu, FiX, FiSun, FiMoon, FiBell, FiSearch, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
+import NotificationDropdown from './NotificationDropdown';
+import { notificationService } from '../../services/notificationService';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
@@ -12,6 +14,23 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Subscribe to unread notifications count
+  useEffect(() => {
+    if (!userData?.uid) return;
+
+    const unsubscribe = notificationService.subscribeToUnreadCount(
+      userData.uid,
+      (count) => {
+        setUnreadCount(count);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [userData?.uid]);
 
   const handleLogout = async () => {
     await logout();
@@ -67,43 +86,19 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
             <button 
               className="icon-btn notification-btn" 
               onClick={() => setShowNotifications(!showNotifications)}
+              title="Bildirishnomalar"
             >
               <FiBell size={20} />
-              <span className="notification-badge">3</span>
+              {unreadCount > 0 && (
+                <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </button>
             
-            {showNotifications && (
-              <div className="notification-dropdown">
-                <div className="dropdown-header">
-                  <h3>Bildirishnomalar</h3>
-                </div>
-                <div className="notification-list">
-                  <div className="notification-item">
-                    <div className="notification-content">
-                      <p className="notification-title">Yangi topshiriq</p>
-                      <p className="notification-text">Matematika kursi uchun yangi topshiriq qo'shildi</p>
-                      <span className="notification-time">5 daqiqa oldin</span>
-                    </div>
-                  </div>
-                  <div className="notification-item">
-                    <div className="notification-content">
-                      <p className="notification-title">Baho qo'yildi</p>
-                      <p className="notification-text">Fizika topshirig'ingiz baholandi - 95 ball</p>
-                      <span className="notification-time">2 soat oldin</span>
-                    </div>
-                  </div>
-                  <div className="notification-item">
-                    <div className="notification-content">
-                      <p className="notification-title">Yangi e'lon</p>
-                      <p className="notification-text">Ertaga imtihon rejalashtirilgan</p>
-                      <span className="notification-time">1 kun oldin</span>
-                    </div>
-                  </div>
-                </div>
-                <Link to="/notifications" className="view-all-link">
-                  Barchasini ko'rish
-                </Link>
-              </div>
+            {showNotifications && userData?.uid && (
+              <NotificationDropdown 
+                userId={userData.uid}
+                onClose={() => setShowNotifications(false)}
+              />
             )}
           </div>
 

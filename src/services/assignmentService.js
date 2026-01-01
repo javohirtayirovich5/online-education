@@ -9,6 +9,7 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { notificationService } from './notificationService';
 
 const COLLECTION_NAME = 'assignments';
 const SUBMISSIONS_COLLECTION = 'submissions';
@@ -21,6 +22,37 @@ export const assignmentService = {
         ...assignmentData,
         createdAt: new Date().toISOString()
       });
+
+      // Send notifications to students in the group
+      if (assignmentData.groupId) {
+        try {
+          const groupQuery = query(
+            collection(db, 'groups'),
+            where('id', '==', assignmentData.groupId)
+          );
+          const groupSnapshot = await getDocs(groupQuery);
+          
+          if (!groupSnapshot.empty) {
+            const groupData = groupSnapshot.docs[0].data();
+            const studentIds = groupData.students || [];
+            
+            // Create notification for each student
+            for (const studentId of studentIds) {
+              await notificationService.createNotification({
+                userId: studentId,
+                type: 'assignment_created',
+                title: 'Yangi topshiriq',
+                message: `"${assignmentData.title}" topshirig'i berildi. Muddati: ${assignmentData.dueDate || 'belgilanmagan'}`,
+                relatedId: docRef.id,
+                relatedType: 'assignment'
+              });
+            }
+          }
+        } catch (notifError) {
+          console.error('Error sending notifications:', notifError);
+        }
+      }
+
       return { success: true, assignmentId: docRef.id };
     } catch (error) {
       console.error('Create assignment error:', error);
@@ -159,10 +191,32 @@ export const assignmentService = {
   async updateSubmission(submissionId, updates) {
     try {
       const docRef = doc(db, SUBMISSIONS_COLLECTION, submissionId);
+      
+      // Get submission data to send notification
+      const submissionDoc = await getDoc(docRef);
+      const submissionData = submissionDoc.data();
+
       await updateDoc(docRef, {
         ...updates,
         gradedAt: updates.grade !== undefined ? new Date().toISOString() : undefined
       });
+
+      // Send notification to student if grade is given
+      if (updates.grade !== undefined && submissionData?.studentId) {
+        try {
+          await notificationService.createNotification({
+            userId: submissionData.studentId,
+            type: 'assignment_graded',
+            title: 'Topshiriq baholandi',
+            message: `Sizning topshirig'ingiz baholandi. Baho: ${updates.grade}/${updates.maxGrade || 100}`,
+            relatedId: submissionData.assignmentId,
+            relatedType: 'assignment'
+          });
+        } catch (notifError) {
+          console.error('Error sending grading notification:', notifError);
+        }
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Update submission error:', error);

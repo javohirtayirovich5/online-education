@@ -504,6 +504,56 @@ service cloud.firestore {
       allow delete: if isAdmin() || 
                        (isTeacher() && resource.data.teacherId == request.auth.uid);
     }
+
+    // ============================================
+    // TESTS COLLECTION
+    // ============================================
+    match /tests/{testId} {
+      // All authenticated users can read tests
+      allow read: if isAuthenticated();
+      
+      // Only teachers and admins can create tests
+      allow create: if isTeacherOrAdmin() && 
+                       hasRequiredFields(['title', 'questions', 'createdBy', 'createdAt']);
+      
+      // Only test creator or admin can update
+      allow update: if isAdmin() || 
+                       (isTeacher() && resource.data.createdBy == request.auth.uid);
+      
+      // Only test creator or admin can delete
+      allow delete: if isAdmin() || 
+                       (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // ============================================
+    // TEST ANSWERS COLLECTION (Talabalarning javoblari)
+    // ============================================
+    match /testAnswers/{answerId} {
+      // Students can read their own answers
+      // Teachers can read answers to their tests
+      // Admin can read all
+      allow read: if isAuthenticated() && 
+                     ((isStudent() && resource.data.studentId == request.auth.uid) ||
+                     (isTeacher() && 
+                        get(/databases/$(database)/documents/tests/$(resource.data.testId)).data.createdBy == request.auth.uid) ||
+                     isAdmin());
+      
+      // Only students can create answers (submit test)
+      allow create: if isStudent() && 
+                       request.resource.data.studentId == request.auth.uid &&
+                       hasRequiredFields(['testId', 'studentId', 'answers', 'submittedAt']);
+      
+      // Teachers can update scores, only admin can update other fields
+      allow update: if isAdmin() || 
+                       (isTeacher() && 
+                        get(/databases/$(database)/documents/tests/$(resource.data.testId)).data.createdBy == request.auth.uid &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'isGraded', 'gradedAt', 'feedback']));
+      
+      // Test creator can delete answers for their test, admin can delete all
+      allow delete: if isAdmin() || 
+                       (isTeacher() && 
+                        get(/databases/$(database)/documents/tests/$(resource.data.testId)).data.createdBy == request.auth.uid);
+    }
   }
 }
 

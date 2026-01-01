@@ -1,0 +1,240 @@
+/* Test Results Card Styles */
+
+.test-result-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 6px solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.test-result-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Status Variants */
+
+.test-result-card.excellent {
+  border-left-color: #4caf50;
+  background: linear-gradient(to right, #e8f5e9, white);
+}
+
+.test-result-card.good {
+  border-left-color: #2196f3;
+  background: linear-gradient(to right, #e3f2fd, white);
+}
+
+.test-result-card.satisfactory {
+  border-left-color: #ff9800;
+  background: linear-gradient(to right, #fff3e0, white);
+}
+
+.test-result-card.pass {
+  border-left-color: #ffc107;
+  background: linear-gradient(to right, #fffde7, white);
+}
+
+.test-result-card.fail {
+  border-left-color: #f44336;
+  background: linear-gradient(to right, #ffebee, white);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.result-title h3 {
+  margin: 0 0 4px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.result-date {
+  display: block;
+  color: #999;
+  font-size: 12px;
+}
+
+.result-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.result-badge.excellent {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.result-badge.good {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.result-badge.satisfactory {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.result-badge.pass {
+  background: #fffde7;
+  color: #f57f17;
+}
+
+.result-badge.fail {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.result-content {
+  display: flex;
+  gap: 24px;
+}
+
+.result-score {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+}
+
+.score-display {
+  flex-shrink: 0;
+}
+
+.score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.score-inner {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.score-percentage {
+  display: block;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.score-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+
+.detail-item .label {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-item .value {
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-excellent {
+  color: #2e7d32;
+}
+
+.status-good {
+  color: #1565c0;
+}
+
+.status-satisfactory {
+  color: #e65100;
+}
+
+.status-pass {
+  color: #f57f17;
+}
+
+.status-fail {
+  color: #c62828;
+}
+
+/* Color Variables */
+
+:root {
+  --excellent-color: #4caf50;
+  --good-color: #2196f3;
+  --satisfactory-color: #ff9800;
+  --pass-color: #ffc107;
+  --fail-color: #f44336;
+}
+
+@media (max-width: 768px) {
+  .test-result-card {
+    padding: 16px;
+  }
+
+  .result-header {
+    flex-direction: column;
+  }
+
+  .result-content {
+    flex-direction: column;
+  }
+
+  .score-circle {
+    width: 100px;
+    height: 100px;
+  }
+
+  .score-inner {
+    width: 90px;
+    height: 90px;
+  }
+
+  .score-percentage {
+    font-size: 22px;
+  }
+
+  .result-score {
+    flex-direction: column;
+  }
+
+  .score-display {
+    display: flex;
+    justify-content: center;
+  }
+
+  .score-details {
+    width: 100%;
+  }
+}

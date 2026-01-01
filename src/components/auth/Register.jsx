@@ -7,6 +7,7 @@ import { facultyService } from '../../services/facultyService';
 import { departmentService } from '../../services/departmentService';
 import { groupService } from '../../services/groupService';
 import { subjectService } from '../../services/subjectService';
+import SEO from '../common/SEO';
 import './Auth.css';
 
 const Register = () => {
@@ -179,8 +180,14 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box auth-box-wide">
+    <>
+      <SEO 
+        title="Ro'yxatdan o'tish - EduPro Online Ta'lim Platformasi"
+        description="EduPro online ta'lim platformasiga ro'yxatdan o'tish. O'qituvchi yoki talaba sifatida qo'shiling."
+        keywords="edupro ro'yxatdan o'tish, register, online ta'lim, universitet platformasi"
+      />
+      <div className="auth-container">
+        <div className="auth-box auth-box-wide">
         {/* Logo */}
         <div className="auth-logo">
           <div className="brand-icon">
@@ -447,6 +454,7 @@ const Register = () => {
         <div className="bg-shape shape-3"></div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -8,7 +8,8 @@ const Modal = ({
   title, 
   children, 
   size = 'medium', 
-  showCloseButton = true 
+  showCloseButton = true,
+  disableEscClose = false
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -24,22 +25,21 @@ const Modal = ({
 
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && !disableEscClose) {
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, disableEscClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div 
-        className={`modal-container modal-${size}`} 
-        onClick={(e) => e.stopPropagation()}
+        className={`modal-container modal-${size}`}
       >
         {/* Header */}
         {(title || showCloseButton) && (

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import SEO from '../common/SEO';
 import './Auth.css';
 
 const Login = () => {
@@ -40,8 +41,14 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
+    <>
+      <SEO 
+        title="Tizimga kirish - EduPro Online Ta'lim Platformasi"
+        description="EduPro online ta'lim platformasiga kirish. Universitetlar uchun professional ta'lim tizimi."
+        keywords="edupro kirish, login, online ta'lim, universitet platformasi"
+      />
+      <div className="auth-container">
+        <div className="auth-box">
         {/* Logo */}
         <div className="auth-logo">
           <div className="brand-icon">
@@ -118,6 +125,7 @@ const Login = () => {
         <div className="bg-shape shape-3"></div>
       </div>
     </div>
+    </>
   );
 };
 
