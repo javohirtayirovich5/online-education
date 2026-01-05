@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -14,15 +15,23 @@ import {
   FiEye,
   FiMessageSquare,
   FiPlay,
-  FiBookOpen
+  FiBookOpen,
+  FiPlus,
+  FiCalendar,
+  FiAlertCircle,
+  FiArrowRight
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { formatRelativeTime } from '../utils/helpers';
+import { formatRelativeTime, getTimeRemaining, isPastDate, formatDate } from '../utils/helpers';
+import { assignmentService } from '../services/assignmentService';
+import { testService } from '../services/testService';
+import { attendanceService } from '../services/attendanceService';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const { userData, isAdmin, isTeacher, isStudent } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     lessons: 0,
@@ -32,6 +41,9 @@ const Dashboard = () => {
     subjects: 0
   });
   const [recentLessons, setRecentLessons] = useState([]);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
+  const [attendancePercentage, setAttendancePercentage] = useState(0);
+  const [recentTests, setRecentTests] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -110,7 +122,7 @@ const Dashboard = () => {
       assignments: 0
     });
 
-    // Recent lessons - kurslardan darslarni olish
+    // Recent lessons - faqat video darslarni olish (videoURL yoki youtubeUrl bo'lgan)
     const recentLessons = [];
     coursesSnap.docs.forEach(doc => {
       const courseData = doc.data();
@@ -118,20 +130,49 @@ const Dashboard = () => {
         courseData.modules.forEach(module => {
           if (module.lessons && Array.isArray(module.lessons)) {
             module.lessons.forEach(lesson => {
-              recentLessons.push({
-                ...lesson,
-                courseId: doc.id,
-                courseTitle: courseData.title
-              });
+              // Faqat video darslarni qo'shish (videoURL yoki youtubeUrl bo'lgan)
+              if (lesson.videoURL || lesson.youtubeUrl || lesson.videoType) {
+                recentLessons.push({
+                  ...lesson,
+                  courseId: doc.id,
+                  courseTitle: courseData.title
+                });
+              }
             });
           }
         });
       }
     });
     
-    // Sort by createdAt and take first 5
+    // Sort by createdAt and take first 3
     recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    setRecentLessons(recentLessons.slice(0, 5));
+    setRecentLessons(recentLessons.slice(0, 3));
+
+    // Upcoming deadlines - topshiriqlar
+    try {
+      const assignmentsResult = await assignmentService.getAllAssignments();
+      if (assignmentsResult.success) {
+        const now = new Date();
+        const deadlines = assignmentsResult.data
+          .filter(assignment => {
+            if (!assignment.dueDate) return false;
+            const dueDate = assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate);
+            return dueDate >= now;
+          })
+          .map(assignment => ({
+            id: assignment.id,
+            title: assignment.title,
+            type: 'assignment',
+            dueDate: assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate),
+            url: `/assignments`
+          }))
+          .sort((a, b) => a.dueDate - b.dueDate)
+          .slice(0, 5);
+        setUpcomingDeadlines(deadlines);
+      }
+    } catch (error) {
+      console.error('Load deadlines error:', error);
+    }
   };
 
   const loadStudentData = async () => {
@@ -195,7 +236,7 @@ const Dashboard = () => {
       subjects: subjectsCount
     });
 
-    // Recent lessons - kurslardan darslarni olish
+    // Recent lessons - faqat video darslarni olish (videoURL yoki youtubeUrl bo'lgan)
     const recentLessons = [];
     coursesSnap.docs.forEach(doc => {
       const courseData = doc.data();
@@ -203,20 +244,155 @@ const Dashboard = () => {
         courseData.modules.forEach(module => {
           if (module.lessons && Array.isArray(module.lessons)) {
             module.lessons.forEach(lesson => {
-              recentLessons.push({
-                ...lesson,
-                courseId: doc.id,
-                courseTitle: courseData.title
-              });
+              // Faqat video darslarni qo'shish (videoURL yoki youtubeUrl bo'lgan)
+              if (lesson.videoURL || lesson.youtubeUrl || lesson.videoType) {
+                recentLessons.push({
+                  ...lesson,
+                  courseId: doc.id,
+                  courseTitle: courseData.title
+                });
+              }
             });
           }
         });
       }
     });
     
-    // Sort by createdAt and take first 5
+    // Sort by createdAt and take first 3
     recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    setRecentLessons(recentLessons.slice(0, 5));
+    setRecentLessons(recentLessons.slice(0, 3));
+
+    // Upcoming deadlines - topshiriqlar va testlar
+    const deadlines = [];
+    
+    // Topshiriqlar
+    try {
+      const assignmentsResult = await assignmentService.getAllAssignments();
+      if (assignmentsResult.success) {
+        const now = new Date();
+        assignmentsResult.data.forEach(assignment => {
+          if (assignment.dueDate) {
+            const dueDate = assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate);
+            if (dueDate >= now) {
+              deadlines.push({
+                id: assignment.id,
+                title: assignment.title,
+                type: 'assignment',
+                dueDate: dueDate,
+                url: `/assignments`
+              });
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Load assignments error:', error);
+    }
+
+    // Testlar
+    if (userData?.groupId) {
+      try {
+        const testsResult = await testService.getTestsForStudent(userData.groupId);
+        if (testsResult.success) {
+          const now = new Date();
+          testsResult.data.forEach(test => {
+            if (test.dueDate) {
+              const dueDate = test.dueDate.toDate ? test.dueDate.toDate() : new Date(test.dueDate);
+              if (dueDate >= now) {
+                deadlines.push({
+                  id: test.id,
+                  title: test.title,
+                  type: 'test',
+                  dueDate: dueDate,
+                  url: `/tests/${test.id}`
+                });
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Load tests error:', error);
+      }
+    }
+
+    // Sort by due date and take first 5
+    deadlines.sort((a, b) => a.dueDate - b.dueDate);
+    setUpcomingDeadlines(deadlines.slice(0, 5));
+
+    // Davomat foizi
+    if (userData?.groupId) {
+      try {
+        const attendanceResult = await attendanceService.getAttendanceByStudent(userData.uid, userData.groupId);
+        if (attendanceResult.success && attendanceResult.data && attendanceResult.data.length > 0) {
+          const records = attendanceResult.data;
+          let presentCount = 0;
+          records.forEach(record => {
+            if (record.records && record.records[userData.uid] && record.records[userData.uid].status === 'present') {
+              presentCount++;
+            }
+          });
+          const percentage = Math.round((presentCount / records.length) * 100);
+          setAttendancePercentage(percentage);
+        }
+      } catch (error) {
+        console.error('Load attendance error:', error);
+      }
+    }
+
+    // Recent tests
+    if (userData?.groupId) {
+      try {
+        const testsResult = await testService.getTestsForStudent(userData.groupId);
+        if (testsResult.success) {
+          const allTests = testsResult.data || [];
+          const completedTests = [];
+          
+          // Check submissions for each test
+          const submissionPromises = allTests.map(test =>
+            testService.getStudentTestSubmission(userData.uid, test.id)
+              .catch(() => ({ success: false }))
+          );
+          
+          const submissions = await Promise.all(submissionPromises);
+          
+          allTests.forEach((test, index) => {
+            const submissionResult = submissions[index];
+            if (submissionResult && submissionResult.success && submissionResult.data) {
+              const submission = submissionResult.data;
+              // Score structure: score (number), maxScore (number), percentage (string or number)
+              const earned = typeof submission.score === 'number' ? submission.score : 0;
+              const max = typeof submission.maxScore === 'number' ? submission.maxScore : 0;
+              const percentage = submission.percentage 
+                ? (typeof submission.percentage === 'string' 
+                    ? parseFloat(submission.percentage) 
+                    : submission.percentage)
+                : (max > 0 ? Math.round((earned / max) * 100) : 0);
+              
+              completedTests.push({
+                id: test.id,
+                title: test.title,
+                score: {
+                  earned: earned,
+                  max: max,
+                  percentage: percentage
+                }
+              });
+            }
+          });
+          
+          // Sort by submission date (most recent first) and take first 3
+          completedTests.sort((a, b) => {
+            const dateA = submissions[allTests.findIndex(t => t.id === a.id)]?.data?.submittedAt || '';
+            const dateB = submissions[allTests.findIndex(t => t.id === b.id)]?.data?.submittedAt || '';
+            return new Date(dateB) - new Date(dateA);
+          });
+          
+          setRecentTests(completedTests.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Load recent tests error:', error);
+      }
+    }
   };
 
   if (loading) {
@@ -228,12 +404,12 @@ const Dashboard = () => {
       <div className="dashboard-header">
         <div>
           <h1>
-            Xush kelibsiz, {userData?.displayName}! 👋
+            {t('dashboard.welcome')}, {userData?.displayName}! 👋
           </h1>
           <p className="dashboard-subtitle">
-            {isAdmin ? 'Administrator paneli' : 
-             isTeacher ? 'O\'qituvchi paneli' : 
-             'Talaba paneli'}
+            {isAdmin ? t('dashboard.adminPanel') : 
+             isTeacher ? t('dashboard.teacherPanel') : 
+             t('dashboard.studentPanel')}
           </p>
         </div>
       </div>
@@ -247,7 +423,7 @@ const Dashboard = () => {
                 <FiUsers />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Jami foydalanuvchilar</p>
+                <p className="stat-label">{t('dashboard.totalUsers')}</p>
                 <h2 className="stat-value">{stats.users}</h2>
               </div>
             </div>
@@ -257,7 +433,7 @@ const Dashboard = () => {
                 <FiVideo />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Jami darslar</p>
+                <p className="stat-label">{t('dashboard.totalLessons')}</p>
                 <h2 className="stat-value">{stats.lessons}</h2>
               </div>
             </div>
@@ -267,7 +443,7 @@ const Dashboard = () => {
                 <FiUsers />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Talabalar</p>
+                <p className="stat-label">{t('dashboard.students')}</p>
                 <h2 className="stat-value">{stats.students}</h2>
               </div>
             </div>
@@ -277,7 +453,7 @@ const Dashboard = () => {
                 <FiUsers />
               </div>
               <div className="stat-content">
-                <p className="stat-label">O'qituvchilar</p>
+                <p className="stat-label">{t('dashboard.teachers')}</p>
                 <h2 className="stat-value">{stats.teachers}</h2>
               </div>
             </div>
@@ -291,7 +467,7 @@ const Dashboard = () => {
                 <FiVideo />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Mening darslarim</p>
+                <p className="stat-label">{t('dashboard.myLessons')}</p>
                 <h2 className="stat-value">{stats.lessons}</h2>
               </div>
             </div>
@@ -301,7 +477,7 @@ const Dashboard = () => {
                 <FiEye />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Jami ko'rishlar</p>
+                <p className="stat-label">{t('dashboard.totalViews')}</p>
                 <h2 className="stat-value">{stats.views}</h2>
               </div>
             </div>
@@ -311,7 +487,7 @@ const Dashboard = () => {
                 <FiMessageSquare />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Izohlar</p>
+                <p className="stat-label">{t('dashboard.comments')}</p>
                 <h2 className="stat-value">{stats.comments}</h2>
               </div>
             </div>
@@ -321,7 +497,7 @@ const Dashboard = () => {
                 <FiFileText />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Topshiriqlar</p>
+                <p className="stat-label">{t('dashboard.assignments')}</p>
                 <h2 className="stat-value">{stats.assignments}</h2>
               </div>
             </div>
@@ -335,7 +511,7 @@ const Dashboard = () => {
                 <FiBookOpen />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Fanlar</p>
+                <p className="stat-label">{t('dashboard.subjects')}</p>
                 <h2 className="stat-value">{stats.subjects || 0}</h2>
               </div>
             </div>
@@ -345,7 +521,7 @@ const Dashboard = () => {
                 <FiAward />
               </div>
               <div className="stat-content">
-                <p className="stat-label">O'rtacha baho</p>
+                <p className="stat-label">{t('dashboard.averageGrade')}</p>
                 <h2 className="stat-value">{stats.avgGrade > 0 ? stats.avgGrade.toFixed(2) : '-'}</h2>
               </div>
             </div>
@@ -355,7 +531,7 @@ const Dashboard = () => {
                 <FiVideo />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Mavjud darslar</p>
+                <p className="stat-label">{t('dashboard.availableLessons')}</p>
                 <h2 className="stat-value">{stats.lessons}</h2>
               </div>
             </div>
@@ -365,11 +541,235 @@ const Dashboard = () => {
                 <FiFileText />
               </div>
               <div className="stat-content">
-                <p className="stat-label">Topshiriqlar</p>
+                <p className="stat-label">{t('dashboard.assignments')}</p>
                 <h2 className="stat-value">{stats.assignments}</h2>
               </div>
             </div>
           </>
+        )}
+      </div>
+
+      {/* Dashboard Grid - Additional Sections */}
+      <div className="dashboard-grid">
+        {/* Recent Lessons */}
+        {recentLessons.length > 0 && (
+          <div className="dashboard-card">
+            <div className="card-header">
+              <h3>{t('dashboard.recentLessons')}</h3>
+              <Link to="/lessons" className="view-all-link">
+                {t('common.viewAll')} →
+              </Link>
+            </div>
+            <div className="recent-activities">
+              {recentLessons.map((lesson, index) => (
+                <Link 
+                  key={lesson.id || index} 
+                  to={lesson.courseId ? `/course/${lesson.courseId}` : '#'}
+                  className="activity-item"
+                >
+                  <div className="activity-icon">
+                    <FiPlay />
+                  </div>
+                  <div className="activity-info">
+                    <h4>{lesson.title || lesson.courseTitle || 'Dars'}</h4>
+                    <p className="activity-meta">
+                      {lesson.courseTitle && <span className="activity-course">{lesson.courseTitle}</span>}
+                      {lesson.createdAt && (
+                        <span className="activity-time">
+                          <FiClock size={12} /> {formatRelativeTime(lesson.createdAt)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <FiArrowRight className="activity-arrow" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Deadlines */}
+        {upcomingDeadlines.length > 0 && (
+          <div className="dashboard-card">
+            <div className="card-header">
+              <h3>{t('dashboard.upcomingDeadlines')}</h3>
+              <Link to={isStudent ? "/assignments" : "/teacher/tests"} className="view-all-link">
+                {t('common.viewAll')} →
+              </Link>
+            </div>
+            <div className="deadlines-list">
+              {upcomingDeadlines.map((deadline) => {
+                const timeRemaining = getTimeRemaining(deadline.dueDate);
+                const isUrgent = timeRemaining && timeRemaining.expired === false && timeRemaining.days <= 3;
+                return (
+                  <Link 
+                    key={deadline.id} 
+                    to={deadline.url}
+                    className={`deadline-item ${isUrgent ? 'urgent' : ''}`}
+                  >
+                    <div className="deadline-icon">
+                      {deadline.type === 'assignment' ? <FiFileText /> : <FiCheckSquare />}
+                    </div>
+                    <div className="deadline-info">
+                      <h4>{deadline.title}</h4>
+                      <p className="deadline-meta">
+                        <span className="deadline-type">
+                          {deadline.type === 'assignment' ? t('assignments.title') : t('tests.title')}
+                        </span>
+                        <span className="deadline-date">
+                          <FiCalendar size={12} /> {formatDate(deadline.dueDate)}
+                        </span>
+                      </p>
+                    </div>
+                    {timeRemaining && (
+                      <span className={`deadline-badge ${isUrgent ? 'urgent' : ''}`}>
+                        {timeRemaining.expired ? t('assignments.overdue') : timeRemaining.text}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="dashboard-card">
+          <div className="card-header">
+            <h3>{t('dashboard.quickActions')}</h3>
+          </div>
+          <div className="quick-actions">
+            {isTeacher && (
+              <>
+                <Link to="/my-lessons" className="action-btn">
+                  <FiVideo /> {t('dashboard.addLesson')}
+                </Link>
+                <Link to="/teacher/tests" className="action-btn">
+                  <FiCheckSquare /> {t('dashboard.createTest')}
+                </Link>
+                <Link to="/assignments" className="action-btn">
+                  <FiFileText /> {t('dashboard.createAssignment')}
+                </Link>
+                <Link to="/teacher/resources" className="action-btn">
+                  <FiFileText /> {t('dashboard.addResource')}
+                </Link>
+              </>
+            )}
+            {isStudent && (
+              <>
+                <Link to="/tests" className="action-btn">
+                  <FiCheckSquare /> {t('dashboard.viewTests')}
+                </Link>
+                <Link to="/assignments" className="action-btn">
+                  <FiFileText /> {t('dashboard.viewAssignments')}
+                </Link>
+                <Link to="/explore-courses" className="action-btn">
+                  <FiVideo /> {t('dashboard.viewLessons')}
+                </Link>
+                <Link to="/resources" className="action-btn">
+                  <FiBookOpen /> {t('dashboard.viewResources')}
+                </Link>
+              </>
+            )}
+            {isAdmin && (
+              <>
+                <Link to="/structure" className="action-btn">
+                  <FiUsers /> {t('dashboard.manageStructure')}
+                </Link>
+                <Link to="/users" className="action-btn">
+                  <FiUsers /> {t('dashboard.manageUsers')}
+                </Link>
+                <Link to="/admin/analytics" className="action-btn">
+                  <FiTrendingUp /> {t('dashboard.viewAnalytics')}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Overview (Student only) */}
+        {isStudent && (attendancePercentage > 0 || stats.avgGrade > 0) && (
+          <div className="dashboard-card">
+            <div className="card-header">
+              <h3>{t('dashboard.progress')}</h3>
+            </div>
+            <div className="progress-overview">
+              {attendancePercentage > 0 && (
+                <div className="progress-item">
+                  <div className="progress-header">
+                    <span className="progress-label">
+                      <FiCalendar size={16} /> {t('dashboard.attendance')}
+                    </span>
+                    <span className="progress-value">{attendancePercentage}%</span>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ 
+                        width: `${attendancePercentage}%`,
+                        backgroundColor: attendancePercentage >= 80 ? 'var(--success)' : 
+                                        attendancePercentage >= 60 ? 'var(--warning)' : 'var(--danger)'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {stats.avgGrade > 0 && (
+                <div className="progress-item">
+                  <div className="progress-header">
+                    <span className="progress-label">
+                      <FiAward size={16} /> {t('dashboard.averageGrade')}
+                    </span>
+                    <span className="progress-value">{stats.avgGrade.toFixed(2)}</span>
+                  </div>
+                  <div className="grade-indicator">
+                    <div 
+                      className="grade-bar"
+                      style={{ 
+                        width: `${(stats.avgGrade / 5) * 100}%`,
+                        backgroundColor: stats.avgGrade >= 4 ? 'var(--success)' : 
+                                        stats.avgGrade >= 3 ? 'var(--warning)' : 'var(--danger)'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Test Results (Student only) */}
+        {isStudent && recentTests.length > 0 && (
+          <div className="dashboard-card">
+            <div className="card-header">
+              <h3>{t('dashboard.recentTests')}</h3>
+              <Link to="/tests?tab=results" className="view-all-link">
+                {t('common.viewAll')} →
+              </Link>
+            </div>
+            <div className="recent-tests">
+              {recentTests.map((test) => (
+                <Link 
+                  key={test.id} 
+                  to="/tests?tab=results"
+                  className="test-result-item"
+                >
+                  <div className="test-result-icon">
+                    <FiCheckSquare />
+                  </div>
+                  <div className="test-result-info">
+                    <h4>{test.title}</h4>
+                    {test.score && (
+                      <p className="test-result-score">
+                        {t('dashboard.score')}: {test.score.earned} / {test.score.max} 
+                        ({test.score.percentage}%)
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

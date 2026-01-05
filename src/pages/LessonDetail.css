@@ -15,14 +15,25 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-weight: 600;
   text-decoration: none;
   transition: var(--transition);
+  width: fit-content;
 }
 
 .back-btn:hover {
-  color: var(--primary);
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.back-btn:hover svg {
+  color: white;
 }
 
 .owner-actions {
@@ -48,7 +59,7 @@
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  background: #000;
+  background: #000; /* Video player uchun qora fon kerak */
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: 0 8px 32px var(--shadow);
@@ -58,6 +69,29 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* YouTube "Watch on YouTube" tugmasini yashirish */
+.video-container iframe {
+  position: relative;
+}
+
+/* ReactPlayer wrapper uchun */
+.video-container > div > div {
+  position: relative;
+  overflow: hidden;
+}
+
+/* YouTube player ichidagi watermark va tugmalarni yashirish */
+.video-container :global(.ytp-watermark),
+.video-container :global(.ytp-watermark-logo),
+.video-container :global(.ytp-watermark-button),
+.video-container :global(.ytp-watermark-show-expanded),
+.video-container :global(.ytp-watermark-expanded) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .no-video-placeholder {

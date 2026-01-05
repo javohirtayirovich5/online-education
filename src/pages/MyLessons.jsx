@@ -5,6 +5,7 @@ import { courseService } from '../services/courseService';
 import { subjectService } from '../services/subjectService';
 import { storageService } from '../services/storageService';
 import { getVideoDuration, secondsToMinutes, generateThumbnailFromVideo } from '../utils/videoUtils';
+import { useTranslation } from '../hooks/useTranslation';
 import { 
   FiPlus, 
   FiPlay, 
@@ -29,6 +30,7 @@ import './Lessons.css';
 const MyLessons = () => {
   const navigate = useNavigate();
   const { userData, isTeacher } = useAuth();
+  const { t } = useTranslation();
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,13 +65,16 @@ const MyLessons = () => {
     videoFile: null,
     thumbnailFile: null,
     attachedFiles: [],
-    duration: null
+    duration: null,
+    videoSource: 'upload', // 'upload' yoki 'youtube'
+    youtubeUrl: ''
   });
   const thumbnailLessonInputRef = useRef(null);
   const attachedFilesInputRef = useRef(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [gettingDuration, setGettingDuration] = useState(false);
+  const [loadingYouTubeInfo, setLoadingYouTubeInfo] = useState(false);
   const videoInputRef = useRef(null);
 
   useEffect(() => {
@@ -100,6 +105,19 @@ const MyLessons = () => {
           // URL dan parametrlarni olib tashlash
           window.history.replaceState({}, '', '/my-lessons');
         }
+      }
+    }
+
+    // CourseDetail'dan dars qo'shish uchun courseId va addLesson parametrlarini o'qish
+    const courseId = searchParams.get('courseId');
+    const addLesson = searchParams.get('addLesson');
+    
+    if (courseId && addLesson === 'true' && courses.length > 0) {
+      const course = courses.find(c => c.id === courseId);
+      if (course) {
+        openAddLessonModal(course);
+        // URL dan parametrlarni olib tashlash
+        window.history.replaceState({}, '', '/my-lessons');
       }
     }
   }, [courses, searchParams]);
@@ -156,6 +174,63 @@ const MyLessons = () => {
     }
   };
 
+  // YouTube URL ni validate qilish va video ID ni extract qilish
+  const validateYouTubeUrl = (url) => {
+    if (!url || !url.trim()) return { valid: false, error: 'URL kiritilmagan' };
+    
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+    if (!youtubeRegex.test(url)) {
+      return { valid: false, error: 'Noto\'g\'ri YouTube URL' };
+    }
+
+    // YouTube video ID ni extract qilish
+    let videoId = '';
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        videoId = match[1];
+        break;
+      }
+    }
+
+    if (!videoId) {
+      return { valid: false, error: 'YouTube video ID topilmadi' };
+    }
+
+    return { valid: true, videoId, url: `https://www.youtube.com/watch?v=${videoId}` };
+  };
+
+  // YouTube videodan ma'lumotlarni olish (oEmbed API)
+  const fetchYouTubeVideoInfo = async (videoUrl) => {
+    try {
+      const oEmbedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`;
+      const response = await fetch(oEmbedUrl);
+      
+      if (!response.ok) {
+        throw new Error('YouTube video ma\'lumotlarini olishda xatolik');
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        title: data.title || '',
+        author: data.author_name || '',
+        thumbnail: data.thumbnail_url || ''
+      };
+    } catch (error) {
+      console.error('Fetch YouTube info error:', error);
+      return {
+        success: false,
+        error: error.message || 'YouTube video ma\'lumotlarini olishda xatolik'
+      };
+    }
+  };
+
   const handleVideoFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -173,7 +248,7 @@ const MyLessons = () => {
       return;
     }
 
-    setLessonFormData({ ...lessonFormData, videoFile: file });
+    setLessonFormData({ ...lessonFormData, videoFile: file, videoSource: 'upload', youtubeUrl: '' });
     setGettingDuration(true);
 
     try {
@@ -190,16 +265,52 @@ const MyLessons = () => {
     }
   };
 
+  const handleYouTubeUrlChange = async (e) => {
+    const url = e.target.value;
+    setLessonFormData({ ...lessonFormData, youtubeUrl: url, videoFile: null, duration: null });
+    
+    if (url && url.trim()) {
+      const validation = validateYouTubeUrl(url);
+      if (!validation.valid) {
+        // Xatolikni faqat to'liq URL kiritilganda ko'rsatish
+        if (url.length > 20) {
+          toast.error(validation.error);
+        }
+      } else {
+        // To'g'ri URL bo'lsa, yangilash va video ma'lumotlarini olish
+        const validatedUrl = validation.url;
+        setLessonFormData(prev => ({ ...prev, youtubeUrl: validatedUrl }));
+        
+        // YouTube videodan ma'lumotlarni olish
+        setLoadingYouTubeInfo(true);
+        const videoInfo = await fetchYouTubeVideoInfo(validatedUrl);
+        setLoadingYouTubeInfo(false);
+        
+        if (videoInfo.success) {
+          // Video nomi va tavsifni avtomatik to'ldirish (faqat bo'sh bo'lsa)
+          setLessonFormData(prev => ({
+            ...prev,
+            title: prev.title.trim() || videoInfo.title, // Faqat bo'sh bo'lsa to'ldirish
+            description: prev.description.trim() || (videoInfo.author ? `Muallif: ${videoInfo.author}` : 'YouTube video')
+          }));
+          toast.success('YouTube video ma\'lumotlari yuklandi!');
+        } else {
+          toast.warning('Video ma\'lumotlarini olishda xatolik. Qo\'lda kiriting.');
+        }
+      }
+    }
+  };
+
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     
     if (!courseFormData.title || !courseFormData.subjectId) {
-      toast.error('Kurs nomi va fan tanlash majburiy');
+      toast.error(t('lessons.courseNameAndSubjectRequired'));
       return;
     }
 
     if (!courseFormData.thumbnailFile) {
-      toast.error('Thumbnail yuklash majburiy');
+      toast.error(t('lessons.thumbnailRequired'));
       return;
     }
 
@@ -221,7 +332,7 @@ const MyLessons = () => {
       });
 
       if (!courseResult.success) {
-        throw new Error('Kurs yaratishda xatolik');
+        throw new Error(t('lessons.courseCreateError'));
       }
 
       const courseId = courseResult.courseId;
@@ -239,7 +350,7 @@ const MyLessons = () => {
           thumbnailURL: thumbnailResult.url
         });
 
-        toast.success('Kurs muvaffaqiyatli yaratildi!');
+        toast.success(t('lessons.courseCreatedSuccess'));
         setShowCreateCourseModal(false);
         setCourseFormData({ title: '', description: '', subjectId: '', thumbnailFile: null });
         if (thumbnailInputRef.current) {
@@ -247,11 +358,11 @@ const MyLessons = () => {
         }
         loadCourses();
       } else {
-        throw new Error('Thumbnail yuklashda xatolik');
+        throw new Error(t('lessons.thumbnailUploadError'));
       }
     } catch (error) {
       console.error('Create course error:', error);
-      toast.error(error.message || 'Kurs yaratishda xatolik');
+      toast.error(error.message || t('lessons.courseCreateError'));
     } finally {
       setUploadingThumbnail(false);
     }
@@ -261,13 +372,31 @@ const MyLessons = () => {
     e.preventDefault();
     
     if (!lessonFormData.title) {
-      toast.error('Dars nomi majburiy');
+      toast.error(t('lessons.lessonTitleRequired'));
       return;
     }
 
     if (!selectedCourse) {
-      toast.error('Kurs tanlanmagan');
+      toast.error(t('lessons.courseNotSelected'));
       return;
+    }
+
+    // Video manbasi tekshirish
+    if (lessonFormData.videoSource === 'youtube') {
+      if (!lessonFormData.youtubeUrl || !lessonFormData.youtubeUrl.trim()) {
+        toast.error(t('lessons.youtubeUrlRequired'));
+        return;
+      }
+      const validation = validateYouTubeUrl(lessonFormData.youtubeUrl);
+      if (!validation.valid) {
+        toast.error(validation.error || t('lessons.invalidYouTubeUrl'));
+        return;
+      }
+    } else {
+      if (!lessonFormData.videoFile) {
+        toast.error(t('lessons.videoFileOrUrlRequired'));
+        return;
+      }
     }
 
     // Agar modul bo'lmasa, avtomatik yaratish
@@ -279,7 +408,7 @@ const MyLessons = () => {
         description: ''
       });
       if (!moduleResult.success) {
-        toast.error('Modul yaratishda xatolik');
+        toast.error(t('lessons.moduleCreateError'));
         return;
       }
       // Yangi modul ID sini olish
@@ -302,8 +431,23 @@ const MyLessons = () => {
       let videoType = 'uploaded';
       let thumbnailURL = '';
 
+      // Video manbasi: yuklangan fayl yoki YouTube link
+      if (lessonFormData.videoSource === 'youtube' && lessonFormData.youtubeUrl) {
+        // YouTube link
+        const validation = validateYouTubeUrl(lessonFormData.youtubeUrl);
+        if (!validation.valid) {
+          toast.error(validation.error || t('lessons.invalidYouTubeUrl'));
+          setUploadingVideo(false);
+          return;
+        }
+        videoURL = validation.url;
+        videoType = 'youtube';
+        // YouTube uchun thumbnail URL ni olish (ixtiyoriy)
+        if (validation.videoId) {
+          thumbnailURL = `https://img.youtube.com/vi/${validation.videoId}/maxresdefault.jpg`;
+        }
+      } else if (lessonFormData.videoFile) {
       // Video fayl yuklash
-      if (lessonFormData.videoFile) {
         const videoPath = `courses/${selectedCourse.id}/lessons/video_${Date.now()}.${lessonFormData.videoFile.name.split('.').pop()}`;
         const uploadResult = await storageService.uploadFile(
           lessonFormData.videoFile,
@@ -314,7 +458,7 @@ const MyLessons = () => {
         if (uploadResult.success) {
           videoURL = uploadResult.url;
         } else {
-          throw new Error('Video yuklashda xatolik');
+          throw new Error(t('lessons.videoUploadError'));
         }
 
         // Thumbnail yuklash yoki videodan yaratish
@@ -405,11 +549,11 @@ const MyLessons = () => {
         }
         loadCourses();
       } else {
-        toast.error('Dars qo\'shishda xatolik');
+        toast.error(t('lessons.lessonAddError'));
       }
     } catch (error) {
       console.error('Add lesson error:', error);
-      toast.error(error.message || 'Dars qo\'shishda xatolik');
+      toast.error(error.message || t('lessons.lessonAddError'));
     } finally {
       setUploadingVideo(false);
       setUploadProgress(0);
@@ -421,7 +565,7 @@ const MyLessons = () => {
     setConfirmAction(() => async () => {
       const result = await courseService.deleteCourse(courseId);
       if (result.success) {
-        toast.success('Kurs o\'chirildi');
+        toast.success(t('lessons.courseDeleted'));
         loadCourses();
       } else {
         toast.error('Kurs o\'chirishda xatolik');
@@ -455,7 +599,9 @@ const MyLessons = () => {
       videoFile: null,
       thumbnailFile: null,
       attachedFiles: [],
-      duration: lesson.duration || null
+      duration: lesson.duration || null,
+      videoSource: lesson.videoType === 'youtube' ? 'youtube' : 'upload',
+      youtubeUrl: lesson.videoType === 'youtube' ? (lesson.videoURL || '') : ''
     });
     setShowEditLessonModal(true);
   };
@@ -466,7 +612,7 @@ const MyLessons = () => {
     if (!editingCourse) return;
     
     if (!courseFormData.title || !courseFormData.subjectId) {
-      toast.error('Kurs nomi va fan tanlash majburiy');
+      toast.error(t('lessons.courseNameAndSubjectRequired'));
       return;
     }
 
@@ -522,12 +668,12 @@ const MyLessons = () => {
     e.preventDefault();
     
     if (!editingLesson || !selectedCourse) {
-      toast.error('Dars ma\'lumotlari topilmadi');
+      toast.error(t('lessons.lessonDataNotFound'));
       return;
     }
 
     if (!lessonFormData.title) {
-      toast.error('Dars nomi majburiy');
+      toast.error(t('lessons.lessonTitleRequired'));
       return;
     }
 
@@ -539,14 +685,30 @@ const MyLessons = () => {
       const moduleId = selectedCourse.modules?.[moduleIndex]?.moduleId;
       
       if (!moduleId) {
-        throw new Error('Modul topilmadi');
+        throw new Error(t('lessons.moduleNotFound'));
       }
 
       let videoURL = lesson.videoURL || '';
+      let videoType = lesson.videoType || 'uploaded';
       let thumbnailURL = lesson.thumbnailURL || '';
 
-      // Video yangilash (agar yangi fayl yuklangan bo'lsa)
-      if (lessonFormData.videoFile) {
+      // Video yangilash: YouTube link yoki yangi fayl
+      if (lessonFormData.videoSource === 'youtube' && lessonFormData.youtubeUrl) {
+        // YouTube link
+        const validation = validateYouTubeUrl(lessonFormData.youtubeUrl);
+        if (!validation.valid) {
+          toast.error(validation.error || t('lessons.invalidYouTubeUrl'));
+          setUploadingVideo(false);
+          return;
+        }
+        videoURL = validation.url;
+        videoType = 'youtube';
+        // YouTube uchun thumbnail URL ni olish (ixtiyoriy)
+        if (validation.videoId) {
+          thumbnailURL = `https://img.youtube.com/vi/${validation.videoId}/maxresdefault.jpg`;
+        }
+      } else if (lessonFormData.videoFile) {
+        // Video fayl yangilash
         const videoPath = `courses/${selectedCourse.id}/lessons/video_${Date.now()}.${lessonFormData.videoFile.name.split('.').pop()}`;
         const uploadResult = await storageService.uploadFile(
           lessonFormData.videoFile,
@@ -557,7 +719,7 @@ const MyLessons = () => {
         if (uploadResult.success) {
           videoURL = uploadResult.url;
         } else {
-          throw new Error('Video yuklashda xatolik');
+          throw new Error(t('lessons.videoUploadError'));
         }
       }
 
@@ -622,14 +784,11 @@ const MyLessons = () => {
         title: lessonFormData.title,
         description: lessonFormData.description || '',
         videoURL: videoURL,
+        videoType: videoType,
         thumbnailURL: thumbnailURL,
         attachedFiles: attachedFilesURLs,
         duration: lessonFormData.duration || lesson.duration || 0
       };
-
-      if (lessonFormData.videoFile) {
-        updates.videoType = 'uploaded';
-      }
 
       const result = await courseService.updateLessonInModule(
         selectedCourse.id,
@@ -656,11 +815,11 @@ const MyLessons = () => {
         }
         loadCourses();
       } else {
-        toast.error('Dars yangilashda xatolik');
+        toast.error(t('lessons.lessonUpdateError'));
       }
     } catch (error) {
       console.error('Update lesson error:', error);
-      toast.error(error.message || 'Dars yangilashda xatolik');
+      toast.error(error.message || t('lessons.lessonUpdateError'));
     } finally {
       setUploadingVideo(false);
       setUploadProgress(0);
@@ -689,12 +848,12 @@ const MyLessons = () => {
     <div className="lessons-page">
       <div className="page-header">
         <div>
-          <h1>{isTeacher ? 'Mening kurslarim' : 'Barcha kurslar'}</h1>
-          <p>{isTeacher ? 'Siz yaratgan video kurslar va darslar' : 'Universitetning barcha video kurslari'}</p>
+          <h1>{isTeacher ? t('lessons.myLessons') : t('lessons.title')}</h1>
+          <p>{isTeacher ? t('lessons.myLessons') : t('lessons.title')}</p>
         </div>
         {isTeacher && (
           <button className="btn btn-primary" onClick={() => setShowCreateCourseModal(true)}>
-            <FiPlus /> Yangi kurs yaratish
+            <FiPlus /> {t('lessons.addLesson')}
           </button>
         )}
       </div>
@@ -705,7 +864,7 @@ const MyLessons = () => {
           <FiSearch className="search-icon" />
           <input
             type="text"
-            placeholder="Kurslarni qidirish..."
+            placeholder={t('lessons.searchCourses') + '...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -719,7 +878,7 @@ const MyLessons = () => {
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
           >
-            <option value="all">Barcha fanlar</option>
+            <option value="all">{t('grades.allSubjects')}</option>
             {subjects.map(subject => (
               <option key={subject.id} value={subject.id}>{subject.name}</option>
             ))}
@@ -731,11 +890,11 @@ const MyLessons = () => {
       {filteredCourses.length === 0 ? (
         <div className="empty-state-large">
           <FiBook size={64} />
-          <h2>{isTeacher ? 'Hozircha kurslar yo\'q' : 'Kurslar topilmadi'}</h2>
+          <h2>{isTeacher ? t('lessons.noLessons') : t('lessons.coursesNotFound')}</h2>
           <p>
             {isTeacher 
-              ? 'Yangi kurs yaratish uchun yuqoridagi tugmani bosing'
-              : 'Qidiruv shartlarini o\'zgartiring'}
+              ? t('lessons.addLesson')
+              : t('lessons.changeSearchCriteria')}
           </p>
         </div>
       ) : (
@@ -801,14 +960,14 @@ const MyLessons = () => {
                       <button 
                         className="btn-icon" 
                         onClick={() => openEditCourseModal(course)}
-                        title="Tahrirlash"
+                        title={t('common.edit')}
                       >
                         <FiEdit />
                       </button>
                       <button 
                         className="btn-icon btn-danger" 
                         onClick={() => handleDeleteCourse(course.id)}
-                        title="O'chirish"
+                        title={t('common.delete')}
                       >
                         <FiTrash2 />
                       </button>
@@ -825,55 +984,55 @@ const MyLessons = () => {
       <Modal
         isOpen={showCreateCourseModal}
         onClose={() => setShowCreateCourseModal(false)}
-        title="Yangi kurs yaratish"
+        title={t('lessons.addLesson')}
         size="large"
       >
         <form onSubmit={handleCreateCourse} className="lesson-form">
           <div className="form-group">
-            <label className="form-label">Kurs nomi *</label>
+            <label className="form-label">{t('lessons.courseTitle')} *</label>
             <input
               type="text"
               className="form-input"
               value={courseFormData.title}
               onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
-              placeholder="Masalan: Matematika asoslari"
+              placeholder={t('lessons.courseTitleExample')}
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tavsif</label>
+            <label className="form-label">{t('lessons.lessonDescription')}</label>
             <textarea
               className="form-textarea"
               value={courseFormData.description}
               onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
-              placeholder="Kurs haqida qisqacha ma'lumot..."
+              placeholder={t('lessons.courseDescriptionExample')}
               rows="4"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Fan *</label>
+            <label className="form-label">{t('grades.subject')} *</label>
             <select
               className="form-select"
               value={courseFormData.subjectId}
               onChange={(e) => setCourseFormData({ ...courseFormData, subjectId: e.target.value })}
               required
             >
-              <option value="">Fan tanlang</option>
+              <option value="">{t('grades.selectSubject')}</option>
               {subjects.map(subject => (
                 <option key={subject.id} value={subject.id}>{subject.name}</option>
               ))}
             </select>
             {subjects.length === 0 && (
-              <p className="form-help" style={{ color: '#ef4444' }}>
-                Sizda mutaxassislik fanlari topilmadi. Admin sizga fan biriktirishi kerak.
+              <p className="form-help" style={{ color: 'var(--error)' }}>
+                {t('lessons.noSubjectsAssigned')}
               </p>
             )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Thumbnail *</label>
+            <label className="form-label">{t('lessons.thumbnail')} *</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -893,23 +1052,23 @@ const MyLessons = () => {
                 className="file-upload-btn"
                 onClick={() => thumbnailInputRef.current?.click()}
               >
-                <FiUpload /> Rasm yuklash
+                <FiUpload /> {t('lessons.uploadImage')}
               </button>
             </div>
             {courseFormData.thumbnailFile && (
               <p className="form-help">
-                Tanlangan: {courseFormData.thumbnailFile.name}
+                  {t('lessons.selected')}: {courseFormData.thumbnailFile.name}
               </p>
             )}
-            <p className="form-help">Kurs uchun rasm yuklash majburiy</p>
+            <p className="form-help">{t('lessons.thumbnailRequired')}</p>
           </div>
 
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => setShowCreateCourseModal(false)}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary">
-              Yaratish
+              {t('common.create')}
             </button>
           </div>
         </form>
@@ -926,42 +1085,42 @@ const MyLessons = () => {
             thumbnailInputRef.current.value = '';
           }
         }}
-        title="Kursni tahrirlash"
+        title={t('lessons.editCourse')}
         size="large"
       >
         <form onSubmit={handleUpdateCourse} className="lesson-form">
           <div className="form-group">
-            <label className="form-label">Kurs nomi *</label>
+            <label className="form-label">{t('lessons.courseTitle')} *</label>
             <input
               type="text"
               className="form-input"
               value={courseFormData.title}
               onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
-              placeholder="Masalan: Matematika asoslari"
+              placeholder={t('lessons.courseTitleExample')}
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tavsif</label>
+            <label className="form-label">{t('lessons.lessonDescription')}</label>
             <textarea
               className="form-textarea"
               value={courseFormData.description}
               onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
-              placeholder="Kurs haqida qisqacha ma'lumot..."
+              placeholder={t('lessons.courseDescriptionExample')}
               rows="4"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Fan *</label>
+            <label className="form-label">{t('grades.subject')} *</label>
             <select
               className="form-select"
               value={courseFormData.subjectId}
               onChange={(e) => setCourseFormData({ ...courseFormData, subjectId: e.target.value })}
               required
             >
-              <option value="">Fan tanlang</option>
+              <option value="">{t('grades.selectSubject')}</option>
               {subjects.map(subject => (
                 <option key={subject.id} value={subject.id}>{subject.name}</option>
               ))}
@@ -969,7 +1128,7 @@ const MyLessons = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Thumbnail (ixtiyoriy)</label>
+            <label className="form-label">{t('lessons.thumbnail')} ({t('common.optional')})</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -988,7 +1147,7 @@ const MyLessons = () => {
                 className="file-upload-btn"
                 onClick={() => thumbnailInputRef.current?.click()}
               >
-                <FiUpload /> Rasm yuklash
+                <FiUpload /> {t('lessons.uploadImage')}
               </button>
             </div>
             {editingCourse?.thumbnailURL && !courseFormData.thumbnailFile && (
@@ -1013,10 +1172,10 @@ const MyLessons = () => {
                 thumbnailInputRef.current.value = '';
               }
             }}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={uploadingThumbnail}>
-              {uploadingThumbnail ? 'Yuklanmoqda...' : 'Yangilash'}
+              {uploadingThumbnail ? t('common.uploading') : t('common.update')}
             </button>
           </div>
         </form>
@@ -1039,7 +1198,7 @@ const MyLessons = () => {
             attachedFilesInputRef.current.value = '';
           }
         }}
-        title={`Yangi dars qo'shish - ${selectedCourse?.title || ''}`}
+        title={`${t('lessons.addLesson')} - ${selectedCourse?.title || ''}`}
         size="large"
       >
         <form onSubmit={handleAddLesson} className="lesson-form">
@@ -1061,13 +1220,61 @@ const MyLessons = () => {
               className="form-textarea"
               value={lessonFormData.description}
               onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
-              placeholder="Dars haqida qisqacha ma'lumot..."
+              placeholder={t('lessons.lessonDescriptionExample')}
               rows="4"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Video fayl *</label>
+            <label className="form-label">{t('lessons.videoSource')} *</label>
+            
+            {/* Video manbasi tanlash */}
+            <div className="video-source-toggle" style={{ marginBottom: '16px' }}>
+              <label className="toggle-option">
+                <input
+                  type="radio"
+                  name="videoSource"
+                  value="upload"
+                  checked={lessonFormData.videoSource === 'upload'}
+                  onChange={(e) => {
+                    setLessonFormData({ 
+                      ...lessonFormData, 
+                      videoSource: e.target.value,
+                      videoFile: null,
+                      youtubeUrl: '',
+                      duration: null
+                    });
+                    if (videoInputRef.current) {
+                      videoInputRef.current.value = '';
+                    }
+                  }}
+                />
+                <span>{t('lessons.videoFile')}</span>
+              </label>
+              <label className="toggle-option">
+                <input
+                  type="radio"
+                  name="videoSource"
+                  value="youtube"
+                  checked={lessonFormData.videoSource === 'youtube'}
+                  onChange={(e) => {
+                    setLessonFormData({ 
+                      ...lessonFormData, 
+                      videoSource: e.target.value,
+                      videoFile: null,
+                      duration: null
+                    });
+                    if (videoInputRef.current) {
+                      videoInputRef.current.value = '';
+                    }
+                  }}
+                />
+                <span>{t('lessons.youtubeUrl')}</span>
+              </label>
+            </div>
+
+            {lessonFormData.videoSource === 'upload' ? (
+              <>
             <div className="file-upload-wrapper">
               <input
                 ref={videoInputRef}
@@ -1075,14 +1282,13 @@ const MyLessons = () => {
                 accept="video/*"
                 onChange={handleVideoFileChange}
                 className="file-input-hidden"
-                required
               />
               <button
                 type="button"
                 className="file-upload-btn"
                 onClick={() => videoInputRef.current?.click()}
               >
-                <FiUpload /> Video yuklash
+                <FiUpload /> {t('lessons.uploadVideo')}
               </button>
             </div>
             {gettingDuration && (
@@ -1113,10 +1319,47 @@ const MyLessons = () => {
               </div>
             )}
             <p className="form-help">MP4, WebM, OGG, MOV, AVI • Maksimum 500MB</p>
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={lessonFormData.youtubeUrl}
+                  onChange={handleYouTubeUrlChange}
+                  placeholder={t('lessons.youtubeUrlExample')}
+                  disabled={loadingYouTubeInfo}
+                />
+                {loadingYouTubeInfo && (
+                  <p className="form-help" style={{ color: 'var(--info)', marginTop: '8px' }}>
+                    ⏳ YouTube video ma'lumotlari olinmoqda...
+                  </p>
+                )}
+                {lessonFormData.youtubeUrl && !loadingYouTubeInfo && (
+                  <div className="selected-file-info" style={{ marginTop: '8px' }}>
+                    <div className="file-info-row">
+                      <span style={{ color: 'var(--success)' }}>✓ {t('lessons.youtubeLinkAdded')}</span>
+                      <button
+                        type="button"
+                        className="btn-icon-small"
+                        onClick={() => {
+                          setLessonFormData({ ...lessonFormData, youtubeUrl: '' });
+                        }}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="form-help">
+                  {t('lessons.youtubeUrlHelp')}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Thumbnail (ixtiyoriy)</label>
+            <label className="form-label">{t('lessons.thumbnail')} ({t('common.optional')})</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -1135,12 +1378,12 @@ const MyLessons = () => {
                 className="file-upload-btn"
                 onClick={() => thumbnailLessonInputRef.current?.click()}
               >
-                <FiUpload /> Rasm yuklash
+                <FiUpload /> {t('lessons.uploadImage')}
               </button>
             </div>
             {lessonFormData.thumbnailFile && (
               <p className="form-help">
-                Tanlangan: {lessonFormData.thumbnailFile.name}
+                  {t('lessons.selected')}: {lessonFormData.thumbnailFile.name}
               </p>
             )}
             <p className="form-help">
@@ -1221,7 +1464,16 @@ const MyLessons = () => {
               className="btn btn-secondary" 
               onClick={() => {
                 setShowAddLessonModal(false);
-                setLessonFormData({ title: '', description: '', videoFile: null, duration: null });
+        setLessonFormData({ 
+          title: '', 
+          description: '', 
+          videoFile: null, 
+          thumbnailFile: null,
+          attachedFiles: [],
+          duration: null,
+          videoSource: 'upload',
+          youtubeUrl: ''
+        });
                 setSelectedCourse(null);
                 if (videoInputRef.current) {
                   videoInputRef.current.value = '';
@@ -1229,14 +1481,14 @@ const MyLessons = () => {
               }}
               disabled={uploadingVideo}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button 
               type="submit" 
               className="btn btn-primary"
               disabled={uploadingVideo || gettingDuration}
             >
-              {uploadingVideo ? 'Yuklanmoqda...' : 'Qo\'shish'}
+              {uploadingVideo ? t('common.uploading') : t('common.add')}
             </button>
           </div>
         </form>
@@ -1250,7 +1502,16 @@ const MyLessons = () => {
           setEditingLesson(null);
           setSelectedCourse(null);
           setDeletedAttachedFiles([]);
-          setLessonFormData({ title: '', description: '', videoFile: null, thumbnailFile: null, attachedFiles: [], duration: null });
+          setLessonFormData({ 
+            title: '', 
+            description: '', 
+            videoFile: null, 
+            thumbnailFile: null, 
+            attachedFiles: [], 
+            duration: null,
+            videoSource: 'upload',
+            youtubeUrl: ''
+          });
           if (videoInputRef.current) {
             videoInputRef.current.value = '';
           }
@@ -1283,13 +1544,61 @@ const MyLessons = () => {
               className="form-textarea"
               value={lessonFormData.description}
               onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
-              placeholder="Dars haqida qisqacha ma'lumot..."
+              placeholder={t('lessons.lessonDescriptionExample')}
               rows="4"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Video fayl (ixtiyoriy - yangilash uchun)</label>
+            <label className="form-label">Video manbasi (ixtiyoriy - yangilash uchun)</label>
+            
+            {/* Video manbasi tanlash */}
+            <div className="video-source-toggle" style={{ marginBottom: '16px' }}>
+              <label className="toggle-option">
+                <input
+                  type="radio"
+                  name="videoSource-edit"
+                  value="upload"
+                  checked={lessonFormData.videoSource === 'upload'}
+                  onChange={(e) => {
+                    setLessonFormData({ 
+                      ...lessonFormData, 
+                      videoSource: e.target.value,
+                      videoFile: null,
+                      youtubeUrl: '',
+                      duration: null
+                    });
+                    if (videoInputRef.current) {
+                      videoInputRef.current.value = '';
+                    }
+                  }}
+                />
+                <span>{t('lessons.videoFile')}</span>
+              </label>
+              <label className="toggle-option">
+                <input
+                  type="radio"
+                  name="videoSource-edit"
+                  value="youtube"
+                  checked={lessonFormData.videoSource === 'youtube'}
+                  onChange={(e) => {
+                    setLessonFormData({ 
+                      ...lessonFormData, 
+                      videoSource: e.target.value,
+                      videoFile: null,
+                      duration: null
+                    });
+                    if (videoInputRef.current) {
+                      videoInputRef.current.value = '';
+                    }
+                  }}
+                />
+                <span>{t('lessons.youtubeUrl')}</span>
+              </label>
+            </div>
+
+            {lessonFormData.videoSource === 'upload' ? (
+              <>
             <div className="file-upload-wrapper">
               <input
                 ref={videoInputRef}
@@ -1303,10 +1612,14 @@ const MyLessons = () => {
                 className="file-upload-btn"
                 onClick={() => videoInputRef.current?.click()}
               >
-                <FiUpload /> Video yuklash
+                <FiUpload /> {t('lessons.uploadVideo')}
               </button>
             </div>
-
+                {editingLesson?.lesson?.videoType === 'uploaded' && !lessonFormData.videoFile && (
+                  <p className="form-help" style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    Hozirgi video: {editingLesson.lesson.videoURL ? 'Yuklangan video' : 'Video mavjud emas'}
+                  </p>
+                )}
             {gettingDuration && (
               <p className="form-help">Video davomiyligi o'qilmoqda...</p>
             )}
@@ -1335,10 +1648,52 @@ const MyLessons = () => {
               </div>
             )}
             <p className="form-help">MP4, WebM, OGG, MOV, AVI • Maksimum 500MB</p>
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={lessonFormData.youtubeUrl}
+                  onChange={handleYouTubeUrlChange}
+                  placeholder={t('lessons.youtubeUrlExample')}
+                  disabled={loadingYouTubeInfo}
+                />
+                {loadingYouTubeInfo && (
+                  <p className="form-help" style={{ color: 'var(--info)', marginTop: '8px' }}>
+                    ⏳ YouTube video ma'lumotlari olinmoqda...
+                  </p>
+                )}
+                {editingLesson?.lesson?.videoType === 'youtube' && !lessonFormData.youtubeUrl && !loadingYouTubeInfo && (
+                  <p className="form-help" style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    {t('lessons.currentVideo')}: {t('lessons.youtubeUrl')}
+                  </p>
+                )}
+                {lessonFormData.youtubeUrl && !loadingYouTubeInfo && (
+                  <div className="selected-file-info" style={{ marginTop: '8px' }}>
+                    <div className="file-info-row">
+                      <span style={{ color: 'var(--success)' }}>✓ {t('lessons.youtubeLinkAdded')}</span>
+                      <button
+                        type="button"
+                        className="btn-icon-small"
+                        onClick={() => {
+                          setLessonFormData({ ...lessonFormData, youtubeUrl: '' });
+                        }}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="form-help">
+                  {t('lessons.youtubeUrlHelp')}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Thumbnail (ixtiyoriy)</label>
+            <label className="form-label">{t('lessons.thumbnail')} ({t('common.optional')})</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -1357,7 +1712,7 @@ const MyLessons = () => {
                 className="file-upload-btn"
                 onClick={() => thumbnailLessonInputRef.current?.click()}
               >
-                <FiUpload /> Rasm yuklash
+                <FiUpload /> {t('lessons.uploadImage')}
               </button>
             </div>
             {editingLesson?.lesson?.thumbnailURL && !lessonFormData.thumbnailFile && (
@@ -1367,7 +1722,7 @@ const MyLessons = () => {
             )}
             {lessonFormData.thumbnailFile && (
               <p className="form-help">
-                Tanlangan: {lessonFormData.thumbnailFile.name}
+                  {t('lessons.selected')}: {lessonFormData.thumbnailFile.name}
               </p>
             )}
           </div>
@@ -1493,7 +1848,7 @@ const MyLessons = () => {
                 }
               }}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={uploadingVideo}>
               {uploadingVideo ? 'Yuklanmoqda...' : 'Yangilash'}
@@ -1515,10 +1870,10 @@ const MyLessons = () => {
             confirmAction();
           }
         }}
-        title="Tasdiqlash"
-        message="Kursni o'chirmoqchimisiz? Barcha darslar ham o'chiriladi."
-        confirmText="Ha, o'chirish"
-        cancelText="Bekor qilish"
+        title={t('common.confirm')}
+        message={t('lessons.deleteCourseConfirm')}
+        confirmText={t('common.yesDelete')}
+        cancelText={t('common.cancel')}
         type="danger"
       />
     </div>

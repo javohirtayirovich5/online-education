@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import SEO from '../common/SEO';
 import './Auth.css';
 
 const Login = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -24,7 +26,7 @@ const Login = () => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      toast.error('Barcha maydonlarni to\'ldiring');
+      toast.error(t('auth.fillAllFields'));
       return;
     }
 
@@ -33,19 +35,19 @@ const Login = () => {
     setLoading(false);
 
     if (result.success) {
-      toast.success('Xush kelibsiz!');
+      toast.success(t('auth.welcome'));
       navigate('/dashboard');
     } else {
-      toast.error(result.error || 'Kirish xatolik yuz berdi');
+      toast.error(result.error || t('auth.loginError'));
     }
   };
 
   return (
     <>
       <SEO 
-        title="Tizimga kirish - EduPro Online Ta'lim Platformasi"
-        description="EduPro online ta'lim platformasiga kirish. Universitetlar uchun professional ta'lim tizimi."
-        keywords="edupro kirish, login, online ta'lim, universitet platformasi"
+        title={`${t('auth.login')} - Technical English Online Ta'lim Platformasi`}
+        description={t('auth.loginDescription')}
+        keywords={t('auth.loginKeywords')}
       />
       <div className="auth-container">
         <div className="auth-box">
@@ -54,16 +56,16 @@ const Login = () => {
           <div className="brand-icon">
             <span>📚</span>
           </div>
-          <h1>EduPro</h1>
-          <p>Online Ta'lim Platformasi</p>
+          <h1>Technical English</h1>
+          <p>{t('auth.platformName')}</p>
         </div>
 
         {/* Form */}
         <form className="auth-form" onSubmit={handleSubmit}>
-          <h2>Tizimga kirish</h2>
+          <h2>{t('auth.login')}</h2>
           
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('common.email')}</label>
             <div className="input-with-icon">
               <FiMail className="input-icon" />
               <input
@@ -79,7 +81,7 @@ const Login = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Parol</label>
+            <label className="form-label">{t('auth.password')}</label>
             <div className="input-with-icon">
               <FiLock className="input-icon" />
               <input
@@ -103,18 +105,18 @@ const Login = () => {
 
           <div className="form-footer">
             <Link to="/forgot-password" className="forgot-link">
-              Parolni unutdingizmi?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Kirish...' : 'Kirish'}
+            {loading ? t('auth.loggingIn') : t('auth.login')}
           </button>
         </form>
 
         {/* Register Link */}
         <div className="auth-switch">
-          <p>Hisobingiz yo'qmi? <Link to="/register">Ro'yxatdan o'tish</Link></p>
+          <p>{t('auth.noAccount')} <Link to="/register">{t('auth.register')}</Link></p>
         </div>
       </div>
 

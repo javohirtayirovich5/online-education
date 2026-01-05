@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiPhone, FiBook, FiUsers, FiBookOpen } from 'react-icons/fi';
 import { facultyService } from '../../services/facultyService';
@@ -11,6 +12,7 @@ import SEO from '../common/SEO';
 import './Auth.css';
 
 const Register = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     displayName: '',
     email: '',
@@ -94,29 +96,29 @@ const Register = () => {
     
     // Validation
     if (!formData.displayName || !formData.email || !formData.password) {
-      toast.error('Barcha majburiy maydonlarni to\'ldiring');
+      toast.error(t('auth.fillRequiredFields'));
       return;
     }
 
     if (formData.password.length < 6) {
-      toast.error('Parol kamida 6 ta belgidan iborat bo\'lishi kerak');
+      toast.error(t('auth.passwordMinLength'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Parollar mos kelmayapti');
+      toast.error(t('auth.passwordsNotMatch'));
       return;
     }
 
     // Talaba uchun guruh majburiy
     if (formData.role === 'student' && !formData.groupId) {
-      toast.error('Guruhni tanlang');
+      toast.error(t('auth.selectGroup'));
       return;
     }
 
     // O'qituvchi uchun kamida bitta fan majburiy
     if (formData.role === 'teacher' && formData.subjectIds.length === 0) {
-      toast.error('Kamida bitta mutaxassislik fanni tanlang');
+      toast.error(t('auth.selectAtLeastOneSubject'));
       return;
     }
 
@@ -164,17 +166,17 @@ const Register = () => {
 
     if (result.success) {
       if (formData.role === 'teacher') {
-        toast.success('Ro\'yxatdan o\'tdingiz! Admin tasdiqlaganidan keyin tizimga kira olasiz.');
+        toast.success(t('auth.teacherPendingApproval'));
       } else {
-        toast.success('Ro\'yxatdan o\'tdingiz! Email manzilingizni tasdiqlang.');
+        toast.success(t('auth.studentEmailVerification'));
       }
       navigate('/login');
     } else {
       // Email already in use xatosi bo'lsa, bu o'chirilgan foydalanuvchi bo'lishi mumkin
       if (result.error && result.error.includes('email-already-in-use')) {
-        toast.error('Bu email allaqachon ro\'yxatdan o\'tgan. Agar bu sizning emailingiz bo\'lsa, tizimga kiring yoki parolni tiklang.');
+        toast.error(t('auth.emailAlreadyInUse'));
       } else {
-        toast.error(result.error || 'Ro\'yxatdan o\'tishda xatolik yuz berdi');
+        toast.error(result.error || t('auth.registerError'));
       }
     }
   };
@@ -182,9 +184,9 @@ const Register = () => {
   return (
     <>
       <SEO 
-        title="Ro'yxatdan o'tish - EduPro Online Ta'lim Platformasi"
-        description="EduPro online ta'lim platformasiga ro'yxatdan o'tish. O'qituvchi yoki talaba sifatida qo'shiling."
-        keywords="edupro ro'yxatdan o'tish, register, online ta'lim, universitet platformasi"
+        title={`${t('auth.register')} - Technical English Online Ta'lim Platformasi`}
+        description={t('auth.registerDescription')}
+        keywords={t('auth.registerKeywords')}
       />
       <div className="auth-container">
         <div className="auth-box auth-box-wide">
@@ -193,24 +195,24 @@ const Register = () => {
           <div className="brand-icon">
             <span>📚</span>
           </div>
-          <h1>EduPro</h1>
-          <p>Online Ta'lim Platformasi</p>
+          <h1>Technical English</h1>
+          <p>{t('auth.platformName')}</p>
         </div>
 
         {/* Form */}
         <form className="auth-form" onSubmit={handleSubmit}>
-          <h2>Ro'yxatdan o'tish</h2>
+          <h2>{t('auth.register')}</h2>
           
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">To'liq ism <span className="required">*</span></label>
+              <label className="form-label">{t('auth.fullName')} <span className="required">*</span></label>
               <div className="input-with-icon">
                 <FiUser className="input-icon" />
                 <input
                   type="text"
                   name="displayName"
                   className="form-input"
-                  placeholder="Ism Familiya"
+                  placeholder={t('auth.namePlaceholder')}
                   value={formData.displayName}
                   onChange={handleChange}
                   required
@@ -219,14 +221,14 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Email <span className="required">*</span></label>
+              <label className="form-label">{t('common.email')} <span className="required">*</span></label>
               <div className="input-with-icon">
                 <FiMail className="input-icon" />
                 <input
                   type="email"
                   name="email"
                   className="form-input"
-                  placeholder="email@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -237,7 +239,7 @@ const Register = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Parol <span className="required">*</span></label>
+              <label className="form-label">{t('auth.password')} <span className="required">*</span></label>
               <div className="input-with-icon">
                 <FiLock className="input-icon" />
                 <input
@@ -260,7 +262,7 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Parolni tasdiqlash <span className="required">*</span></label>
+              <label className="form-label">{t('auth.confirmPassword')} <span className="required">*</span></label>
               <div className="input-with-icon">
                 <FiLock className="input-icon" />
                 <input
@@ -278,7 +280,7 @@ const Register = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Rol <span className="required">*</span></label>
+              <label className="form-label">{t('auth.role')} <span className="required">*</span></label>
               <select
                 name="role"
                 className="form-select"
@@ -286,20 +288,20 @@ const Register = () => {
                 onChange={handleChange}
                 required
               >
-                <option value="student">Talaba</option>
-                <option value="teacher">O'qituvchi</option>
+                <option value="student">{t('auth.student')}</option>
+                <option value="teacher">{t('auth.teacher')}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Telefon</label>
+              <label className="form-label">{t('auth.phone')}</label>
               <div className="input-with-icon">
                 <FiPhone className="input-icon" />
                 <input
                   type="tel"
                   name="phoneNumber"
                   className="form-input"
-                  placeholder="+998901234567"
+                  placeholder={t('auth.phonePlaceholder')}
                   value={formData.phoneNumber}
                   onChange={handleChange}
                 />
@@ -311,13 +313,13 @@ const Register = () => {
           {formData.role === 'student' && (
             <div className="form-section">
               <h3 className="form-section-title">
-                <FiBook /> Ta'lim ma'lumotlari
+                <FiBook /> {t('auth.educationInfo')}
               </h3>
               
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">
-                    Fakultet <span className="required">*</span>
+                    {t('auth.faculty')} <span className="required">*</span>
                   </label>
                   <select
                     name="facultyId"
@@ -327,7 +329,7 @@ const Register = () => {
                     disabled={loadingData}
                     required
                   >
-                    <option value="">Fakultetni tanlang</option>
+                    <option value="">{t('auth.selectFaculty')}</option>
                     {faculties.map(faculty => (
                       <option key={faculty.id} value={faculty.id}>
                         {faculty.name}
@@ -338,7 +340,7 @@ const Register = () => {
 
                 <div className="form-group">
                   <label className="form-label">
-                    Yo'nalish <span className="required">*</span>
+                    {t('auth.department')} <span className="required">*</span>
                   </label>
                   <select
                     name="departmentId"
@@ -348,7 +350,7 @@ const Register = () => {
                     disabled={!formData.facultyId || departments.length === 0}
                     required
                   >
-                    <option value="">Yo'nalishni tanlang</option>
+                    <option value="">{t('auth.selectDepartment')}</option>
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
@@ -360,7 +362,7 @@ const Register = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  Guruh <span className="required">*</span>
+                  {t('auth.group')} <span className="required">*</span>
                 </label>
                 <div className="input-with-icon">
                   <FiUsers className="input-icon" />
@@ -372,7 +374,7 @@ const Register = () => {
                     disabled={!formData.departmentId || groups.length === 0}
                     required
                   >
-                    <option value="">Guruhni tanlang</option>
+                    <option value="">{t('auth.selectGroup')}</option>
                     {groups.map(group => (
                       <option key={group.id} value={group.id}>
                         {group.name} ({group.year}-kurs)
@@ -382,7 +384,7 @@ const Register = () => {
                 </div>
                 {formData.departmentId && groups.length === 0 && (
                   <small className="form-hint warning">
-                    Bu yo'nalishda hali guruhlar mavjud emas
+                    {t('auth.noGroupsInDepartment')}
                   </small>
                 )}
               </div>
@@ -393,16 +395,16 @@ const Register = () => {
           {formData.role === 'teacher' && (
             <div className="form-section">
               <h3 className="form-section-title">
-                <FiBookOpen /> Mutaxassislik fanlar
+                <FiBookOpen /> {t('auth.specializationSubjects')}
               </h3>
               
               <div className="form-group">
                 <label className="form-label">
-                  O'qitadigan fanlar <span className="required">*</span>
+                  {t('auth.teachingSubjects')} <span className="required">*</span>
                 </label>
                 {subjects.length === 0 ? (
                   <div className="form-hint warning">
-                    Hali fanlar yaratilmagan. Admin fanlar yaratishi kerak.
+                    {t('auth.noSubjectsCreated')}
                   </div>
                 ) : (
                   <div className="subjects-checkbox-list">
@@ -430,20 +432,20 @@ const Register = () => {
                   </div>
                 )}
                 <small className="form-hint">
-                  Bir nechta mutaxassislik fanni tanlashingiz mumkin. Admin sizni guruhlarga biriktirgandan keyin dars o'tishingiz mumkin.
+                  {t('auth.selectMultipleSubjects')}
                 </small>
               </div>
             </div>
           )}
 
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Ro\'yxatdan o\'tish...' : 'Ro\'yxatdan o\'tish'}
+            {loading ? t('auth.registering') : t('auth.register')}
           </button>
         </form>
 
         {/* Login Link */}
         <div className="auth-switch">
-          <p>Hisobingiz bormi? <Link to="/login">Kirish</Link></p>
+          <p>{t('auth.hasAccount')} <Link to="/login">{t('auth.login')}</Link></p>
         </div>
       </div>
 

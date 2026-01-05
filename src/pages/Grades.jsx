@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { gradeService } from '../services/gradeService';
 import { groupService } from '../services/groupService';
 import { 
@@ -21,6 +22,7 @@ const MONTH_NAMES = [
 
 const Grades = () => {
   const { userData, currentUser } = useAuth();
+  const { t } = useTranslation();
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [overallAverage, setOverallAverage] = useState(0);
@@ -41,13 +43,22 @@ const Grades = () => {
         const groupResult = await groupService.getGroupById(userData.groupId);
         if (groupResult.success && groupResult.data.subjectTeachers) {
           const subjectTeachers = groupResult.data.subjectTeachers;
-          const subjectsData = subjectTeachers.map(st => ({
-            id: st.subjectId,
-            name: st.subjectName,
-            teacherId: st.teacherId,
-            teacherName: st.teacherName
-          }));
-          setSubjects(subjectsData);
+          
+          // Remove duplicate subjects based on subjectId
+          const uniqueSubjects = [];
+          const seenSubjectIds = new Set();
+          for (const st of subjectTeachers) {
+            if (!seenSubjectIds.has(st.subjectId)) {
+              seenSubjectIds.add(st.subjectId);
+              uniqueSubjects.push({
+                id: st.subjectId,
+                name: st.subjectName,
+                teacherId: st.teacherId,
+                teacherName: st.teacherName
+              });
+            }
+          }
+          setSubjects(uniqueSubjects);
         }
       } catch (error) {
         console.error('Load subjects error:', error);
@@ -93,12 +104,22 @@ const Grades = () => {
                gradeDate.getFullYear() === selectedYear;
       });
 
-      setGrades(filteredGrades);
+      // Remove duplicates based on grade.id
+      const uniqueGrades = [];
+      const seenIds = new Set();
+      for (const grade of filteredGrades) {
+        if (!seenIds.has(grade.id)) {
+          seenIds.add(grade.id);
+          uniqueGrades.push(grade);
+        }
+      }
+
+      setGrades(uniqueGrades);
 
       // Umumiy o'rtacha bahoni hisoblash
-      if (filteredGrades.length > 0) {
-        const total = filteredGrades.reduce((sum, grade) => sum + grade.grade, 0);
-        setOverallAverage(Math.round((total / filteredGrades.length) * 100) / 100);
+      if (uniqueGrades.length > 0) {
+        const total = uniqueGrades.reduce((sum, grade) => sum + grade.grade, 0);
+        setOverallAverage(Math.round((total / uniqueGrades.length) * 100) / 100);
       } else {
         setOverallAverage(0);
       }
@@ -175,8 +196,8 @@ const Grades = () => {
     <div className="grades-page">
       <div className="page-header">
         <div>
-          <h1>Baholar</h1>
-          <p>Sizning akademik natijalaringiz</p>
+          <h1>{t('grades.title')}</h1>
+          <p>{t('grades.title')}</p>
         </div>
       </div>
 
@@ -185,7 +206,7 @@ const Grades = () => {
         <div className="stat-card-large">
           <FiAward className="stat-icon-large" />
           <div>
-            <span className="stat-label-large">O'rtacha baho</span>
+            <span className="stat-label-large">{t('grades.average')}</span>
             <h2 
               className="stat-value-large" 
               style={{ color: getGradeColor(overallAverage) }}
@@ -221,7 +242,7 @@ const Grades = () => {
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
           >
-            <option value="all">Barcha fanlar</option>
+            <option value="all">{t('grades.allSubjects')}</option>
             {subjects.map(subject => (
               <option key={subject.id} value={subject.id}>
                 {subject.name}
@@ -252,18 +273,18 @@ const Grades = () => {
       {grades.length === 0 ? (
         <div className="empty-state-large">
           <FiAward size={64} />
-          <h2>Hozircha baholar yo'q</h2>
-          <p>Tanlangan oy va fan bo'yicha baholar topilmadi</p>
+          <h2>{t('grades.noGrades')}</h2>
+          <p>{t('grades.noGrades')}</p>
         </div>
       ) : (
         <div className="grades-table-container">
           <table className="grades-table">
             <thead>
               <tr>
-                <th>Fan</th>
-                <th>Baho</th>
-                <th>Sana</th>
-                <th>O'qituvchi</th>
+                <th>{t('grades.subject')}</th>
+                <th>{t('grades.grade')}</th>
+                <th>{t('grades.date')}</th>
+                <th>{t('common.teacher')}</th>
               </tr>
             </thead>
             <tbody>

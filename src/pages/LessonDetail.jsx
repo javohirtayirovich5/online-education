@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { lessonService } from '../services/lessonService';
 import { storageService } from '../services/storageService';
 import ReactPlayer from 'react-player';
@@ -30,6 +31,7 @@ const LessonDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userData, isTeacher } = useAuth();
+  const { t } = useTranslation();
   const [lesson, setLesson] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,10 +43,12 @@ const LessonDetail = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [resourceData, setResourceData] = useState({ title: '', type: 'document', file: null });
   const [editData, setEditData] = useState({});
+  const [videoError, setVideoError] = useState(null);
 
   useEffect(() => {
     loadLesson();
     loadComments();
+    setVideoError(null); // Error state ni tozalash
   }, [id]);
 
   const loadLesson = async () => {
@@ -229,9 +233,31 @@ const LessonDetail = () => {
                   height="100%"
                   src={lesson.videoURL}
                   className="uploaded-video"
+                  onError={() => setVideoError('Video yuklashda xatolik')}
                 >
                   Brauzeringiz video tegini qo'llab-quvvatlamaydi.
                 </video>
+              ) : videoError ? (
+                // Error holati
+                <div className="video-error-message" style={{
+                  padding: '40px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  minHeight: '400px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <h3 style={{ color: 'var(--error)', marginBottom: '16px' }}>Video ko'rsatib bo'lmadi</h3>
+                  <p style={{ color: 'var(--text-secondary)', maxWidth: '500px' }}>
+                    {videoError === 150 || videoError === '150' 
+                      ? 'Bu video embedding uchun ruxsat berilmagan yoki cheklangan. Video muallifi embedding ni o\'chirgan bo\'lishi mumkin.'
+                      : 'Video yuklashda xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.'}
+                  </p>
+                </div>
               ) : (
                 // YouTube/Vimeo link
                 <ReactPlayer
@@ -241,7 +267,29 @@ const LessonDetail = () => {
                   controls
                   playing={false}
                   config={{
-                    youtube: { playerVars: { modestbranding: 1 } }
+                    youtube: { 
+                      playerVars: { 
+                        modestbranding: 1,
+                        rel: 0,
+                        origin: window.location.origin,
+                        enablejsapi: 1,
+                        playsinline: 1,
+                        showinfo: 0,
+                        iv_load_policy: 3
+                      },
+                      embedOptions: {
+                        host: 'https://www.youtube.com'
+                      }
+                    }
+                  }}
+                  onError={(error) => {
+                    console.error('ReactPlayer error:', error);
+                    // Error code ni olish
+                    const errorCode = error?.data || error?.message || error;
+                    setVideoError(errorCode);
+                  }}
+                  onReady={() => {
+                    setVideoError(null);
                   }}
                 />
               )
@@ -301,7 +349,7 @@ const LessonDetail = () => {
           <div className="comments-section">
             <div className="comments-header">
               <h3>
-                <FiMessageSquare /> Izohlar ({comments.length})
+                <FiMessageSquare /> {t('dashboard.comments')} ({comments.length})
               </h3>
             </div>
 

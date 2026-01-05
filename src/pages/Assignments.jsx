@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { assignmentService } from '../services/assignmentService';
 import { storageService } from '../services/storageService';
 import { FiFileText, FiPlus, FiClock, FiCheckCircle, FiXCircle, FiArrowLeft, FiUpload, FiFile, FiDownload, FiUser, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
@@ -14,6 +15,7 @@ import './Assignments.css';
 const Assignments = () => {
   const navigate = useNavigate();
   const { userData, isTeacher, isStudent } = useAuth();
+  const { t } = useTranslation();
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -299,7 +301,7 @@ const Assignments = () => {
   const getSubmissionStatus = (assignmentId) => {
     const submission = studentSubmissions[assignmentId];
     if (!submission) {
-      return { status: 'not_submitted', text: 'Yuborilmagan', color: '#ef4444' };
+      return { status: 'not_submitted', text: t('assignments.notSubmitted'), color: '#ef4444' };
     }
     if (submission.grade !== null && submission.grade !== undefined) {
       return { status: 'graded', text: 'Baholandi', color: '#10b981' };
@@ -458,7 +460,7 @@ const Assignments = () => {
       <div className="page-header">
         <div>
           <h1>Topshiriqlar</h1>
-          <p>{isTeacher ? 'Topshiriqlarni boshqarish' : 'Sizning topshiriqlaringiz'}</p>
+          <p>{isTeacher ? t('assignments.manageAssignments') : t('assignments.yourAssignments')}</p>
           {isTeacher && Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0) > 0 && (
             <div className="header-stats">
               <span className="ungraded-count-badge">
@@ -470,7 +472,7 @@ const Assignments = () => {
         </div>
         {isTeacher && (
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            <FiPlus /> Yangi topshiriq
+            <FiPlus /> {t('assignments.newAssignment')}
           </button>
         )}
       </div>
@@ -481,19 +483,19 @@ const Assignments = () => {
           className={`tab ${selectedTab === 'all' ? 'active' : ''}`}
           onClick={() => setSelectedTab('all')}
         >
-          Barchasi ({assignments.length})
+          {t('assignments.all')} ({assignments.length})
         </button>
         <button 
           className={`tab ${selectedTab === 'pending' ? 'active' : ''}`}
           onClick={() => setSelectedTab('pending')}
         >
-          Faol topshiriqlar
+          {t('assignments.active')}
         </button>
         <button 
           className={`tab ${selectedTab === 'overdue' ? 'active' : ''}`}
           onClick={() => setSelectedTab('overdue')}
         >
-          Muddati o'tgan
+          {t('assignments.overdue')}
         </button>
       </div>
 
@@ -501,8 +503,8 @@ const Assignments = () => {
       {filteredAssignments.length === 0 ? (
         <div className="empty-state-large">
           <FiFileText size={64} />
-          <h2>Topshiriqlar yo'q</h2>
-          <p>Hozircha topshiriqlar mavjud emas</p>
+          <h2>{t('assignments.noAssignments')}</h2>
+          <p>{t('assignments.noAssignments')}</p>
         </div>
       ) : (
         <div className="assignments-grid">
@@ -520,11 +522,11 @@ const Assignments = () => {
                   <div className="assignment-status">
                     {isOverdue ? (
                       <span className="status-badge overdue">
-                        <FiXCircle /> Muddati o'tgan
+                        <FiXCircle /> {t('assignments.overdue')}
                       </span>
                     ) : (
                       <span className="status-badge active">
-                        <FiClock /> Faol
+                        <FiClock /> {t('assignments.active')}
                       </span>
                     )}
                     {isStudent && submissionStatus && (
@@ -544,7 +546,7 @@ const Assignments = () => {
                 <div className="assignment-meta">
                   <div className="meta-item">
                     <FiClock />
-                    <span>Muddat: {formatDate(assignment.dueDate)}</span>
+                    <span>{t('assignments.deadline')}: {formatDate(assignment.dueDate)}</span>
                   </div>
                   {isStudent && timeRemaining && (
                     <div className="meta-item">
@@ -557,19 +559,19 @@ const Assignments = () => {
                     </div>
                   )}
                   <div className="meta-item">
-                    <span className="score-badge">{assignment.maxScore} ball</span>
+                    <span className="score-badge">{assignment.maxScore} {t('assignments.points')}</span>
                   </div>
                   {assignment.attachedFiles && assignment.attachedFiles.length > 0 && (
                     <div className="meta-item">
                       <FiFile />
-                      <span>{assignment.attachedFiles.length} fayl</span>
+                      <span>{assignment.attachedFiles.length} {t('assignments.files')}</span>
                     </div>
                   )}
                   {isTeacher && ungradedCounts[assignment.id] > 0 && (
                     <div className="meta-item">
                       <span className="ungraded-badge">
                         <FiClock />
-                        {ungradedCounts[assignment.id]} ta baholanmagan
+                        {ungradedCounts[assignment.id]} {t('assignments.ungraded')}
                       </span>
                     </div>
                   )}
@@ -578,11 +580,11 @@ const Assignments = () => {
                       {studentSubmissions[assignment.id].grade !== null && 
                        studentSubmissions[assignment.id].grade !== undefined ? (
                         <span className="grade-display">
-                          Ball: {studentSubmissions[assignment.id].grade} / {assignment.maxScore}
+                          {t('assignments.score')}: {studentSubmissions[assignment.id].grade} / {assignment.maxScore}
                         </span>
                       ) : (
                         <span className="submitted-info">
-                          Jo'natilgan: {formatDate(studentSubmissions[assignment.id].submittedAt)}
+                          {t('assignments.submitted')}: {formatDate(studentSubmissions[assignment.id].submittedAt)}
                         </span>
                       )}
                     </div>
@@ -596,13 +598,13 @@ const Assignments = () => {
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleEdit(assignment)}
                       >
-                        <FiEdit /> Tahrirlash
+                        <FiEdit /> {t('assignments.editAssignment')}
                       </button>
                       <button 
                         className="btn btn-primary btn-sm"
                         onClick={() => handleViewSubmissions(assignment)}
                       >
-                        <FiEye /> Topshiriqlarni ko'rish
+                        <FiEye /> {t('assignments.viewAssignments')}
                       </button>
                     </div>
                   ) : (
@@ -610,7 +612,7 @@ const Assignments = () => {
                       className="btn btn-primary btn-sm"
                       onClick={() => handleViewAssignment(assignment)}
                     >
-                      Topshirish
+                      {t('assignments.submit')}
                     </button>
                   )}
                 </div>
@@ -631,7 +633,7 @@ const Assignments = () => {
             fileInputRef.current.value = '';
           }
         }}
-        title="Yangi topshiriq yaratish"
+        title={t('assignments.newAssignment')}
         size="large"
       >
         <form onSubmit={handleCreate}>
@@ -1025,7 +1027,7 @@ const Assignments = () => {
                       onClick={handleSubmitAssignment}
                       disabled={!submissionFile || submitting}
                     >
-                      {submitting ? 'Jo\'natilmoqda...' : 'Topshirish'}
+                      {submitting ? t('assignments.submitting') : t('assignments.submit')}
                     </button>
                   </>
                 )}

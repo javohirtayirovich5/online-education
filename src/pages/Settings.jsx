@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMoon, FiSun, FiBell, FiLock, FiGlobe, FiShield, FiTrash2, FiArrowLeft } from 'react-icons/fi';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../hooks/useTranslation';
+import { FiMoon, FiSun, FiBell, FiLock, FiGlobe, FiShield, FiArrowLeft } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../components/common/ConfirmModal';
 import './Settings.css';
@@ -11,6 +13,8 @@ const Settings = () => {
   const navigate = useNavigate();
   const { userData, resetPassword, currentUser } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
+  const { language, changeLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -25,9 +29,9 @@ const Settings = () => {
     setConfirmAction(() => async () => {
       const result = await resetPassword(currentUser.email);
       if (result.success) {
-        toast.success('Parolni tiklash havolasi emailingizga yuborildi');
+        toast.success(t('common.passwordResetSent'));
       } else {
-        toast.error('Xatolik yuz berdi');
+        toast.error(t('common.error'));
       }
     });
     setShowConfirmModal(true);
@@ -39,12 +43,12 @@ const Settings = () => {
         className="back-btn"
         onClick={() => navigate('/dashboard')}
       >
-        <FiArrowLeft /> Orqaga
+        <FiArrowLeft /> {t('common.back')}
       </button>
       <div className="page-header">
         <div>
-          <h1>Sozlamalar</h1>
-          <p>Hisobingiz sozlamalarini boshqaring</p>
+          <h1>{t('settings.title')}</h1>
+          <p>{t('settings.subtitle')}</p>
         </div>
       </div>
 
@@ -56,15 +60,15 @@ const Settings = () => {
               {isDarkMode ? <FiMoon /> : <FiSun />}
             </div>
             <div>
-              <h3>Ko'rinish</h3>
-              <p>Tema va ko'rinish sozlamalari</p>
+              <h3>{t('settings.appearance')}</h3>
+              <p>{t('settings.appearanceDesc')}</p>
             </div>
           </div>
           <div className="settings-card-body">
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Qorong'i rejim</h4>
-                <p>Qorong'i tema yoqilgan/o'chirilgan</p>
+                <h4>{t('settings.darkMode')}</h4>
+                <p>{t('settings.darkModeDesc')}</p>
               </div>
               <label className="toggle-switch">
                 <input 
@@ -85,15 +89,15 @@ const Settings = () => {
               <FiBell />
             </div>
             <div>
-              <h3>Bildirishnomalar</h3>
-              <p>Xabarnomalar sozlamalari</p>
+              <h3>{t('settings.notifications')}</h3>
+              <p>{t('settings.notificationsDesc')}</p>
             </div>
           </div>
           <div className="settings-card-body">
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Email xabarnomalar</h4>
-                <p>Email orqali xabarnomalar olish</p>
+                <h4>{t('settings.emailNotifications')}</h4>
+                <p>{t('settings.emailNotificationsDesc')}</p>
               </div>
               <label className="toggle-switch">
                 <input 
@@ -107,8 +111,8 @@ const Settings = () => {
 
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Topshiriq xabarnomalar</h4>
-                <p>Yangi topshiriqlar haqida xabar olish</p>
+                <h4>{t('settings.assignmentNotifications')}</h4>
+                <p>{t('settings.assignmentNotificationsDesc')}</p>
               </div>
               <label className="toggle-switch">
                 <input 
@@ -122,8 +126,8 @@ const Settings = () => {
 
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Baho xabarnomalar</h4>
-                <p>Yangi baholar haqida xabar olish</p>
+                <h4>{t('settings.gradeNotifications')}</h4>
+                <p>{t('settings.gradeNotificationsDesc')}</p>
               </div>
               <label className="toggle-switch">
                 <input 
@@ -144,27 +148,27 @@ const Settings = () => {
               <FiShield />
             </div>
             <div>
-              <h3>Xavfsizlik</h3>
-              <p>Hisobingiz xavfsizligi</p>
+              <h3>{t('settings.security')}</h3>
+              <p>{t('settings.securityDesc')}</p>
             </div>
           </div>
           <div className="settings-card-body">
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Parolni o'zgartirish</h4>
-                <p>Yangi parol o'rnatish uchun havolani emailga yuborish</p>
+                <h4>{t('settings.changePassword')}</h4>
+                <p>{t('settings.changePasswordDesc')}</p>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={handleResetPassword}>
-                <FiLock /> O'zgartirish
+                <FiLock /> {t('common.edit')}
               </button>
             </div>
 
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Email</h4>
+                <h4>{t('settings.email')}</h4>
                 <p>{currentUser?.email}</p>
               </div>
-              <span className="verified-badge">Tasdiqlangan</span>
+              <span className="verified-badge">{t('settings.verified')}</span>
             </div>
           </div>
         </div>
@@ -176,17 +180,21 @@ const Settings = () => {
               <FiGlobe />
             </div>
             <div>
-              <h3>Til</h3>
-              <p>Interfeys tili</p>
+              <h3>{t('settings.language')}</h3>
+              <p>{t('settings.languageDesc')}</p>
             </div>
           </div>
           <div className="settings-card-body">
             <div className="setting-item">
               <div className="setting-info">
-                <h4>Tizim tili</h4>
-                <p>Hozirgi til: O'zbekcha</p>
+                <h4>{t('settings.systemLanguage')}</h4>
+                <p>{t('settings.currentLanguage')}</p>
               </div>
-              <select className="form-select-sm">
+              <select 
+                className="form-select-sm"
+                value={language}
+                onChange={(e) => changeLanguage(e.target.value)}
+              >
                 <option value="uz">O'zbekcha</option>
                 <option value="ru">Русский</option>
                 <option value="en">English</option>
@@ -195,29 +203,6 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Danger Zone */}
-        <div className="settings-card danger">
-          <div className="settings-card-header">
-            <div className="settings-icon danger">
-              <FiTrash2 />
-            </div>
-            <div>
-              <h3>Xavfli hudud</h3>
-              <p>Bu amallar qaytarib bo'lmaydi</p>
-            </div>
-          </div>
-          <div className="settings-card-body">
-            <div className="setting-item">
-              <div className="setting-info">
-                <h4>Hisobni o'chirish</h4>
-                <p>Hisobingiz va barcha ma'lumotlaringiz o'chiriladi</p>
-              </div>
-              <button className="btn btn-danger btn-sm">
-                <FiTrash2 /> O'chirish
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Confirm Modal */}
@@ -232,10 +217,10 @@ const Settings = () => {
             confirmAction();
           }
         }}
-        title="Tasdiqlash"
-        message="Parolni tiklash havolasi emailingizga yuboriladi. Davom etasizmi?"
-        confirmText="Ha"
-        cancelText="Yo'q"
+        title={t('common.confirm')}
+        message={t('common.confirmMessage')}
+        confirmText={t('common.yes')}
+        cancelText={t('common.no')}
         type="primary"
       />
     </div>

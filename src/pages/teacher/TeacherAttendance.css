@@ -2,7 +2,7 @@
 
 .teacher-attendance-page.hemis-style {
   padding: 1rem 1.5rem;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -12,16 +12,16 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
 }
 
 .page-breadcrumb .separator {
-  color: #cbd5e1;
+  color: var(--text-tertiary);
 }
 
 .page-breadcrumb .current {
-  color: #334155;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -31,7 +31,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--error) 0%, var(--error) 100%);
   color: white;
   border-radius: 8px;
   margin-bottom: 1.5rem;
@@ -50,7 +50,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.25rem;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, var(--warning) 0%, var(--warning) 100%);
   color: white;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -77,9 +77,10 @@
 
 /* Table Section */
 .hemis-table-section {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
@@ -88,8 +89,8 @@
   display: flex;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
 }
 
 .filter-group {
@@ -101,7 +102,7 @@
 .filter-group label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -109,10 +110,10 @@
 .hemis-select {
   padding: 0.625rem 2rem 0.625rem 0.875rem;
   font-size: 0.9375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: white;
-  color: #334155;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   min-width: 200px;
   appearance: none;
@@ -127,8 +128,8 @@
 
 .hemis-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Table Container */
@@ -142,7 +143,7 @@
 }
 
 .hemis-table thead {
-  background: #f1f5f9;
+  background: var(--bg-secondary);
 }
 
 .hemis-table th {
@@ -150,32 +151,97 @@
   text-align: left;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--border);
 }
 
 .hemis-table td {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
   font-size: 0.9375rem;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .hemis-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 .hemis-table .col-num {
   width: 50px;
   text-align: center;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .hemis-table .col-name {
   font-weight: 500;
   min-width: 250px;
+}
+
+/* Make student name look like a plain link instead of a button */
+.student-name-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.student-name-btn:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Modal missed dates list */
+.missed-dates-container {
+  padding: 0.5rem 0;
+}
+
+.missed-dates-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.missed-dates-list .date-link {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.missed-dates-list .date-link:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary);
+}
+
+.modal-loading {
+  padding: 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Modal total missed hours line */
+.modal-total-missed {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+.modal-total-missed strong {
+  color: var(--error);
+  margin-left: 0.25rem;
 }
 
 .hemis-table .col-ratio {
@@ -192,8 +258,8 @@
 .ratio-value {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #dcfce7;
-  color: #16a34a;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.875rem;
@@ -201,8 +267,8 @@
 }
 
 .ratio-value.danger {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
 }
 
 /* Absent Input */
@@ -211,15 +277,16 @@
   padding: 0.5rem;
   text-align: center;
   font-size: 0.9375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .absent-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
+  border-color: var(--primary);
+  background: var(--bg-primary);
 }
 
 /* Actions */
@@ -228,7 +295,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -239,9 +306,9 @@
 }
 
 .btn-save:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .btn-save:disabled {
@@ -254,7 +321,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--success) 0%, var(--success) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -265,7 +332,7 @@
 }
 
 .btn-edit:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  opacity: 0.9;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
@@ -280,8 +347,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   border: none;
   border-radius: 8px;
   font-size: 0.9375rem;
@@ -292,24 +359,25 @@
 }
 
 .btn-cancel:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .hemis-actions {
   display: flex;
   justify-content: flex-end;
   padding: 1rem 1.25rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
   gap: 0.75rem;
 }
 
 /* Info Panel */
 .hemis-info-panel {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   padding: 1.25rem;
   position: sticky;
   top: 1rem;
@@ -318,10 +386,10 @@
 .hemis-info-panel h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 0 1rem 0;
   padding-bottom: 0.75rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--border);
 }
 
 .info-row {
@@ -329,7 +397,7 @@
   flex-direction: column;
   gap: 0.375rem;
   padding: 0.875rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
 }
 
 .info-row:last-child {
@@ -342,42 +410,43 @@
   gap: 0.5rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .info-label svg {
   width: 16px;
   height: 16px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .info-value {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .date-input {
   padding: 0.5rem 0.75rem;
   font-size: 0.9375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: #334155;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   width: 100%;
 }
 
 .date-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--primary);
 }
 
 .schedule-days {
-  color: #3b82f6;
+  color: var(--primary);
   font-weight: 600;
 }
 
 .info-value.highlight {
-  color: #3b82f6;
+  color: var(--primary);
   font-weight: 700;
 }
 
@@ -387,10 +456,11 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: white;
+  background: var(--bg-primary);
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   margin-bottom: 1rem;
 }
 
@@ -400,17 +470,17 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   border: none;
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .month-nav:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .month-nav:disabled {
@@ -424,13 +494,13 @@
   gap: 0.5rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   min-width: 180px;
   justify-content: center;
 }
 
 .month-display svg {
-  color: #3b82f6;
+  color: var(--primary);
 }
 
 /* Schedule Info Bar */
@@ -439,7 +509,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -470,9 +540,10 @@
   display: flex;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   margin-bottom: 1rem;
   overflow-x: auto;
   flex-wrap: wrap;
@@ -480,26 +551,26 @@
 
 .date-btn {
   padding: 0.625rem 1rem;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   border: 2px solid transparent;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .date-btn:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .date-btn.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
-  border-color: #3b82f6;
+  border-color: var(--primary);
   font-weight: 600;
 }
 
@@ -510,7 +581,7 @@
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .empty-table svg {
@@ -530,19 +601,19 @@
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .empty-state-full svg {
   margin-bottom: 1.5rem;
   opacity: 0.3;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .empty-state-full h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
   margin: 0 0 0.5rem 0;
 }
 
@@ -577,7 +648,7 @@
   .info-row {
     border-bottom: none;
     padding: 0.5rem;
-    background: #f8fafc;
+    background: var(--bg-secondary);
     border-radius: 8px;
   }
 }

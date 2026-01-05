@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
 import { groupService } from '../../services/groupService';
 import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart2 } from 'react-icons/fi';
@@ -14,6 +15,7 @@ import './TeacherTests.css';
 
 const TeacherTests = () => {
   const { userData } = useAuth();
+  const { t } = useTranslation();
   const [tests, setTests] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +135,7 @@ const TeacherTests = () => {
       <div className="tests-search">
         <input
           type="text"
-          placeholder="Test qidirish..."
+          placeholder={t('teacher.tests.searchTests') + '...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
@@ -142,7 +144,7 @@ const TeacherTests = () => {
 
       {filteredTests.length === 0 ? (
         <div className="empty-state">
-          <p>Hali testlar yaratilmagan</p>
+          <p>{t('teacher.tests.noTests')}</p>
         </div>
       ) : (
         <div className="tests-list">
@@ -159,7 +161,7 @@ const TeacherTests = () => {
                   <button
                     className="btn btn-sm btn-icon"
                     onClick={() => handleViewResults(test)}
-                    title="Natijalar"
+                    title={t('teacher.tests.viewResults')}
                   >
                     <FiBarChart2 />
                   </button>
@@ -169,7 +171,7 @@ const TeacherTests = () => {
                       setEditingTest(test);
                       setShowEditModal(true);
                     }}
-                    title="Tahrirlash"
+                    title={t('teacher.tests.edit')}
                   >
                     <FiEdit />
                   </button>
@@ -179,7 +181,7 @@ const TeacherTests = () => {
                       setSelectedTest(test);
                       setShowDeleteConfirm(true);
                     }}
-                    title="O'chirish"
+                    title={t('teacher.tests.delete')}
                   >
                     <FiTrash2 />
                   </button>
@@ -189,9 +191,9 @@ const TeacherTests = () => {
               <div className="test-card-body">
                 <p className="test-description">{test.description}</p>
                 <div className="test-meta">
-                  <span>Yaratilgan: {formatDate(test.createdAt)}</span>
+                  <span>{t('lessons.createdAt')}: {formatDate(test.createdAt)}</span>
                   <span className={`status-badge status-${test.status}`}>
-                    {test.status === 'active' ? 'Faol' : 'Faol emas'}
+                    {test.status === 'active' ? t('common.active') : t('common.inactive')}
                   </span>
                 </div>
               </div>
@@ -204,7 +206,7 @@ const TeacherTests = () => {
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Yangi test yaratish"
+        title={t('teacher.tests.newTest')}
         size="large"
         disableEscClose={true}
       >
@@ -223,7 +225,7 @@ const TeacherTests = () => {
             setShowEditModal(false);
             setEditingTest(null);
           }}
-          title="Testni tahrirlash"
+          title={t('teacher.tests.edit')}
           size="large"
           disableEscClose={true}
         >
@@ -254,15 +256,15 @@ const TeacherTests = () => {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteConfirm}
-        title="Testni o'chirish"
+        title={t('teacher.tests.delete')}
         message={`"${selectedTest?.title}" testini o'chirmoqchisiz? Bu amalni qaytarib bo'lmaydi.`}
         onConfirm={handleDeleteTest}
         onClose={() => {
           setShowDeleteConfirm(false);
           setSelectedTest(null);
         }}
-        confirmText="O'chirish"
-        cancelText="Bekor qilish"
+        confirmText={t('teacher.tests.delete')}
+        cancelText={t('common.cancel')}
         isDangerous
       />
     </div>

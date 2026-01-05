@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   FiHome,
   FiVideo,
@@ -12,6 +13,7 @@ import {
   FiBookOpen,
   FiGrid,
   FiStar,
+  FiClock,
   FiChevronDown,
   FiChevronRight,
   FiCalendar,
@@ -21,6 +23,7 @@ import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
   const { userData, isAdmin, isTeacher } = useAuth();
+  const { t } = useTranslation();
   const location = useLocation();
   
   // Submenu states
@@ -36,41 +39,43 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
   };
 
   const adminLinks = [
-    { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
-    { to: '/structure', icon: FiGrid, label: 'Tuzilma' },
-    { to: '/users', icon: FiUsers, label: 'Foydalanuvchilar' },
-    { to: '/lessons', icon: FiVideo, label: 'Barcha darslar' },
-    { to: '/analytics', icon: FiBarChart2, label: 'Statistika' },
-    { to: '/settings', icon: FiSettings, label: 'Sozlamalar' }
+    { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
+    { to: '/structure', icon: FiGrid, label: t('sidebar.structure') },
+    { to: '/users', icon: FiUsers, label: t('sidebar.users') },
+    { to: '/lessons', icon: FiVideo, label: t('sidebar.allLessons') },
+    { to: '/analytics', icon: FiBarChart2, label: t('sidebar.statistics') },
+    { to: '/settings', icon: FiSettings, label: t('common.settings') }
   ];
 
   const teacherLinks = [
-    { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
+    { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { 
       key: 'groups',
       icon: FiUsers, 
-      label: 'Guruhlar',
+      label: t('sidebar.groups'),
       submenu: [
-        { to: '/teacher/groups/attendance', icon: FiClipboard, label: 'Davomat' },
-        { to: '/teacher/groups/grades', icon: FiStar, label: 'Baholar' }
+        { to: '/teacher/groups/attendance', icon: FiClipboard, label: t('sidebar.attendance') },
+        { to: '/teacher/groups/grades', icon: FiStar, label: t('sidebar.grades') }
       ]
     },
-    { to: '/teacher/resources', icon: FiFileText, label: 'Fan resurslari' },
-    { to: '/my-lessons', icon: FiVideo, label: 'Mening darslarim' },
-    { to: '/assignments', icon: FiFileText, label: 'Topshiriqlar' },
-    { to: '/teacher/tests', icon: FiHelpCircle, label: 'Testlar' }
+    { to: '/teacher/resources', icon: FiFileText, label: t('sidebar.courseResources') },
+    { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myLessons') },
+    { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
+    { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
+    { to: '/teacher/tests', icon: FiHelpCircle, label: t('sidebar.tests') }
   ];
 
   const studentLinks = [
-    { to: '/dashboard', icon: FiHome, label: 'Dashboard' },
-    { to: '/my-subjects', icon: FiBookOpen, label: 'Fanlarim' },
-    { to: '/timetable', icon: FiCalendar, label: 'Dars jadvali' },
-    { to: '/resources', icon: FiFileText, label: 'Fan resurslari' },
-    { to: '/lessons', icon: FiVideo, label: 'Video darslar' },
-    { to: '/assignments', icon: FiFileText, label: 'Topshiriqlar' },
-    { to: '/tests', icon: FiHelpCircle, label: 'Testlar' },
-    { to: '/my-grades', icon: FiStar, label: 'Baholarim' },
-    { to: '/attendance', icon: FiClipboard, label: 'Davomat' }
+    { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
+    { to: '/my-subjects', icon: FiBookOpen, label: t('sidebar.mySubjects') },
+    { to: '/timetable', icon: FiCalendar, label: t('sidebar.schedule') },
+    { to: '/resources', icon: FiFileText, label: t('sidebar.courseResources') },
+    { to: '/lessons', icon: FiVideo, label: t('sidebar.videoLessons') },
+    { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
+    { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
+    { to: '/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
+    { to: '/my-grades', icon: FiStar, label: t('sidebar.myGrades') },
+    { to: '/attendance', icon: FiClipboard, label: t('sidebar.attendance') }
   ];
 
   const links = isAdmin ? adminLinks : isTeacher ? teacherLinks : studentLinks;
@@ -145,7 +150,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
             <div className="sidebar-user-info">
               <h3 className="sidebar-user-name">{userData?.displayName}</h3>
               <p className="sidebar-user-role">
-                {isAdmin ? 'Administrator' : isTeacher ? 'O\'qituvchi' : 'Talaba'}
+                {isAdmin ? t('common.administrator') : isTeacher ? t('common.teacher') : t('common.student')}
               </p>
               {userData?.groupName && (
                 <span className="sidebar-user-group">{userData.groupName}</span>

@@ -130,6 +130,7 @@ export const gradeService = {
         groupId: gradeData.groupId,
         subjectId: gradeData.subjectId,
         subjectName: gradeData.subjectName || '',
+        lessonType: gradeData.lessonType || '',
         teacherId: gradeData.teacherId,
         teacherName: gradeData.teacherName || '',
         grade: gradeData.grade, // 1-5

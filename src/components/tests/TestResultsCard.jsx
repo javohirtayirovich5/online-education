@@ -2,11 +2,11 @@ import './TestResultsCard.css';
 
 const TestResultsCard = ({ test, submission }) => {
   const getResultStatus = (percentage) => {
-    if (percentage >= 80) return { status: 'excellent', text: 'A\'lo' };
-    if (percentage >= 70) return { status: 'good', text: 'Yaxshi' };
+    if (percentage >= 90) return { status: 'excellent', text: 'A\'lo' };
+    if (percentage >= 75) return { status: 'good', text: 'Yaxshi' };
     if (percentage >= 60) return { status: 'satisfactory', text: 'Qoniqarli' };
-    if (percentage >= 50) return { status: 'pass', text: 'Qabul' };
-    return { status: 'fail', text: 'Rad' };
+    // if (percentage >= 50) return { status: 'pass', text: 'Qabul' };
+    return { status: 'fail', text: 'Qoniqarsiz' };
   };
 
   const percentage = submission.percentage || 0;
@@ -31,8 +31,8 @@ const TestResultsCard = ({ test, submission }) => {
           <div className="score-display">
             <div className="score-circle" style={{
               background: `conic-gradient(
-                var(--${result.status}-color) ${percentage}%,
-                #e0e0e0 ${percentage}%
+                var(--${result.status === 'excellent' ? 'success' : result.status === 'good' ? 'info' : result.status === 'satisfactory' || result.status === 'pass' ? 'warning' : 'error'}) ${percentage}%,
+                var(--bg-tertiary) ${percentage}%
               )`
             }}>
               <div className="score-inner">

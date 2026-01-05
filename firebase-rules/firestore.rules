@@ -139,11 +139,11 @@ service cloud.firestore {
                        hasRequiredFields(['title', 'instructorId', 'createdAt']);
       
       // Course instructor or admin can fully update
-      // Any authenticated user can update viewsCount and commentsCount only
+      // Any authenticated user can update views, viewsCount and commentsCount only
       allow update: if isAdmin() || 
                        (isAuthenticated() && resource.data.instructorId == request.auth.uid) ||
                        (isAuthenticated() && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewsCount', 'commentsCount']));
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'viewsCount', 'commentsCount']));
       
       // Course instructor or admin can delete
       allow delete: if isAdmin() || 
@@ -553,6 +553,25 @@ service cloud.firestore {
       allow delete: if isAdmin() || 
                        (isTeacher() && 
                         get(/databases/$(database)/documents/tests/$(resource.data.testId)).data.createdBy == request.auth.uid);
+    }
+    
+    // ============================================
+    // LIVE SESSIONS COLLECTION
+    // ============================================
+    match /liveSessions/{sessionId} {
+      // Any authenticated user can read active sessions (for discovery)
+      allow read: if isAuthenticated();
+
+      // Only teachers (or admin) can create live sessions for their groups
+      allow create: if isTeacherOrAdmin() && isApproved() &&
+                      request.resource.data.teacherId == request.auth.uid &&
+                      hasRequiredFields(['groupId', 'teacherId', 'provider', 'room', 'isLive']);
+
+      // Only the session owner (teacher) or admin can update (end) the session
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.teacherId == request.auth.uid);
+
+      // Only admin can delete sessions
+      allow delete: if isAdmin();
     }
   }
 }

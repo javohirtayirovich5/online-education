@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { courseService } from '../services/courseService';
 import ReactPlayer from 'react-player';
 import { toast } from 'react-toastify';
@@ -30,6 +31,7 @@ const CourseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { userData, isTeacher, isStudent } = useAuth();
+  const { t } = useTranslation();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedLesson, setSelectedLesson] = useState(null);
@@ -41,6 +43,7 @@ const CourseDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [deleteCommentId, setDeleteCommentId] = useState(null);
+  const [videoError, setVideoError] = useState(null);
 
   useEffect(() => {
     loadCourse();
@@ -65,6 +68,12 @@ const CourseDetail = () => {
     } catch (error) {
       console.error('Increment views error:', error);
     }
+  };
+
+  const handleVideoModalOpen = (lesson) => {
+    setSelectedLesson(lesson);
+    setShowVideoModal(true);
+    setVideoError(null); // Error state ni tozalash
   };
 
   const loadComments = async () => {
@@ -152,7 +161,7 @@ const CourseDetail = () => {
             className="back-btn"
             onClick={() => navigate('/my-courses')}
           >
-            <FiArrowLeft /> Orqaga
+            <FiArrowLeft /> {t('common.back')}
           </button>
           <div className="breadcrumb">
             <Link to="/my-courses">Kurslar</Link>
@@ -175,7 +184,7 @@ const CourseDetail = () => {
             <div className="info-item">
               <FiEye className="info-icon" />
               <div>
-                <span className="info-label">Ko'rishlar</span>
+                <span className="info-label">{t('dashboard.totalViews')}</span>
                 <span className="info-value">{course.views || 0}</span>
               </div>
             </div>
@@ -183,7 +192,7 @@ const CourseDetail = () => {
             <div className="info-item">
               <FiBook className="info-icon" />
               <div>
-                <span className="info-label">Darslar</span>
+                <span className="info-label">{t('dashboard.totalLessons')}</span>
                 <span className="info-value">{getTotalLessons(course)}</span>
               </div>
             </div>
@@ -199,7 +208,7 @@ const CourseDetail = () => {
 
           {isInstructor && (
             <div className="instructor-actions">
-              <button className="btn btn-primary" onClick={() => navigate('/my-lessons')}>
+              <button className="btn btn-primary" onClick={() => navigate(`/my-lessons?courseId=${course.id}&addLesson=true`)}>
                 <FiPlus /> Dars qo'shish
               </button>
             </div>
@@ -211,7 +220,7 @@ const CourseDetail = () => {
       {/* Course Content - Darslar ro'yxati */}
       <div className="course-content-section">
         <div className="content-header">
-          <h2>Kurs darslari</h2>
+          <h2>{t('dashboard.totalLessons')}</h2>
           <span className="modules-count">
             {getTotalLessons(course)} dars
           </span>
@@ -221,11 +230,6 @@ const CourseDetail = () => {
           <div className="empty-modules">
             <FiBook size={48} />
             <p>Hozircha darslar qo'shilmagan</p>
-            {isInstructor && (
-              <button className="btn btn-primary" onClick={() => navigate('/my-lessons')}>
-                <FiPlus /> Dars qo'shish
-              </button>
-            )}
           </div>
         ) : (
           <div className="lessons-grid">
@@ -236,6 +240,7 @@ const CourseDetail = () => {
                   className="lesson-card"
                   onClick={async () => {
                     if (lesson.videoURL) {
+                      setVideoError(null); // Error state ni tozalash
                       setSelectedLesson(lesson);
                       setShowVideoModal(true);
                       await handleViewIncrement(); // Ko'rishlar sonini oshirish
@@ -306,7 +311,7 @@ const CourseDetail = () => {
                             });
                             setShowConfirmModal(true);
                           }}
-                          title="O'chirish"
+                          title={t('common.delete')}
                         >
                           <FiTrash2 size={14} />
                         </button>
@@ -324,7 +329,7 @@ const CourseDetail = () => {
       <div className="course-comments-section">
         <div className="comments-header">
           <h3>
-            <FiMessageSquare /> Izohlar ({comments.length})
+            <FiMessageSquare /> {t('dashboard.comments')} ({comments.length})
           </h3>
         </div>
 
@@ -348,7 +353,7 @@ const CourseDetail = () => {
               className="btn btn-primary btn-sm"
               disabled={submittingComment || !newComment.trim()}
             >
-              <FiSend /> {submittingComment ? 'Yuborilmoqda...' : 'Yuborish'}
+              <FiSend /> {submittingComment ? t('common.loading') : t('common.submit')}
             </button>
           </div>
         </form>
@@ -401,6 +406,7 @@ const CourseDetail = () => {
         onClose={() => {
           setShowVideoModal(false);
           setSelectedLesson(null);
+          setVideoError(null); // Error state ni tozalash
         }}
         title={selectedLesson?.title || 'Video dars'}
         size="large"
@@ -415,9 +421,25 @@ const CourseDetail = () => {
                   style={{ maxHeight: '70vh' }}
                   src={selectedLesson.videoURL}
                   className="course-video-player"
+                  onError={() => setVideoError('Video yuklashda xatolik')}
                 >
                   Brauzeringiz video tegini qo'llab-quvvatlamaydi.
                 </video>
+              ) : videoError ? (
+                <div className="video-error-message" style={{
+                  padding: '40px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <h3 style={{ color: 'var(--error)', marginBottom: '16px' }}>Video ko'rsatib bo'lmadi</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    {videoError === 150 || videoError === '150' 
+                      ? 'Bu video embedding uchun ruxsat berilmagan yoki cheklangan. Video muallifi embedding ni o\'chirgan bo\'lishi mumkin.'
+                      : 'Video yuklashda xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.'}
+                  </p>
+                </div>
               ) : (
                 <ReactPlayer
                   url={selectedLesson.videoURL}
@@ -426,7 +448,29 @@ const CourseDetail = () => {
                   controls
                   playing={false}
                   config={{
-                    youtube: { playerVars: { modestbranding: 1 } }
+                    youtube: { 
+                      playerVars: { 
+                        modestbranding: 1,
+                        rel: 0,
+                        origin: window.location.origin,
+                        enablejsapi: 1,
+                        playsinline: 1,
+                        showinfo: 0,
+                        iv_load_policy: 3
+                      },
+                      embedOptions: {
+                        host: 'https://www.youtube.com'
+                      }
+                    }
+                  }}
+                  onError={(error) => {
+                    console.error('ReactPlayer error:', error);
+                    // Error code ni olish
+                    const errorCode = error?.data || error?.message || error;
+                    setVideoError(errorCode);
+                  }}
+                  onReady={() => {
+                    setVideoError(null);
                   }}
                 />
               )

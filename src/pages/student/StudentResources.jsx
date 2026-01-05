@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { groupService } from '../../services/groupService';
 import { resourceService } from '../../services/resourceService';
 import { 
@@ -17,6 +18,7 @@ import './StudentResources.css';
 const StudentResources = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState([]);
   const [resources, setResources] = useState({}); // { [subjectId]: [resources] }
@@ -110,12 +112,12 @@ const StudentResources = () => {
         className="back-btn"
         onClick={() => navigate('/dashboard')}
       >
-        <FiArrowLeft /> Orqaga
+        <FiArrowLeft /> {t('common.back')}
       </button>
       <div className="page-header">
         <div>
-          <h1>Fan resurslari</h1>
-          <p>Barcha fanlar bo'yicha resurs fayllar</p>
+          <h1>{t('student.resources.title')}</h1>
+          <p>{t('student.resources.description')}</p>
         </div>
       </div>
 
@@ -123,7 +125,7 @@ const StudentResources = () => {
       {subjects.length === 0 ? (
         <div className="empty-state">
           <FiBookOpen size={48} />
-          <p>Hozircha fanlar yo'q</p>
+          <p>{t('student.subjects.noSubjects')}</p>
         </div>
       ) : (
         <div className="subjects-resources-list">
@@ -143,7 +145,7 @@ const StudentResources = () => {
                     <h3 className="subject-name">{subject.name}</h3>
                   </div>
                   <div className="subject-header-right">
-                    <span className="resources-count">Resurslar soni: {resourcesCount}</span>
+                    <span className="resources-count">{t('student.resources.resourcesCount')}: {resourcesCount}</span>
                   </div>
                 </div>
 
@@ -152,18 +154,18 @@ const StudentResources = () => {
                     {resourcesCount === 0 ? (
                       <div className="empty-resources">
                         <FiFile size={32} />
-                        <p>Bu fan uchun resurslar yo'q</p>
+                        <p>{t('student.resources.noResources')}</p>
                       </div>
                     ) : (
                       <table className="resources-table">
                         <thead>
                           <tr>
                             <th>#</th>
-                            <th>Sarlavha</th>
-                            <th>Mashg'ulot</th>
-                            <th>Xodim</th>
-                            <th>Fayllar</th>
-                            <th>Yaratilgan</th>
+                            <th>{t('student.resources.title')}</th>
+                            <th>{t('student.resources.lessonType')}</th>
+                            <th>{t('student.resources.staff')}</th>
+                            <th>{t('student.resources.files')}</th>
+                            <th>{t('student.resources.created')}</th>
                           </tr>
                         </thead>
                         <tbody>

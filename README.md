@@ -1,4 +1,4 @@
-# 📚 EduPro - Universitet Online Ta'lim Platformasi
+# 📚 Technical English - Universitet Online Ta'lim Platformasi
 
 Universitetlar uchun professional va to'liq funksional online ta'lim platformasi.
 

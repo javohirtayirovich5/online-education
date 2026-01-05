@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { FiCalendar, FiArrowLeft } from 'react-icons/fi';
 import { attendanceService } from '../services/attendanceService';
+import { settingsService } from '../services/settingsService';
 import { groupService } from '../services/groupService';
 import { subjectService } from '../services/subjectService';
 import { getDoc, doc, collection, getDocs } from 'firebase/firestore';
@@ -13,10 +15,13 @@ import './Attendance.css';
 const Attendance = () => {
   const navigate = useNavigate();
   const { userData, currentUser, isTeacher } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [subjectsMap, setSubjectsMap] = useState({}); // { [subjectId]: { name, ... } }
   const [teachersMap, setTeachersMap] = useState({}); // { [teacherId]: { displayName, ... } }
+  const [subjectTeachers, setSubjectTeachers] = useState([]);
+  const [semesterSettings, setSemesterSettings] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
 
   useEffect(() => {
@@ -46,6 +51,15 @@ const Attendance = () => {
 
       const group = groupResult.data;
       const subjectTeachers = group.subjectTeachers || [];
+      setSubjectTeachers(subjectTeachers);
+
+      // Load semester settings
+      try {
+        const semRes = await settingsService.getSemesterSettings();
+        if (semRes.success) setSemesterSettings(semRes.data);
+      } catch (err) {
+        console.error('Get semester settings error:', err);
+      }
 
       // Fanlar ma'lumotlarini olish
       const subjects = {};
@@ -96,9 +110,18 @@ const Attendance = () => {
           if (attendance.subjectId) {
             subjectInfo = subjects[attendance.subjectId];
             // subjectTeachers dan lessonType va teacherId ni topish
-            const st = subjectTeachers.find(
-              st => st.subjectId === attendance.subjectId
-            );
+            // Agar attendance.lessonType mavjud bo'lsa, uni ishlatish (bir o'qituvchi bir nechta shart uchun vaqt)
+            // Aks holda, birinchi match
+            let st;
+            if (attendance.lessonType) {
+              st = subjectTeachers.find(
+                s => s.subjectId === attendance.subjectId && s.lessonType === attendance.lessonType
+              );
+            } else {
+              st = subjectTeachers.find(
+                s => s.subjectId === attendance.subjectId
+              );
+            }
             if (st) {
               lessonType = st.lessonType;
               teacherInfo = teachers[st.teacherId];
@@ -117,7 +140,7 @@ const Attendance = () => {
           return {
             ...attendance,
             subjectInfo,
-            lessonType,
+            lessonType: lessonType || attendance.lessonType,
             teacherInfo,
             missedHours: attendance.records?.[currentUser.uid] || 0
           };
@@ -149,10 +172,66 @@ const Attendance = () => {
     if (selectedSubject === 'all') {
       return attendanceRecords;
     }
+    // Tanlangan fanga qarab filter qilish
     return attendanceRecords.filter(record => 
       record.subjectInfo?.id === selectedSubject
     );
   }, [attendanceRecords, selectedSubject]);
+
+  // Semestrdagi rejalashtirilgan darslar sonini hisoblash (inclusive)
+  const countScheduledLessons = (subjectId) => {
+    if (!semesterSettings) return 0;
+    const { semesterStartDate, semesterEndDate } = semesterSettings;
+    if (!semesterStartDate || !semesterEndDate) return 0;
+
+    const subject = subjectTeachers.find(st => st.subjectId === subjectId);
+    if (!subject || !subject.scheduleDays || subject.scheduleDays.length === 0) return 0;
+
+    let start = new Date(semesterStartDate);
+    let end = new Date(semesterEndDate);
+
+    start.setHours(0,0,0,0);
+    end.setHours(0,0,0,0);
+
+    // Ensure start <= end
+    if (start > end) return 0;
+
+    const scheduledDatesSet = new Set();
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const dayOfWeek = cursor.getDay();
+      if (subject.scheduleDays.includes(dayOfWeek)) {
+        scheduledDatesSet.add(cursor.toISOString().split('T')[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return scheduledDatesSet.size;
+  };
+
+  // Umumiy davomat foizini hisoblash semestr bo'yicha (subjectId bo'lsa o'sha fan; aks holda butun guruh uchun mavjud yozuvlarga qarab)
+  const getOverallSemesterPercent = (subjectId = null) => {
+    if (!semesterSettings) return null;
+
+    if (subjectId) {
+      const totalLessons = countScheduledLessons(subjectId);
+      const totalHours = totalLessons * 2;
+      if (totalHours === 0) return 0;
+
+      // Count missed hours for this subject across semester
+      const missed = attendanceRecords
+        .filter(r => r.subjectId === subjectId)
+        .reduce((sum, r) => sum + (r.records?.[currentUser.uid] || 0), 0);
+
+      const attended = Math.max(totalHours - missed, 0);
+      return ((attended / totalHours) * 100).toFixed(1);
+    }
+
+    // If subjectId is null, compute simple percent across available records
+    if (filteredRecords.length === 0) return 0;
+    return getAttendancePercentage(filteredRecords);
+  };
+
 
   // Fanlar ro'yxati (filter uchun)
   const subjectsList = useMemo(() => {
@@ -168,14 +247,14 @@ const Attendance = () => {
       <div className="attendance-page">
         <div className="page-header">
           <div>
-            <h1>Davomat</h1>
-            <p>Sizning davomatingiz</p>
+            <h1>{t('attendance.title')}</h1>
+            <p>{t('attendance.title')}</p>
           </div>
         </div>
         <div className="empty-state-large">
           <FiCalendar size={64} />
-          <h2>Siz hali guruhga qo'shilmagansiz</h2>
-          <p>Administrator sizni guruhga qo'shishi kerak</p>
+          <h2>{t('attendance.notInGroup')}</h2>
+          <p>{t('attendance.adminMustAddToGroup')}</p>
         </div>
       </div>
     );
@@ -189,23 +268,28 @@ const Attendance = () => {
             className="back-btn"
             onClick={() => navigate('/dashboard')}
           >
-            <FiArrowLeft /> Orqaga
+            <FiArrowLeft /> {t('common.back')}
           </button>
-          <h1>Davomat</h1>
-          <p>Sizning davomatingiz</p>
+          <h1>{t('attendance.title')}</h1>
+          <p>
+            {t('attendance.title')}
+            {selectedSubject !== 'all' && semesterSettings && (
+              <span className="overall-percent"> — {t('attendance.overall')}: {getOverallSemesterPercent(selectedSubject)}%</span>
+            )}
+          </p>
         </div>
       </div>
 
       {/* Filter */}
       <div className="attendance-filters">
         <div className="filter-group">
-          <label>Fanlarni tanlang:</label>
+          <label>{t('attendance.selectSubject')}:</label>
           <select
             className="filter-select"
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
           >
-            <option value="all">Barcha fanlar</option>
+            <option value="all">{t('attendance.allSubjects')}</option>
             {subjectsList.map(subject => (
               <option key={subject.id} value={subject.id}>
                 {subject.name}
@@ -221,11 +305,11 @@ const Attendance = () => {
           <thead>
             <tr>
               <th>#</th>
-              <th>Dars sanasi</th>
-              <th>Fanlar</th>
-              <th>Mashg'ulot</th>
-              <th>Soatlar</th>
-              <th>Xodim</th>
+              <th>{t('attendance.lessonDate')}</th>
+              <th>{t('attendance.subjects')}</th>
+              <th>{t('attendance.lessonType')}</th>
+              <th>{t('attendance.hours')}</th>
+              <th>{t('attendance.staff')}</th>
             </tr>
           </thead>
           <tbody>
@@ -234,7 +318,7 @@ const Attendance = () => {
                 <td colSpan="6" className="empty-table-cell">
                   <div className="empty-state-table">
                     <FiCalendar size={48} />
-                    <p>Davomat ma'lumotlari topilmadi</p>
+                    <p>{t('attendance.noAttendance')}</p>
                   </div>
                 </td>
               </tr>

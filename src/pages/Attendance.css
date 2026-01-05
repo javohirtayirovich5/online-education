@@ -38,9 +38,13 @@
 }
 
 .back-btn:hover {
-  background: var(--bg-tertiary);
+  background: var(--primary);
   border-color: var(--primary);
-  color: var(--primary);
+  color: white;
+}
+
+.back-btn:hover svg {
+  color: white;
 }
 
 /* Filters */

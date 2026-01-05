@@ -242,32 +242,103 @@ export const testService = {
     }
   },
 
-  // Calculate test score - har bir to'g'ri javob = 1 ball
+  // Calculate test score - each correct item = 1 point; wordbank: each blank = 1 point; matching: each pair = 1 point
   calculateScore(questions, studentAnswers) {
     let totalScore = 0;
-    const maxScore = questions.length; // Har bir savol uchun 1 ball
+    let maxScore = 0;
 
     questions.forEach((question, index) => {
       if (question.type === 'multiple') {
+        maxScore += 1;
         if (studentAnswers[index] === question.correctAnswer) {
-          totalScore += 1; // 1 ball to'g'ri javobga
+          totalScore += 1;
         }
       } else if (question.type === 'multiple_multiple') {
+        maxScore += 1;
         const correctAnswers = question.correctAnswers || [];
         const studentAnswer = studentAnswers[index] || [];
         const studentAnswerArray = Array.isArray(studentAnswer) ? studentAnswer : [studentAnswer];
-        
         if (JSON.stringify(studentAnswerArray.sort()) === JSON.stringify(correctAnswers.sort())) {
-          totalScore += 1; // 1 ball to'g'ri javobga
+          totalScore += 1;
         }
       } else if (question.type === 'text') {
-        // Matnli savol javobini tekshirish - case insensitive va trim
+        maxScore += 1;
         const studentAnswer = (studentAnswers[index] || '').trim().toLowerCase();
         const correctAnswer = (question.correctAnswer || '').trim().toLowerCase();
-        
         if (studentAnswer === correctAnswer) {
-          totalScore += 1; // 1 ball to'g'ri javobga
+          totalScore += 1;
         }
+      } else if (question.type === 'truefalse') {
+        maxScore += 1;
+        const studentAns = studentAnswers[index];
+        if (typeof studentAns === 'boolean' && studentAns === question.correctAnswer) {
+          totalScore += 1;
+        }
+      } else if (question.type === 'wordbank') {
+        const correctMap = question.correctAnswers || {};
+        const studentMap = studentAnswers[index] || {};
+        const blankIds = Object.keys(correctMap);
+        maxScore += blankIds.length;
+        blankIds.forEach(id => {
+          if (studentMap[id] && studentMap[id] === correctMap[id]) totalScore += 1;
+        });
+      } else if (question.type === 'matching') {
+        const pairs = question.pairs || [];
+        maxScore += pairs.length;
+        const studentAns = studentAnswers[index];
+        // Check if it's the new format (matchedCount) or check if all pairs were matched
+        if (typeof studentAns === 'object' && studentAns.matchedCount !== undefined) {
+          totalScore += studentAns.matchedCount;
+        } else if (typeof studentAns === 'object' && Array.isArray(studentAns.matchedPairs)) {
+          // Legacy format if needed
+          totalScore += studentAns.matchedPairs.length;
+        }
+      } else if (question.type === 'audio') {
+        const subQuestions = question.subQuestions || [];
+        const studentAns = studentAnswers[index];
+        const subAnswers = (studentAns && typeof studentAns === 'object' && studentAns.subAnswers) ? studentAns.subAnswers : {};
+        
+        subQuestions.forEach((subQ, subIndex) => {
+          const subAnswer = subAnswers[subIndex];
+          
+          if (subQ.type === 'multiple') {
+            maxScore += 1;
+            if (subAnswer === subQ.correctAnswer) {
+              totalScore += 1;
+            }
+          } else if (subQ.type === 'text') {
+            maxScore += 1;
+            const studentAnswer = (subAnswer || '').trim().toLowerCase();
+            const correctAnswer = (subQ.correctAnswer || '').trim().toLowerCase();
+            if (studentAnswer === correctAnswer) {
+              totalScore += 1;
+            }
+          } else if (subQ.type === 'truefalse') {
+            maxScore += 1;
+            if (typeof subAnswer === 'boolean' && subAnswer === subQ.correctAnswer) {
+              totalScore += 1;
+            }
+          } else if (subQ.type === 'wordbank') {
+            const correctMap = subQ.correctAnswers || {};
+            const studentMap = subAnswer || {};
+            const blankIds = Object.keys(correctMap);
+            maxScore += blankIds.length;
+            blankIds.forEach(id => {
+              if (studentMap[id] && studentMap[id] === correctMap[id]) {
+                totalScore += 1;
+              }
+            });
+          } else if (subQ.type === 'matching') {
+            const pairs = subQ.pairs || [];
+            maxScore += pairs.length;
+            // For matching, we need to check the matched pairs
+            // This would require additional state tracking in the component
+            // For now, we'll use a simple count if available
+            if (typeof subAnswer === 'object' && subAnswer.matchedCount !== undefined) {
+              totalScore += subAnswer.matchedCount;
+            }
+          }
+        });
       }
     });
 

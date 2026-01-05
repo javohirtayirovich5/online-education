@@ -16,15 +16,28 @@ import { db } from './firebase';
 const COLLECTION_NAME = 'attendance';
 
 export const attendanceService = {
-  // Guruh va sana bo'yicha davomat olish
-  async getAttendanceByGroupAndDate(groupId, date) {
+  // Guruh, sana, fan va shart bo'yicha davomat olish
+  async getAttendanceByGroupAndDate(groupId, date, subjectId = null, lessonType = null) {
     try {
       const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-      const q = query(
-        collection(db, COLLECTION_NAME), 
+      
+      // Asosiy filter: groupId va date
+      const conditions = [
         where('groupId', '==', groupId),
         where('date', '==', dateStr)
-      );
+      ];
+      
+      // Agar subjectId berilsa, uni ham qo'shish
+      if (subjectId) {
+        conditions.push(where('subjectId', '==', subjectId));
+      }
+      
+      // Agar lessonType berilsa, uni ham qo'shish
+      if (lessonType) {
+        conditions.push(where('lessonType', '==', lessonType));
+      }
+      
+      const q = query(collection(db, COLLECTION_NAME), ...conditions);
       const snapshot = await getDocs(q);
       
       if (snapshot.empty) {
@@ -102,18 +115,20 @@ export const attendanceService = {
   },
 
   // Davomat yaratish yoki yangilash
-  async saveAttendance(groupId, date, records, teacherId, subjectId = null) {
+  async saveAttendance(groupId, date, records, teacherId, subjectId = null, lessonType = null) {
     try {
       const dateStr = date.toISOString().split('T')[0];
       
-      // Mavjud davomatni tekshirish
-      const existingResult = await this.getAttendanceByGroupAndDate(groupId, date);
+      // Mavjud davomatni tekshirish (aniq fan va lessonType bo'yicha)
+      const existingResult = await this.getAttendanceByGroupAndDate(groupId, date, subjectId, lessonType);
       
       if (existingResult.success && existingResult.data) {
-        // Mavjud davomatni yangilash
+        // Mavjud davomatni yangilash (subjectId va lessonType-ni ham saqlaymiz)
         const docRef = doc(db, COLLECTION_NAME, existingResult.data.id);
         await updateDoc(docRef, {
           records,
+          subjectId,
+          lessonType,
           updatedAt: serverTimestamp(),
           updatedBy: teacherId
         });
@@ -124,6 +139,7 @@ export const attendanceService = {
           groupId,
           subjectId,
           teacherId,
+          lessonType,
           date: dateStr,
           records, // { [studentId]: missedHours }
           createdAt: serverTimestamp(),
@@ -138,10 +154,10 @@ export const attendanceService = {
   },
 
   // Talaba uchun kunlik davomat qo'shish
-  async setStudentAttendance(groupId, date, studentId, missedHours, teacherId) {
+  async setStudentAttendance(groupId, date, studentId, missedHours, teacherId, subjectId = null, lessonType = null) {
     try {
       const dateStr = date.toISOString().split('T')[0];
-      const existingResult = await this.getAttendanceByGroupAndDate(groupId, date);
+      const existingResult = await this.getAttendanceByGroupAndDate(groupId, date, subjectId, lessonType);
       
       if (existingResult.success && existingResult.data) {
         // Mavjud davomatni yangilash
@@ -156,6 +172,8 @@ export const attendanceService = {
         
         await updateDoc(docRef, {
           records,
+          subjectId,
+          lessonType,
           updatedAt: serverTimestamp(),
           updatedBy: teacherId
         });
@@ -169,7 +187,9 @@ export const attendanceService = {
         
         await addDoc(collection(db, COLLECTION_NAME), {
           groupId,
+          subjectId,
           teacherId,
+          lessonType,
           date: dateStr,
           records,
           createdAt: serverTimestamp(),

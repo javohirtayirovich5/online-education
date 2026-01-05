@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { authService } from '../../services/authService';
@@ -21,6 +22,7 @@ import { formatDate } from '../../utils/helpers';
 import './Admin.css';
 
 const Users = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,8 +136,8 @@ const Users = () => {
     <div className="admin-page">
       <div className="page-header">
         <div>
-          <h1>Foydalanuvchilar</h1>
-          <p>Barcha foydalanuvchilarni boshqarish</p>
+          <h1>{t('admin.users.title')}</h1>
+          <p>{t('admin.users.title')}</p>
         </div>
       </div>
 

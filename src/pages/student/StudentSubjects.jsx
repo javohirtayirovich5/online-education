@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import { useTranslation } from '../../hooks/useTranslation';
 import { 
   FiBookOpen, 
   FiUser, 
@@ -18,6 +19,7 @@ import './StudentSubjects.css';
 const StudentSubjects = () => {
   const navigate = useNavigate();
   const { currentUser, userData } = useAuth();
+  const { t } = useTranslation();
   const [subjects, setSubjects] = useState([]);
   const [subjectStats, setSubjectStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,19 @@ const StudentSubjects = () => {
           });
           
           const subjectsData = await Promise.all(subjectPromises);
-          setSubjects(subjectsData.filter(s => s)); // null qiymatlarni filtrlash
+          const filteredSubjects = subjectsData.filter(s => s); // null qiymatlarni filtrlash
+          
+          // Duplicate fanlarni olib tashlash (bir xil subjectId ga ega bo'lganlar)
+          const uniqueSubjects = [];
+          const seenIds = new Set();
+          for (const subject of filteredSubjects) {
+            if (!seenIds.has(subject.id)) {
+              seenIds.add(subject.id);
+              uniqueSubjects.push(subject);
+            }
+          }
+          
+          setSubjects(uniqueSubjects);
           
           // Har bir fan uchun baholar statistikasini olish
           const stats = {};
@@ -132,20 +146,20 @@ const StudentSubjects = () => {
         className="back-btn"
         onClick={() => navigate('/dashboard')}
       >
-        <FiArrowLeft /> Orqaga
+        <FiArrowLeft /> {t('common.back')}
       </button>
       {/* Header */}
       <div className="page-header">
         <div className="header-content">
           <div className="header-left">
-            <h1>Mening fanlarim</h1>
+            <h1>{t('student.subjects.title')}</h1>
             <p>
               {userData.groupName || 'Guruh'} · {userData.departmentName || 'Yo\'nalish'}
             </p>
           </div>
           <div className="header-stats">
             <div className="overall-grade">
-              <span className="grade-label">Umumiy o'rtacha</span>
+              <span className="grade-label">{t('grades.overallAverage')}</span>
               <span className={`grade-value ${getGradeColor(overallAverage)}`}>
                 {overallAverage > 0 ? overallAverage.toFixed(2) : '-'}
               </span>
@@ -187,14 +201,14 @@ const StudentSubjects = () => {
                       <span className="stat-value">
                         {stats.average > 0 ? stats.average.toFixed(1) : '-'}
                       </span>
-                      <span className="stat-label">O'rtacha</span>
+                      <span className="stat-label">{t('grades.average')}</span>
                     </div>
                   </div>
                   <div className="stat-item">
                     <FiBarChart2 className="stat-icon" />
                     <div className="stat-content">
                       <span className="stat-value">{stats.gradesCount}</span>
-                      <span className="stat-label">Baholar</span>
+                      <span className="stat-label">{t('grades.title')}</span>
                     </div>
                   </div>
                 </div>

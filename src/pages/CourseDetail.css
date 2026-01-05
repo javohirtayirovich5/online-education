@@ -34,16 +34,21 @@
 .course-header-section .back-btn {
   margin-bottom: 1rem;
   color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
 }
 
 .course-header-section .back-btn:hover {
-  color: white;
-  background: var(--primary);
+  color: white !important;
+  background: var(--primary) !important;
+  border-color: var(--primary);
   opacity: 1;
 }
 
 .course-header-section .back-btn:hover svg {
-  color: white;
+  color: white !important;
 }
 
 .breadcrumb {
@@ -451,7 +456,55 @@
 .course-video-player {
   width: 100%;
   border-radius: var(--radius-md);
-  background: #000;
+  background: #000; /* Video player uchun qora fon kerak */
+}
+
+/* YouTube "Watch on YouTube" tugmasini yashirish */
+.video-modal-content iframe,
+.video-container iframe {
+  position: relative;
+}
+
+.video-modal-content iframe::after,
+.video-container iframe::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ReactPlayer wrapper uchun */
+.video-modal-content > div,
+.video-container > div {
+  position: relative;
+}
+
+/* YouTube player ichidagi watermark va tugmalarni yashirish */
+.video-modal-content :global(.ytp-watermark),
+.video-container :global(.ytp-watermark),
+.video-modal-content :global(.ytp-watermark-logo),
+.video-container :global(.ytp-watermark-logo),
+.video-modal-content :global(.ytp-watermark-button),
+.video-container :global(.ytp-watermark-button),
+.video-modal-content :global(.ytp-watermark-show-expanded),
+.video-container :global(.ytp-watermark-show-expanded),
+.video-modal-content :global(.ytp-watermark-expanded),
+.video-container :global(.ytp-watermark-expanded) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ReactPlayer wrapper uchun */
+.video-modal-content > div > div {
+  position: relative;
+  overflow: hidden;
 }
 
 .no-video-message {

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
 import { FiX } from 'react-icons/fi';
 import LoadingSpinner from '../common/LoadingSpinner';
 import './TestResultsModal.css';
 
 const TestResultsModal = ({ isOpen, onClose, test }) => {
+  const { t } = useTranslation();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('score'); // 'score' or 'name'
@@ -49,7 +51,7 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{test.title} - Natijalar</h2>
+          <h2>{test.title} - {t('teacher.tests.viewResults')}</h2>
           <button className="modal-close" onClick={onClose}>
             <FiX />
           </button>
@@ -59,15 +61,15 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
           {/* Statistics */}
           <div className="results-stats">
             <div className="stat-card">
-              <span className="stat-label">Topshiriqlar</span>
+              <span className="stat-label">{t('assignments.title')}</span>
               <span className="stat-value">{submissions.length}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">O'rtacha ball</span>
+              <span className="stat-label">{t('teacher.grades.averageGrade')}</span>
               <span className="stat-value">{avgScore}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Eng yuqori</span>
+              <span className="stat-label">{t('teacher.grades.highest')}</span>
               <span className="stat-value">
                 {submissions.length > 0 
                   ? Math.max(...submissions.map(s => s.score || 0))
@@ -78,14 +80,14 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
 
           {/* Sort Controls */}
           <div className="results-controls">
-            <label>Saralash:</label>
+            <label>{t('teacher.grades.sortBy')}:</label>
             <select 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="form-select"
             >
-              <option value="score">Ballga asosan</option>
-              <option value="name">Ismiga asosan</option>
+              <option value="score">{t('teacher.grades.sortByGrade')}</option>
+              <option value="name">{t('teacher.grades.sortByName')}</option>
             </select>
           </div>
 
@@ -94,16 +96,16 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
             <LoadingSpinner />
           ) : sortedSubmissions.length === 0 ? (
             <div className="empty-state">
-              <p>Hali topshiriqlar yo'q</p>
+              <p>{t('assignments.noAssignments')}</p>
             </div>
           ) : (
             <div className="results-table">
               <div className="table-header">
                 <div className="col-rank">#</div>
-                <div className="col-name">O'quvchi</div>
-                <div className="col-score">Ball</div>
-                <div className="col-percentage">Foiz</div>
-                <div className="col-date">Sana</div>
+                <div className="col-name">{t('teacher.grades.studentName')}</div>
+                <div className="col-score">{t('tests.score')}</div>
+                <div className="col-percentage">{t('attendance.percentage')}</div>
+                <div className="col-date">{t('common.date')}</div>
               </div>
 
               {sortedSubmissions.map((submission, index) => (

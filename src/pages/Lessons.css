@@ -424,6 +424,48 @@
   height: 18px;
 }
 
+/* Video source toggle */
+.video-source-toggle {
+  display: flex;
+  gap: 16px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex: 1;
+  justify-content: center;
+}
+
+.toggle-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.toggle-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.toggle-option input[type="radio"]:checked + span {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.toggle-option span {
+  font-size: 14px;
+  color: var(--text-primary);
+  user-select: none;
+}
+
 /* Empty State */
 .empty-state-large {
   display: flex;

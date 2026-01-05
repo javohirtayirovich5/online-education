@@ -137,25 +137,33 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
-  background: none;
-  border: none;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
   margin-bottom: 1.5rem;
-  border: 1px solid var(--primary);
+  text-decoration: none;
 }
 
 .back-btn:hover {
-  color: var(--primary);
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
   transform: translateX(-4px);
+}
+
+.back-btn:hover svg {
+  color: white;
 }
 
 .back-btn svg {
   font-size: 1rem;
+  transition: var(--transition);
 }
 
 .card {
@@ -321,10 +329,6 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-.form-textarea {
-  resize: vertical;
-  min-height: 120px;
-}
 
 .form-error {
   color: var(--error);
@@ -637,5 +641,24 @@ a:hover {
 
 .Toastify__toast--info {
   background: var(--info);
+}
+
+/* YouTube "Watch on YouTube" tugmasini global yashirish */
+iframe[src*="youtube.com"],
+iframe[src*="youtu.be"] {
+  position: relative;
+}
+
+/* YouTube player ichidagi watermark va tugmalarni yashirish */
+:global(.ytp-watermark),
+:global(.ytp-watermark-logo),
+:global(.ytp-watermark-button),
+:global(.ytp-watermark-show-expanded),
+:global(.ytp-watermark-expanded),
+:global(.ytp-watermark-logo-container) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 

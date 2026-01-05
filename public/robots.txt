@@ -1,4 +1,4 @@
-# robots.txt for EduPro Online Education Platform
+# robots.txt for Technical English Online Education Platform
 
 User-agent: *
 Allow: /

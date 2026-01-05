@@ -2,7 +2,7 @@
 
 .teacher-grades-page.hemis-style {
   padding: 1rem 1.5rem;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -12,16 +12,16 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
 }
 
 .teacher-grades-page .page-breadcrumb .separator {
-  color: #cbd5e1;
+  color: var(--text-tertiary);
 }
 
 .teacher-grades-page .page-breadcrumb .current {
-  color: #334155;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -41,27 +41,27 @@
   gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .grades-header .header-left h1 svg {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .grades-header .header-left p {
   margin: 0.25rem 0 0 0;
   font-size: 0.9375rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .group-select {
   padding: 0.75rem 2.5rem 0.75rem 1rem;
   font-size: 0.9375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
-  color: #334155;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   min-width: 220px;
   appearance: none;
@@ -72,8 +72,8 @@
 
 .group-select:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Month Selector */
@@ -82,10 +82,11 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: white;
+  background: var(--bg-primary);
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   margin-bottom: 1rem;
 }
 
@@ -95,17 +96,17 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   border: none;
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .month-nav:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .month-nav:disabled {
@@ -119,13 +120,13 @@
   gap: 0.5rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   min-width: 180px;
   justify-content: center;
 }
 
 .month-display svg {
-  color: #3b82f6;
+  color: var(--primary);
 }
 
 /* Schedule Info Bar */
@@ -134,7 +135,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -162,9 +163,10 @@
 
 /* Grades Table Container */
 .grades-table-container {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--shadow);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
@@ -180,7 +182,7 @@
 }
 
 .grades-table thead {
-  background: #f1f5f9;
+  background: var(--bg-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -191,32 +193,32 @@
   text-align: center;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #475569;
-  border-bottom: 2px solid #e2e8f0;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
   white-space: nowrap;
 }
 
 .grades-table td {
   padding: 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border);
   text-align: center;
   font-size: 0.9375rem;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .grades-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--bg-secondary);
 }
 
 /* Sticky Columns */
 .sticky-col {
   position: sticky;
-  background: white;
+  background: var(--bg-primary);
   z-index: 5;
 }
 
 .grades-table thead .sticky-col {
-  background: #f1f5f9;
+  background: var(--bg-secondary);
   z-index: 15;
 }
 
@@ -231,19 +233,19 @@
   min-width: 200px;
   text-align: left;
   padding-left: 1rem;
-  border-right: 2px solid #e2e8f0;
+  border-right: 2px solid var(--border);
 }
 
 .sticky-col-right {
   position: sticky;
   right: 0;
-  background: white;
+  background: var(--bg-primary);
   z-index: 5;
-  border-left: 2px solid #e2e8f0;
+  border-left: 2px solid var(--border);
 }
 
 .grades-table thead .sticky-col-right {
-  background: #f1f5f9;
+  background: var(--bg-secondary);
   z-index: 15;
 }
 
@@ -255,23 +257,23 @@
 }
 
 .col-average.excellent {
-  color: #16a34a;
-  background: #dcfce7 !important;
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.1) !important;
 }
 
 .col-average.good {
-  color: #2563eb;
-  background: #dbeafe !important;
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.1) !important;
 }
 
 .col-average.satisfactory {
-  color: #ca8a04;
-  background: #fef9c3 !important;
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1) !important;
 }
 
 .col-average.poor {
-  color: #dc2626;
-  background: #fee2e2 !important;
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1) !important;
 }
 
 /* Grade Column */
@@ -291,13 +293,13 @@
 .date-header-auto .date-day {
   font-size: 1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .date-header-auto .date-weekday {
   font-size: 0.6875rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
 }
 
@@ -309,46 +311,47 @@
   text-align: center;
   font-size: 1rem;
   font-weight: 600;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   transition: all 0.2s;
 }
 
 .grade-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .grade-input::placeholder {
-  color: #cbd5e1;
+  color: var(--text-tertiary);
 }
 
 /* Grade Colors */
 .grade-input.grade-5 {
-  background: #dcfce7;
-  border-color: #16a34a;
-  color: #15803d;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success);
+  color: var(--success);
 }
 
 .grade-input.grade-4 {
-  background: #dbeafe;
-  border-color: #3b82f6;
-  color: #1d4ed8;
+  background: rgba(79, 70, 229, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .grade-input.grade-3 {
-  background: #fef9c3;
-  border-color: #eab308;
-  color: #a16207;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 
 .grade-input.grade-2 {
-  background: #fee2e2;
-  border-color: #ef4444;
-  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  color: var(--error);
 }
 
 /* Actions */
@@ -356,9 +359,10 @@
   display: flex;
   justify-content: flex-end;
   padding: 1rem;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -1px 3px var(--shadow);
+  border-top: 1px solid var(--border);
   margin-top: -1px;
 }
 
@@ -367,7 +371,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -378,9 +382,9 @@
 }
 
 .btn-save:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .btn-save:disabled {
@@ -393,7 +397,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 2rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--success) 0%, var(--success) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -404,7 +408,7 @@
 }
 
 .btn-edit:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  opacity: 0.9;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
@@ -419,8 +423,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 2rem;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -431,17 +435,18 @@
 }
 
 .btn-cancel:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .grades-actions {
   display: flex;
   justify-content: flex-end;
   padding: 1rem;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -1px 3px var(--shadow);
+  border-top: 1px solid var(--border);
   margin-top: -1px;
   gap: 0.75rem;
 }
@@ -453,7 +458,7 @@
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .empty-table svg {
@@ -473,19 +478,19 @@
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .empty-state-full svg {
   margin-bottom: 1.5rem;
   opacity: 0.3;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .empty-state-full h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
 }
 

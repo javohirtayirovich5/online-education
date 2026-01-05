@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -37,12 +38,14 @@ import TeacherAttendance from './pages/teacher/TeacherAttendance';
 import TeacherGroupGrades from './pages/teacher/TeacherGroupGrades';
 import TeacherResources from './pages/teacher/TeacherResources';
 import TeacherTests from './pages/teacher/TeacherTests';
+import LiveSessions from './pages/LiveSessions';
 
 // Student Pages
 import StudentSubjects from './pages/student/StudentSubjects';
 import TimeTable from './pages/student/TimeTable';
 import StudentResources from './pages/student/StudentResources';
 import StudentTests from './pages/student/StudentTests';
+import TakeTest from './pages/student/TakeTest';
 
 import './App.css';
 
@@ -88,8 +91,9 @@ function AppLayout({ children }) {
 function App() {
   return (
     <Router>
-      <ThemeProvider>
-        <AuthProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
@@ -256,6 +260,19 @@ function App() {
               </PrivateRoute>
             } />
 
+            <Route path="/tests/:testId" element={
+              <PrivateRoute requiredRole="student">
+                <AppLayout><TakeTest /></AppLayout>
+              </PrivateRoute>
+            } />
+
+            {/* Live Sessions (teachers and students) */}
+            <Route path="/live-sessions" element={
+              <PrivateRoute>
+                <AppLayout><LiveSessions /></AppLayout>
+              </PrivateRoute>
+            } />
+
             {/* 404 */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
@@ -274,6 +291,7 @@ function App() {
           />
         </AuthProvider>
       </ThemeProvider>
+      </LanguageProvider>
     </Router>
   );
 }

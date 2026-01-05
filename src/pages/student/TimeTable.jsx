@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { groupService } from '../../services/groupService';
 import { 
   FiMapPin,
@@ -21,6 +22,7 @@ const WEEK_DAYS = [
 
 const TimeTable = () => {
   const { userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [schedule, setSchedule] = useState([]);
   const [groupName, setGroupName] = useState('');
@@ -145,8 +147,8 @@ const TimeTable = () => {
     <div className="timetable-page">
       <div className="page-header">
         <div>
-          <h1>Dars jadvali</h1>
-          <p>Haftalik dars jadvali</p>
+          <h1>{t('student.timetable.title')}</h1>
+          <p>{t('student.timetable.title')}</p>
         </div>
       </div>
 
@@ -177,7 +179,7 @@ const TimeTable = () => {
               
               <div className="day-lessons">
                 {dayLessons.length === 0 ? (
-                  <div className="no-lessons">Darslar yo'q</div>
+                  <div className="no-lessons">{t('student.timetable.noSchedule')}</div>
                 ) : (
                   dayLessons.map((lesson, index) => (
                     <div 

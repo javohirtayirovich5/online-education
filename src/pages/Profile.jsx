@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { storageService } from '../services/storageService';
 import { FiUser, FiMail, FiPhone, FiBook, FiEdit, FiCamera, FiSave, FiArrowLeft } from 'react-icons/fi';
 import { toast } from 'react-toastify';
@@ -9,6 +10,7 @@ import './Profile.css';
 const Profile = () => {
   const navigate = useNavigate();
   const { userData, updateProfile, currentUser } = useAuth();
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,10 +32,10 @@ const Profile = () => {
     const result = await updateProfile(formData);
     
     if (result.success) {
-      toast.success('Profil yangilandi');
+      toast.success(t('profile.profileUpdated'));
       setIsEditing(false);
     } else {
-      toast.error('Profilni yangilashda xatolik');
+      toast.error(t('profile.updateError'));
     }
     setLoading(false);
   };
@@ -44,7 +46,7 @@ const Profile = () => {
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Rasm hajmi 5MB dan oshmasligi kerak');
+      toast.error(t('profile.imageSizeError'));
       return;
     }
 
@@ -53,9 +55,9 @@ const Profile = () => {
     
     if (result.success) {
       await updateProfile({ photoURL: result.url });
-      toast.success('Profil rasmi yangilandi');
+      toast.success(t('profile.imageUpdated'));
     } else {
-      toast.error('Rasmni yuklashda xatolik');
+      toast.error(t('profile.imageUploadError'));
     }
     setLoading(false);
   };
@@ -66,7 +68,7 @@ const Profile = () => {
         className="back-btn"
         onClick={() => navigate('/dashboard')}
       >
-        <FiArrowLeft /> Orqaga
+        <FiArrowLeft /> {t('common.back')}
       </button>
       <div className="profile-header-section">
         <div className="profile-cover"></div>
@@ -91,8 +93,8 @@ const Profile = () => {
             <div className="profile-header-info">
               <h1>{userData?.displayName}</h1>
               <span className="profile-role-badge">
-                {userData?.role === 'admin' ? 'Administrator' : 
-                 userData?.role === 'teacher' ? 'O\'qituvchi' : 'Talaba'}
+                {userData?.role === 'admin' ? t('common.administrator') : 
+                 userData?.role === 'teacher' ? t('common.teacher') : t('common.student')}
               </span>
               <p className="profile-email">{userData?.email}</p>
             </div>
@@ -100,7 +102,7 @@ const Profile = () => {
           
           {!isEditing && (
             <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
-              <FiEdit /> Profilni tahrirlash
+              <FiEdit /> {t('profile.editProfile')}
             </button>
           )}
         </div>
@@ -110,11 +112,11 @@ const Profile = () => {
         {isEditing ? (
           <form className="profile-form" onSubmit={handleSubmit}>
             <div className="form-card">
-              <h2>Shaxsiy ma'lumotlar</h2>
+              <h2>{t('profile.personalInfo')}</h2>
               
               <div className="form-group">
                 <label className="form-label">
-                  <FiUser /> To'liq ism
+                  <FiUser /> {t('profile.fullName')}
                 </label>
                 <input
                   type="text"
@@ -128,7 +130,7 @@ const Profile = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  <FiPhone /> Telefon
+                  <FiPhone /> {t('profile.phoneNumber')}
                 </label>
                 <input
                   type="tel"
@@ -154,7 +156,7 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Manzil</label>
+                <label className="form-label">{t('profile.address')}</label>
                 <input
                   type="text"
                   name="address"
@@ -165,7 +167,7 @@ const Profile = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Biografiya</label>
+                <label className="form-label">{t('profile.bio')}</label>
                 <textarea
                   name="bio"
                   className="form-textarea"
@@ -182,10 +184,10 @@ const Profile = () => {
                   className="btn btn-secondary" 
                   onClick={() => setIsEditing(false)}
                 >
-                  Bekor qilish
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  <FiSave /> {loading ? 'Saqlanmoqda...' : 'Saqlash'}
+                  <FiSave /> {loading ? t('common.loading') : t('common.save')}
                 </button>
               </div>
             </div>
@@ -193,10 +195,10 @@ const Profile = () => {
         ) : (
           <div className="profile-info-cards">
             <div className="info-card">
-              <h3>Shaxsiy ma'lumotlar</h3>
+              <h3>{t('profile.personalInfo')}</h3>
               <div className="info-list">
                 <div className="info-item">
-                  <span className="info-label">To'liq ism</span>
+                  <span className="info-label">{t('profile.fullName')}</span>
                   <span className="info-value">{userData?.displayName}</span>
                 </div>
                 <div className="info-item">
@@ -204,7 +206,7 @@ const Profile = () => {
                   <span className="info-value">{userData?.email}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">Telefon</span>
+                  <span className="info-label">{t('profile.phoneNumber')}</span>
                   <span className="info-value">{userData?.phoneNumber || '-'}</span>
                 </div>
                 <div className="info-item">
@@ -221,8 +223,8 @@ const Profile = () => {
             </div>
 
             <div className="info-card">
-              <h3>Biografiya</h3>
-              <p className="bio-text">{userData?.bio || 'Biografiya kiritilmagan'}</p>
+              <h3>{t('profile.bio')}</h3>
+              <p className="bio-text">{userData?.bio || t('profile.bio')}</p>
             </div>
 
             <div className="info-card">

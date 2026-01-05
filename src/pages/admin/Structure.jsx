@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
 import { 
   FiPlus, 
@@ -29,6 +30,7 @@ import './Structure.css';
 
 const Structure = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('faculties');
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -389,7 +391,7 @@ const Structure = () => {
         return (
           <>
             <div className="form-group">
-              <label className="form-label">Nomi <span className="required">*</span></label>
+              <label className="form-label">{t('admin.structure.name')} <span className="required">*</span></label>
               <input
                 type="text"
                 className="form-input"
@@ -450,7 +452,7 @@ const Structure = () => {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Nomi <span className="required">*</span></label>
+              <label className="form-label">{t('admin.structure.name')} <span className="required">*</span></label>
               <input
                 type="text"
                 className="form-input"
@@ -600,7 +602,7 @@ const Structure = () => {
   };
 
   const getModalTitle = () => {
-    const action = editingItem ? 'Tahrirlash' : 'Yaratish';
+    const action = editingItem ? t('admin.structure.edit') : t('admin.structure.add');
     switch (modalType) {
       case 'faculty': return `Fakultet ${action.toLowerCase()}`;
       case 'department': return `Yo'nalish ${action.toLowerCase()}`;
@@ -688,7 +690,7 @@ const Structure = () => {
           className={`tab-btn ${activeTab === 'faculties' ? 'active' : ''}`}
           onClick={() => setActiveTab('faculties')}
         >
-          <FiBook /> Fakultetlar ({faculties.length})
+          <FiBook /> {t('admin.structure.faculties')} ({faculties.length})
         </button>
         <button 
           className={`tab-btn ${activeTab === 'tree' ? 'active' : ''}`}
@@ -700,13 +702,13 @@ const Structure = () => {
           className={`tab-btn ${activeTab === 'groups' ? 'active' : ''}`}
           onClick={() => setActiveTab('groups')}
         >
-          <FiUsers /> Guruhlar ({groups.length})
+          <FiUsers /> {t('admin.structure.groups')} ({groups.length})
         </button>
         <button 
           className={`tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
           onClick={() => setActiveTab('subjects')}
         >
-          <FiBookOpen /> Fanlar ({subjects.length})
+          <FiBookOpen /> {t('admin.structure.subjects')} ({subjects.length})
         </button>
       </div>
 
@@ -1061,14 +1063,14 @@ const Structure = () => {
               onClick={() => setShowModal(false)}
               disabled={saving}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button 
               className="btn btn-primary" 
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+              {saving ? t('common.loading') : t('admin.structure.save')}
             </button>
           </div>
         </div>
@@ -1171,7 +1173,7 @@ const Structure = () => {
               onClick={() => setShowAssignModal(false)}
               disabled={saving}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button 
               className="btn btn-primary" 

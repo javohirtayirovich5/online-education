@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
 import { FiMail, FiArrowLeft } from 'react-icons/fi';
 import './Auth.css';
 
 const ForgotPassword = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -15,7 +17,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     
     if (!email) {
-      toast.error('Email manzilini kiriting');
+      toast.error(t('auth.enterEmail'));
       return;
     }
 
@@ -25,9 +27,9 @@ const ForgotPassword = () => {
 
     if (result.success) {
       setSent(true);
-      toast.success('Parolni tiklash havolasi emailingizga yuborildi');
+      toast.success(t('common.passwordResetSent'));
     } else {
-      toast.error(result.error || 'Xatolik yuz berdi');
+      toast.error(result.error || t('common.error'));
     }
   };
 
@@ -39,8 +41,8 @@ const ForgotPassword = () => {
             <div className="brand-icon success">
               <span>✉️</span>
             </div>
-            <h1>Email yuborildi!</h1>
-            <p>Parolni tiklash havolasi emailingizga yuborildi. Emailingizni tekshiring.</p>
+            <h1>{t('auth.emailSent')}</h1>
+            <p>{t('auth.passwordResetLinkSent')}</p>
           </div>
 
           <Link to="/login" className="btn btn-primary btn-block">
@@ -65,20 +67,20 @@ const ForgotPassword = () => {
           <div className="brand-icon">
             <span>🔑</span>
           </div>
-          <h1>Parolni tiklash</h1>
-          <p>Email manzilingizni kiriting va biz sizga parolni tiklash havolasini yuboramiz</p>
+          <h1>{t('auth.forgotPassword')}</h1>
+          <p>{t('auth.forgotPasswordDescription')}</p>
         </div>
 
         {/* Form */}
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('common.email')}</label>
             <div className="input-with-icon">
               <FiMail className="input-icon" />
               <input
                 type="email"
                 className="form-input"
-                placeholder="email@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -87,7 +89,7 @@ const ForgotPassword = () => {
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Yuborilmoqda...' : 'Havola yuborish'}
+            {loading ? t('auth.sending') : t('auth.sendLink')}
           </button>
         </form>
 

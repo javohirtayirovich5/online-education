@@ -1,44 +1,45 @@
 /* Test Results Card Styles */
 
 .test-result-card {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 6px solid #ddd;
+  box-shadow: 0 2px 8px var(--shadow);
+  border-left: 6px solid var(--border);
   transition: all 0.3s ease;
+  border: 1px solid var(--border);
 }
 
 .test-result-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow);
   transform: translateY(-2px);
 }
 
 /* Status Variants */
 
 .test-result-card.excellent {
-  border-left-color: #4caf50;
-  background: linear-gradient(to right, #e8f5e9, white);
+  border-left-color: var(--success);
+  background: var(--bg-primary);
 }
 
 .test-result-card.good {
-  border-left-color: #2196f3;
-  background: linear-gradient(to right, #e3f2fd, white);
+  border-left-color: var(--info);
+  background: var(--bg-primary);
 }
 
 .test-result-card.satisfactory {
-  border-left-color: #ff9800;
-  background: linear-gradient(to right, #fff3e0, white);
+  border-left-color: var(--warning);
+  background: var(--bg-primary);
 }
 
 .test-result-card.pass {
-  border-left-color: #ffc107;
-  background: linear-gradient(to right, #fffde7, white);
+  border-left-color: var(--warning);
+  background: var(--bg-primary);
 }
 
 .test-result-card.fail {
-  border-left-color: #f44336;
-  background: linear-gradient(to right, #ffebee, white);
+  border-left-color: var(--error);
+  background: var(--bg-primary);
 }
 
 .result-header {
@@ -51,13 +52,13 @@
 
 .result-title h3 {
   margin: 0 0 4px 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .result-date {
   display: block;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -70,28 +71,28 @@
 }
 
 .result-badge.excellent {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
 }
 
 .result-badge.good {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
 }
 
 .result-badge.satisfactory {
-  background: #fff3e0;
-  color: #e65100;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
 }
 
 .result-badge.pass {
-  background: #fffde7;
-  color: #f57f17;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
 }
 
 .result-badge.fail {
-  background: #ffebee;
-  color: #c62828;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
 }
 
 .result-content {
@@ -118,14 +119,13 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .score-inner {
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  background: white;
+  background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,7 +137,7 @@
   display: block;
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .score-details {
@@ -152,51 +152,43 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: #f9f9f9;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 
 .detail-item .label {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
 
 .detail-item .value {
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
 .status-excellent {
-  color: #2e7d32;
+  color: var(--success);
 }
 
 .status-good {
-  color: #1565c0;
+  color: var(--info);
 }
 
 .status-satisfactory {
-  color: #e65100;
+  color: var(--warning);
 }
 
 .status-pass {
-  color: #f57f17;
+  color: var(--warning);
 }
 
 .status-fail {
-  color: #c62828;
+  color: var(--error);
 }
 
-/* Color Variables */
-
-:root {
-  --excellent-color: #4caf50;
-  --good-color: #2196f3;
-  --satisfactory-color: #ff9800;
-  --pass-color: #ffc107;
-  --fail-color: #f44336;
-}
+/* Color Variables - Using global CSS variables from index.css */
 
 @media (max-width: 768px) {
   .test-result-card {

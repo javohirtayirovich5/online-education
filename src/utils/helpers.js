@@ -192,11 +192,11 @@ export const getTimeRemaining = (dueDate) => {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
     if (days > 0) {
-      return { expired: false, text: `${days} kun, ${hours} soat qoldi` };
+      return { expired: false, days, hours, minutes, text: `${days} kun, ${hours} soat qoldi` };
     } else if (hours > 0) {
-      return { expired: false, text: `${hours} soat, ${minutes} daqiqa qoldi` };
+      return { expired: false, days: 0, hours, minutes, text: `${hours} soat, ${minutes} daqiqa qoldi` };
     } else {
-      return { expired: false, text: `${minutes} daqiqa qoldi` };
+      return { expired: false, days: 0, hours: 0, minutes, text: `${minutes} daqiqa qoldi` };
     }
   } catch (error) {
     console.error('Calculate time remaining error:', error);

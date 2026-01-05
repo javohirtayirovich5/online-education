@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
 import { 
   FiUsers, 
@@ -36,6 +37,7 @@ const MONTH_NAMES = [
 
 const TeacherGroupGrades = () => {
   const { currentUser, userData } = useAuth();
+  const { t } = useTranslation();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [students, setStudents] = useState([]);
@@ -53,6 +55,10 @@ const TeacherGroupGrades = () => {
   
   // Tanlangan guruhning fan ma'lumoti
   const [subjectInfo, setSubjectInfo] = useState(null);
+  // Tanlangan shart (lessonType) ma'lumoti - agar bir guruhda bir nechta fan/shart bo'lsa
+  const [selectedSubjectTeacher, setSelectedSubjectTeacher] = useState(null);
+  // Tanlangan guruhda mavjud barcha fan/shart kombinatsiyalari
+  const [availableSubjectTeachers, setAvailableSubjectTeachers] = useState([]);
 
   // Dars kunlari nomlarini olish
   const scheduleDaysNames = useMemo(() => {
@@ -90,7 +96,8 @@ const TeacherGroupGrades = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (date <= today) {
-          const dateStr = date.toISOString().split('T')[0];
+          // Use local date format instead of ISO to avoid timezone issues
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           dates.push(dateStr);
         }
       }
@@ -119,10 +126,17 @@ const TeacherGroupGrades = () => {
           const groupToSelect = savedGroup || result.data[0];
           setSelectedGroup(groupToSelect);
           
-          const subjectTeacher = (groupToSelect.subjectTeachers || []).find(
+          // O'qituvchining bu guruhda barcha fan/shart kombinatsiyalarini topish
+          const teacherSubjects = (groupToSelect.subjectTeachers || []).filter(
             st => st.teacherId === currentUser.uid
           );
-          setSubjectInfo(subjectTeacher);
+          setAvailableSubjectTeachers(teacherSubjects);
+          
+          // Birinchi fan/shartni tanlash
+          if (teacherSubjects.length > 0) {
+            setSelectedSubjectTeacher(teacherSubjects[0]);
+            setSubjectInfo(teacherSubjects[0]);
+          }
         }
       } else {
         toast.error('Guruhlarni yuklashda xatolik');
@@ -140,18 +154,29 @@ const TeacherGroupGrades = () => {
       
       setLoadingStudents(true);
       
-      // Fan ma'lumotini oldin yangilash
-      const subjectTeacher = (selectedGroup.subjectTeachers || []).find(
+      // O'qituvchining bu guruhda barcha fan/shart kombinatsiyalarini topish
+      const teacherSubjects = (selectedGroup.subjectTeachers || []).filter(
         st => st.teacherId === currentUser.uid
       );
-      setSubjectInfo(subjectTeacher);
+      setAvailableSubjectTeachers(teacherSubjects);
+      
+      // Birinchi fan/shartni tanlash
+      if (teacherSubjects.length > 0) {
+        setSelectedSubjectTeacher(teacherSubjects[0]);
+        setSubjectInfo(teacherSubjects[0]);
+      } else {
+        setSelectedSubjectTeacher(null);
+        setSubjectInfo(null);
+      }
       
       const result = await groupService.getGroupStudents(selectedGroup.id);
       
       if (result.success) {
         setStudents(result.data);
         // Baholarni yuklash
-        await loadGrades(subjectTeacher);
+        if (teacherSubjects.length > 0) {
+          await loadGrades(teacherSubjects[0]);
+        }
       }
       
       setLoadingStudents(false);
@@ -243,7 +268,7 @@ const TeacherGroupGrades = () => {
   // Baholarni saqlash
   const handleSave = async () => {
     if (!selectedGroup || !subjectInfo?.subjectId) {
-      toast.error('Guruh yoki fan tanlanmagan');
+      toast.error(t('common.error'));
       return;
     }
 
@@ -404,18 +429,18 @@ const TeacherGroupGrades = () => {
     <div className="teacher-grades-page hemis-style">
       {/* Breadcrumb */}
       <div className="page-breadcrumb">
-        <span>Asosiy</span>
+        <span>{t('sidebar.dashboard')}</span>
         <span className="separator">/</span>
-        <span>Guruhlar</span>
+        <span>{t('sidebar.groups')}</span>
         <span className="separator">/</span>
-        <span className="current">Baholar</span>
+        <span className="current">{t('teacher.grades.title')}</span>
       </div>
 
       {/* Header */}
       <div className="grades-header">
         <div className="header-left">
-          <h1><FiStar /> Baholar jadvali</h1>
-          <p>{subjectInfo?.subjectName || userData?.subjectName || 'Fan'}</p>
+          <h1><FiStar /> {t('teacher.grades.title')}</h1>
+          <p>{subjectInfo?.subjectName || userData?.subjectName || t('grades.subject')}</p>
         </div>
         <div className="header-right">
           <select 
@@ -436,6 +461,29 @@ const TeacherGroupGrades = () => {
               </option>
             ))}
           </select>
+          {/* Agar o'qituvchida bir nechta fan/shart bo'lsa, tanlash uchun selector */}
+          {availableSubjectTeachers.length > 1 && (
+            <select 
+              className="subject-select"
+              value={selectedSubjectTeacher ? `${selectedSubjectTeacher.subjectId}-${selectedSubjectTeacher.lessonType}` : ''}
+              onChange={(e) => {
+                const selected = availableSubjectTeachers.find(
+                  st => `${st.subjectId}-${st.lessonType}` === e.target.value
+                );
+                if (selected) {
+                  setSelectedSubjectTeacher(selected);
+                  setSubjectInfo(selected);
+                  loadGrades(selected);
+                }
+              }}
+            >
+              {availableSubjectTeachers.map(st => (
+                <option key={`${st.subjectId}-${st.lessonType}`} value={`${st.subjectId}-${st.lessonType}`}>
+                  {st.subjectName} ({st.lessonType === 'lecture' ? 'Ma\'ruza' : st.lessonType === 'practical' ? 'Amaliy' : st.lessonType === 'laboratory' ? 'Laboratoriya' : st.lessonType})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -574,7 +622,7 @@ const TeacherGroupGrades = () => {
                 }}
                 disabled={saving}
               >
-                <FiSave /> {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                <FiSave /> {saving ? t('common.loading') : t('teacher.grades.save')}
               </button>
             </>
           )}

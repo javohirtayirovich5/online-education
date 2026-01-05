@@ -31,10 +31,10 @@ export const resourceService = {
           ...doc.data() 
         }))
         .sort((a, b) => {
-          // Client-side sorting by createdAt (descending)
+          // Client-side sorting by createdAt (ascending) - oldest first
           const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
           const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return bTime - aTime;
+          return aTime - bTime;
         });
       return { success: true, data: resources };
     } catch (error) {
@@ -57,10 +57,10 @@ export const resourceService = {
           ...doc.data() 
         }))
         .sort((a, b) => {
-          // Client-side sorting by createdAt (descending)
+          // Client-side sorting by createdAt (ascending) - oldest first
           const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
           const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return bTime - aTime;
+          return aTime - bTime;
         });
       return { success: true, data: resources };
     } catch (error) {
@@ -83,10 +83,10 @@ export const resourceService = {
           ...doc.data() 
         }))
         .sort((a, b) => {
-          // Client-side sorting by createdAt (descending)
+          // Client-side sorting by createdAt (ascending) - oldest first
           const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
           const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-          return bTime - aTime;
+          return aTime - bTime;
         });
       return { success: true, data: resources };
     } catch (error) {

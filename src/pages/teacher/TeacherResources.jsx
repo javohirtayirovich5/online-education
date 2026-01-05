@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { groupService } from '../../services/groupService';
 import { resourceService } from '../../services/resourceService';
 import { toast } from 'react-toastify';
@@ -21,6 +22,7 @@ import './TeacherResources.css';
 
 const TeacherResources = () => {
   const { userData, currentUser } = useAuth();
+  const { t } = useTranslation();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -247,21 +249,21 @@ const TeacherResources = () => {
       </button>
       <div className="page-header">
         <div>
-          <h1>Fan resurslari</h1>
-          <p>Guruh va fan bo'yicha resurs fayllarni boshqarish</p>
+          <h1>{t('teacher.resources.title')}</h1>
+          <p>{t('teacher.resources.description')}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="resources-filters">
         <div className="filter-group">
-          <label>Guruh</label>
+          <label>{t('teacher.attendance.group')}</label>
           <select
             className="filter-select"
             value={selectedGroup?.id || ''}
             onChange={(e) => handleGroupChange(e.target.value)}
           >
-            <option value="">Guruhni tanlang</option>
+            <option value="">{t('teacher.attendance.group')} {t('common.select')}</option>
             {groups.map(group => (
               <option key={group.id} value={group.id}>
                 {group.name} ({group.year}-kurs)
@@ -271,7 +273,7 @@ const TeacherResources = () => {
         </div>
 
         <div className="filter-group">
-          <label>Fan</label>
+          <label>{t('grades.subject')}</label>
           <select
             className="filter-select"
             value={selectedSubject?.id || ''}
@@ -281,7 +283,7 @@ const TeacherResources = () => {
             }}
             disabled={!selectedGroup}
           >
-            <option value="">Fanni tanlang</option>
+            <option value="">{t('grades.selectSubject')}</option>
             {subjects.map(subject => (
               <option key={subject.id} value={subject.id}>
                 {subject.name}
@@ -295,7 +297,7 @@ const TeacherResources = () => {
             className="btn btn-primary"
             onClick={() => setShowAddModal(true)}
           >
-            <FiPlus /> Resurs qo'shish
+            <FiPlus /> {t('teacher.resources.newResource')}
           </button>
         )}
       </div>
@@ -308,12 +310,12 @@ const TeacherResources = () => {
           ) : resources.length === 0 ? (
             <div className="empty-state">
               <FiFile size={48} />
-              <p>Hozircha resurslar yo'q</p>
+              <p>{t('teacher.resources.noResources')}</p>
               <button
                 className="btn btn-primary"
                 onClick={() => setShowAddModal(true)}
               >
-                <FiPlus /> Birinchi resursni qo'shish
+                <FiPlus /> {t('teacher.resources.newResource')}
               </button>
             </div>
           ) : (
@@ -321,12 +323,12 @@ const TeacherResources = () => {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Sarlavha</th>
-                  <th>Mashg'ulot</th>
-                  <th>Xodim</th>
-                  <th>Fayllar</th>
-                  <th>Yaratilgan</th>
-                  <th>Amallar</th>
+                  <th>{t('teacher.resources.title')}</th>
+                  <th>{t('teacher.resources.lessonType')}</th>
+                  <th>{t('teacher.resources.staff')}</th>
+                  <th>{t('teacher.resources.files')}</th>
+                  <th>{t('lessons.createdAt')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,7 +366,7 @@ const TeacherResources = () => {
                       <button
                         className="action-btn delete"
                         onClick={() => handleDeleteResource(resource.id)}
-                        title="O'chirish"
+                        title={t('teacher.resources.delete')}
                       >
                         <FiX />
                       </button>
@@ -378,7 +380,7 @@ const TeacherResources = () => {
       ) : (
         <div className="empty-state">
           <FiBookOpen size={48} />
-          <p>Guruh va fanni tanlang</p>
+          <p>{t('teacher.resources.selectGroupAndSubject')}</p>
         </div>
       )}
 

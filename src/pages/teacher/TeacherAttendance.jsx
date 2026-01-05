@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
-import { 
-  FiUsers, 
-  FiCalendar, 
+import {
+  FiUsers,
+  FiCalendar,
   FiCheck,
   FiInfo,
   FiBook,
@@ -16,6 +17,7 @@ import { groupService } from '../../services/groupService';
 import { attendanceService } from '../../services/attendanceService';
 import { settingsService } from '../../services/settingsService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import Modal from '../../components/common/Modal';
 import './TeacherAttendance.css';
 
 // Hafta kunlari
@@ -37,30 +39,42 @@ const MONTH_NAMES = [
 
 const TeacherAttendance = () => {
   const { currentUser, userData } = useAuth();
+  const { t } = useTranslation();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
-  
+
   // Davomat states
   const [selectedDate, setSelectedDate] = useState(null);
   const [attendance, setAttendance] = useState({});
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Oy tanlash
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  
+
   // Talabalarning umumiy davomat statistikasi
   const [studentStats, setStudentStats] = useState({});
 
   // Tanlangan guruhning fan ma'lumoti
   const [subjectInfo, setSubjectInfo] = useState(null);
+  // Tanlangan shart (lessonType) ma'lumoti - agar bir guruhda bir nechta fan/shart bo'lsa
+  const [selectedSubjectTeacher, setSelectedSubjectTeacher] = useState(null);
+  // Tanlangan guruhda mavjud barcha fan/shart kombinatsiyalari
+  const [availableSubjectTeachers, setAvailableSubjectTeachers] = useState([]);
   // Global semestr sozlamalari
   const [semesterSettings, setSemesterSettings] = useState(null);
-  
+
+  // Student detail modal (missed dates)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalStudent, setModalStudent] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalMissedDates, setModalMissedDates] = useState([]);
+  const [modalTotalMissedHours, setModalTotalMissedHours] = useState(0);
+
   // Har bir dars 2 soat
   const HOURS_PER_LESSON = 2;
 
@@ -84,27 +98,28 @@ const TeacherAttendance = () => {
     const dates = [];
     const year = selectedYear;
     const month = selectedMonth;
-    
+
     // Oyning oxirgi kunini olish
     const lastDay = new Date(year, month + 1, 0);
-    
+
     // Oyning har bir kunini tekshirish
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, month, day);
       const dayOfWeek = date.getDay();
-      
+
       // Dars kuniga mos kelishini tekshirish
       if (subjectInfo.scheduleDays.includes(dayOfWeek)) {
         // Faqat bugundan oldingi yoki bugungi kunlarni ko'rsatish
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (date <= today) {
-          const dateStr = date.toISOString().split('T')[0];
+          // Use local date format instead of ISO to avoid timezone issues
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           dates.push(dateStr);
         }
       }
     }
-    
+
     return dates;
   }, [subjectInfo, selectedMonth, selectedYear]);
 
@@ -122,7 +137,7 @@ const TeacherAttendance = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       if (!currentUser) return;
-      
+
       setLoading(true);
       try {
         const [groupsResult, semesterResult] = await Promise.all([
@@ -137,13 +152,13 @@ const TeacherAttendance = () => {
           if (teacherGroups.length > 0) {
             // localStorage'dan saqlangan guruhni yuklash
             const savedGroupId = localStorage.getItem('teacher_selected_group_id');
-            const savedGroup = savedGroupId 
+            const savedGroup = savedGroupId
               ? teacherGroups.find(g => g.id === savedGroupId)
               : null;
-            
+
             const groupToSelect = savedGroup || teacherGroups[0];
             setSelectedGroup(groupToSelect);
-            
+
             const subjectTeacher = (groupToSelect.subjectTeachers || []).find(
               st => st.teacherId === currentUser.uid
             );
@@ -170,21 +185,33 @@ const TeacherAttendance = () => {
   useEffect(() => {
     const loadStudents = async () => {
       if (!selectedGroup) return;
-      
+
       setLoadingStudents(true);
-      
-      const subjectTeacher = (selectedGroup.subjectTeachers || []).find(
+
+      // O'qituvchining bu guruhda barcha fan/shart kombinatsiyalarini topish
+      const teacherSubjects = (selectedGroup.subjectTeachers || []).filter(
         st => st.teacherId === currentUser.uid
       );
-      setSubjectInfo(subjectTeacher);
-      
+      setAvailableSubjectTeachers(teacherSubjects);
+
+      // Birinchi fan/shartni tanlash
+      if (teacherSubjects.length > 0) {
+        setSelectedSubjectTeacher(teacherSubjects[0]);
+        setSubjectInfo(teacherSubjects[0]);
+      } else {
+        setSelectedSubjectTeacher(null);
+        setSubjectInfo(null);
+      }
+
       const result = await groupService.getGroupStudents(selectedGroup.id);
-      
+
       if (result.success) {
         setStudents(result.data);
-        loadStudentStatsWithData(subjectTeacher, result.data);
+        if (teacherSubjects.length > 0) {
+          loadStudentStatsWithData(teacherSubjects[0], result.data);
+        }
       }
-      
+
       setLoadingStudents(false);
     };
 
@@ -193,25 +220,29 @@ const TeacherAttendance = () => {
 
   // Sana o'zgarganda davomat yuklash
   useEffect(() => {
-    if (selectedGroup && selectedDate) {
+    if (selectedGroup && selectedDate && selectedSubjectTeacher) {
       loadAttendance();
     }
-  }, [selectedDate, selectedGroup]);
+  }, [selectedDate, selectedGroup, selectedSubjectTeacher]);
+
+
 
   // Talabalarning umumiy davomat statistikasini yuklash
   const loadStudentStatsWithData = async (subjectData, studentsList, currentAttendance = null) => {
     if (!selectedGroup) return;
-    
+
     const result = await attendanceService.getAttendanceByGroup(selectedGroup.id);
-    
+
     if (result.success) {
       let allAttendance = result.data;
-      
+
       if (currentAttendance && selectedDate) {
         const existingIndex = allAttendance.findIndex(
-          a => a.date === selectedDate && (!subjectData?.subjectId || a.subjectId === subjectData?.subjectId)
+          a => a.date === selectedDate &&
+            a.subjectId === subjectData?.subjectId &&
+            a.lessonType === subjectData?.lessonType
         );
-        
+
         if (existingIndex >= 0) {
           allAttendance[existingIndex] = {
             ...allAttendance[existingIndex],
@@ -221,14 +252,21 @@ const TeacherAttendance = () => {
           allAttendance.push({
             date: selectedDate,
             subjectId: subjectData?.subjectId,
+            lessonType: subjectData?.lessonType,
             records: currentAttendance
           });
         }
       }
-      
-      const subjectAttendance = subjectData?.subjectId 
-        ? allAttendance.filter(a => a.subjectId === subjectData.subjectId)
-        : allAttendance;
+
+      // Tangilangan fanga va shartga qarab filter qilish
+      let subjectAttendance = allAttendance;
+      if (subjectData?.subjectId) {
+        subjectAttendance = allAttendance.filter(a => a.subjectId === subjectData.subjectId);
+        // Agar lessonType bilan filter qilish kerak bo'lsa
+        if (subjectData?.lessonType) {
+          subjectAttendance = subjectAttendance.filter(a => a.lessonType === subjectData.lessonType);
+        }
+      }
 
       // Semestr sanalarini aniqlash (global sozlamalardan)
       const today = new Date();
@@ -246,11 +284,6 @@ const TeacherAttendance = () => {
       }
 
       if (!semesterEnd || isNaN(semesterEnd.getTime())) {
-        semesterEnd = today;
-      }
-
-      // Kelajakdagi sanalarni hisobga olmaslik
-      if (semesterEnd > today) {
         semesterEnd = today;
       }
 
@@ -275,7 +308,11 @@ const TeacherAttendance = () => {
         while (cursor <= semesterEnd) {
           const dayOfWeek = cursor.getDay(); // 0-6
           if (subjectData.scheduleDays.includes(dayOfWeek)) {
-            const dateStr = cursor.toISOString().split('T')[0];
+            // Use local date format instead of ISO to avoid timezone issues
+            const year = cursor.getFullYear();
+            const month = cursor.getMonth();
+            const day = cursor.getDate();
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             scheduledDatesSet.add(dateStr);
           }
           cursor.setDate(cursor.getDate() + 1);
@@ -288,12 +325,12 @@ const TeacherAttendance = () => {
       }
 
       const totalHours = totalLessons * HOURS_PER_LESSON;
-      
+
       const stats = {};
       (studentsList || []).forEach(student => {
         stats[student.id] = { missedHours: 0, totalHours };
       });
-      
+
       semesterAttendance.forEach(a => {
         Object.entries(a.records || {}).forEach(([studentId, hours]) => {
           if (stats[studentId]) {
@@ -301,21 +338,23 @@ const TeacherAttendance = () => {
           }
         });
       });
-      
+
       setStudentStats({ stats, totalLessons, totalHours });
     }
   };
 
   const refreshStats = (currentAttendance = null) => {
-    loadStudentStatsWithData(subjectInfo, students, currentAttendance);
+    loadStudentStatsWithData(selectedSubjectTeacher, students, currentAttendance);
   };
 
   const loadAttendance = async () => {
-    if (!selectedGroup || !selectedDate) return;
+    if (!selectedGroup || !selectedDate || !selectedSubjectTeacher) return;
 
     const result = await attendanceService.getAttendanceByGroupAndDate(
-      selectedGroup.id, 
-      new Date(selectedDate)
+      selectedGroup.id,
+      new Date(selectedDate),
+      selectedSubjectTeacher?.subjectId,
+      selectedSubjectTeacher?.lessonType
     );
 
     if (result.success && result.data) {
@@ -340,11 +379,11 @@ const TeacherAttendance = () => {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    
+
     if (selectedYear === currentYear && selectedMonth >= currentMonth) {
       return;
     }
-    
+
     if (selectedMonth === 11) {
       setSelectedMonth(0);
       setSelectedYear(selectedYear + 1);
@@ -362,7 +401,7 @@ const TeacherAttendance = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedGroup || !selectedDate) return;
+    if (!selectedGroup || !selectedDate || !selectedSubjectTeacher) return;
 
     setSaving(true);
     const result = await attendanceService.saveAttendance(
@@ -370,14 +409,15 @@ const TeacherAttendance = () => {
       new Date(selectedDate),
       attendance,
       currentUser.uid,
-      subjectInfo?.subjectId
+      selectedSubjectTeacher?.subjectId,
+      selectedSubjectTeacher?.lessonType
     );
 
     if (result.success) {
-      toast.success('Davomat saqlandi!');
+      toast.success(t('teacher.attendance.saved'));
       refreshStats(attendance);
     } else {
-      toast.error('Davomatni saqlashda xatolik');
+      toast.error(t('common.error'));
     }
     setSaving(false);
   };
@@ -402,6 +442,67 @@ const TeacherAttendance = () => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  };
+
+  // Student details modal: load missed dates for selected subject/lessonType
+  const openStudentModal = async (student) => {
+    if (!selectedGroup) {
+      toast.error('Guruh tanlanmagan');
+      return;
+    }
+
+    setModalOpen(true);
+    setModalStudent(student);
+    setModalLoading(true);
+    setModalMissedDates([]);
+
+    try {
+      const res = await attendanceService.getAttendanceByStudent(student.id, selectedGroup.id);
+      if (!res.success) {
+        toast.error(t('common.error'));
+        setModalLoading(false);
+        return;
+      }
+
+      let records = res.data || [];
+
+      // Filter by currently selected subject and lessonType if present
+      if (selectedSubjectTeacher?.subjectId) {
+        records = records.filter(r => r.subjectId === selectedSubjectTeacher.subjectId);
+        if (selectedSubjectTeacher?.lessonType) {
+          records = records.filter(r => r.lessonType === selectedSubjectTeacher.lessonType);
+        }
+      }
+
+      // Keep only dates where student missed > 0 and compute total missed hours
+      const missedRecords = records
+        .filter(r => r.records && (r.records[student.id] || 0) > 0)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const missed = missedRecords.map(r => r.date);
+      const totalMissed = missedRecords.reduce((s, r) => s + (r.records[student.id] || 0), 0);
+
+      setModalMissedDates(missed);
+      setModalTotalMissedHours(totalMissed);
+    } catch (err) {
+      console.error('Open student modal error:', err);
+      toast.error('Xatolik yuz berdi');
+    }
+
+    setModalLoading(false);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalStudent(null);
+    setModalMissedDates([]);
+    setModalLoading(false);
+    setModalTotalMissedHours(0);
+  };
+
+  const handleMissedDateClick = (date) => {
+    setSelectedDate(date);
+    closeModal();
   };
 
   // Kelgusi oyga o'tish mumkinmi
@@ -434,7 +535,7 @@ const TeacherAttendance = () => {
         <span className="separator">/</span>
         <span>Guruhlar</span>
         <span className="separator">/</span>
-        <span className="current">Davomat</span>
+        <span className="current">{t('teacher.attendance.title')}</span>
       </div>
 
       {/* Info Banner */}
@@ -452,8 +553,8 @@ const TeacherAttendance = () => {
           <FiCalendar />
           <span>{MONTH_NAMES[selectedMonth]} {selectedYear}</span>
         </div>
-        <button 
-          className="month-nav" 
+        <button
+          className="month-nav"
           onClick={nextMonth}
           disabled={!canGoNext}
         >
@@ -464,8 +565,8 @@ const TeacherAttendance = () => {
       {/* Schedule Info */}
       <div className="schedule-info-bar">
         <FiInfo />
-        <span>Dars kunlari: <strong>{scheduleDaysNames}</strong></span>
-        <span className="schedule-count">{scheduledDates.length} ta dars</span>
+        <span>{t('teacher.attendance.lessonDaysLabel')}: <strong>{scheduleDaysNames}</strong></span>
+        <span className="schedule-count">{scheduledDates.length} {t('teacher.attendance.lessons')}</span>
       </div>
 
       {/* Date Selector - Dars kunlari ro'yxati */}
@@ -491,7 +592,7 @@ const TeacherAttendance = () => {
           <div className="hemis-filters">
             <div className="filter-group">
               <label>GURUH</label>
-              <select 
+              <select
                 className="hemis-select"
                 value={selectedGroup?.id || ''}
                 onChange={(e) => {
@@ -510,8 +611,34 @@ const TeacherAttendance = () => {
                 ))}
               </select>
             </div>
+            {/* Agar o'qituvchida bir nechta fan/shart bo'lsa, tanlash uchun selector */}
+            {availableSubjectTeachers.length > 1 && (
+              <div className="filter-group">
+                <select
+                  className="hemis-select"
+                  value={selectedSubjectTeacher ? `${selectedSubjectTeacher.subjectId}-${selectedSubjectTeacher.lessonType}` : ''}
+                  onChange={(e) => {
+                    const selected = availableSubjectTeachers.find(
+                      st => `${st.subjectId}-${st.lessonType}` === e.target.value
+                    );
+                    if (selected) {
+                      setSelectedSubjectTeacher(selected);
+                      setSubjectInfo(selected);
+                      loadStudentStatsWithData(selected, students);
+                      setAttendance({}); // Davomat malumotlarini tozalash
+                    }
+                  }}
+                >
+                  {availableSubjectTeachers.map(st => (
+                    <option key={`${st.subjectId}-${st.lessonType}`} value={`${st.subjectId}-${st.lessonType}`}>
+                      {st.subjectName} ({st.lessonType === 'lecture' ? 'Ma\'ruza' : st.lessonType === 'practical' ? 'Amaliy' : st.lessonType === 'laboratory' ? 'Laboratoriya' : st.lessonType})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="filter-group">
-              <label>SANA</label>
+              <label>{t('teacher.attendance.date')}</label>
               <div className="hemis-date-display">
                 {selectedDate ? formatDateDisplay(selectedDate) : '-'}
               </div>
@@ -527,7 +654,7 @@ const TeacherAttendance = () => {
             ) : students.length === 0 ? (
               <div className="empty-table">
                 <FiUsers size={48} />
-                <p>Bu guruhda talabalar yo'q</p>
+                <p>{t('teacher.attendance.noStudents')}</p>
               </div>
             ) : scheduledDates.length === 0 ? (
               <div className="empty-table">
@@ -539,9 +666,9 @@ const TeacherAttendance = () => {
                 <thead>
                   <tr>
                     <th className="col-num">№</th>
-                    <th className="col-name">TALABANING F.I.SH.</th>
-                    <th className="col-ratio">DAVOMAT</th>
-                    <th className="col-absent">KELMADI</th>
+                    <th className="col-name">{t('teacher.attendance.studentName')}</th>
+                    <th className="col-ratio">{t('teacher.attendance.attendance')}</th>
+                    <th className="col-absent">{t('teacher.attendance.absent')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -551,12 +678,17 @@ const TeacherAttendance = () => {
                     const { missedHours: totalMissed, totalHours } = getMissedRatio(student.id);
                     const missedPercent = getMissedPercent(student.id);
                     const isHighAbsence = missedPercent > 25;
-                    
+
                     return (
                       <tr key={student.id}>
                         <td className="col-num">{index + 1}</td>
                         <td className="col-name">
-                          {student.displayName?.toUpperCase() || 'NOMA\'LUM'}
+                          <button
+                            className="student-name-btn"
+                            onClick={() => openStudentModal(student)}
+                          >
+                            {student.displayName?.toUpperCase() || 'NOMA\'LUM'}
+                          </button>
                         </td>
                         <td className="col-ratio">
                           <span className={`ratio-value ${isHighAbsence ? 'danger' : ''}`}>
@@ -585,25 +717,25 @@ const TeacherAttendance = () => {
           {/* Actions */}
           <div className="hemis-actions">
             {!isEditing ? (
-              <button 
+              <button
                 className="btn-edit"
                 onClick={() => setIsEditing(true)}
                 disabled={students.length === 0 || !selectedDate}
               >
-                <FiEdit2 /> Tahrirlash
+                <FiEdit2 /> {t('teacher.attendance.edit')}
               </button>
             ) : (
               <>
-                <button 
+                <button
                   className="btn-cancel"
                   onClick={() => {
                     setIsEditing(false);
                     loadAttendance(); // Qayta yuklash
                   }}
                 >
-                  Bekor qilish
+                  {t('common.cancel')}
                 </button>
-                <button 
+                <button
                   className="btn-save"
                   onClick={async () => {
                     await handleSave();
@@ -611,7 +743,7 @@ const TeacherAttendance = () => {
                   }}
                   disabled={saving || students.length === 0 || !selectedDate}
                 >
-                  <FiCheck /> {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                  <FiCheck /> {saving ? t('teacher.attendance.saving') : t('teacher.attendance.save')}
                 </button>
               </>
             )}
@@ -620,11 +752,11 @@ const TeacherAttendance = () => {
 
         {/* Right Section - Info Panel */}
         <div className="hemis-info-panel">
-          <h3>Ma'lumot</h3>
-          
+          <h3>{t('teacher.attendance.information')}</h3>
+
           <div className="info-row">
             <span className="info-label">
-              <FiBook /> Fan
+              <FiBook /> {t('teacher.attendance.subject')}
             </span>
             <span className="info-value">
               {subjectInfo?.subjectName || userData?.subjectName || 'Belgilanmagan'}
@@ -651,14 +783,45 @@ const TeacherAttendance = () => {
 
           <div className="info-row">
             <span className="info-label">
-              <FiCalendar /> Dars kunlari
+              <FiCalendar /> {t('teacher.attendance.lessonDaysLabel')}
             </span>
             <span className="info-value schedule-days">
               {scheduleDaysNames}
             </span>
           </div>
+
         </div>
       </div>
+      {/* Student missed-dates modal */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={modalStudent ? modalStudent.displayName : 'Talaba'}
+        size="small"
+      >
+        {modalLoading ? (
+          <div className="modal-loading"><LoadingSpinner /></div>
+        ) : (
+          <div className="missed-dates-container">
+            <div className="modal-total-missed">
+              Jami qoldirilgan soatlar: <strong>{modalTotalMissedHours}</strong>
+            </div>
+            {modalMissedDates.length === 0 ? (
+              <p>Bu fanda qoldirilgan sanalar yo'q</p>
+            ) : (
+              <ul className="missed-dates-list">
+                {modalMissedDates.map(date => (
+                  <li key={date}>
+                    <button className="date-link" onClick={() => handleMissedDateClick(date)}>
+                      {formatDateDisplay(date)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

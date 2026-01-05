@@ -71,6 +71,7 @@
   justify-content: space-between;
   padding: 0.5rem 2rem;
   border-bottom: 1px solid var(--border);
+  margin-bottom: 15px;
 }
 
 .modal-title {
