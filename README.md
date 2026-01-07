@@ -9,6 +9,7 @@ Universitetlar uchun professional va to'liq funksional online ta'lim platformasi
 - **Video Player:** React Player
 - **UI:** Custom CSS + React Icons + Framer Motion
 - **Charts:** Recharts
+- **Live Sessions:** Jitsi Meet & Google Meet (REST API)
 
 ## ✨ Xususiyatlar
 
@@ -39,6 +40,7 @@ Universitetlar uchun professional va to'liq funksional online ta'lim platformasi
 - ✅ Dark/Light tema
 - ✅ Responsive dizayn (barcha qurilmalar uchun)
 - ✅ Real-time yangilanishlar
+- ✅ Jonli darslar (Jitsi Meet va Google Meet integratsiyasi)
 
 ## 📦 O'rnatish
 
@@ -61,6 +63,37 @@ npm run dev
 3. Firestore Database yarating
 4. Storage yarating
 5. `firebase-rules/` papkasidagi qoidalarni qo'llang
+
+## 🔗 Google Meet Integratsiyasi
+
+Google Meet bilan to'liq integratsiya qilish uchun:
+
+1. [Google Cloud Console](https://console.cloud.google.com/) ga kiring
+2. Yangi loyiha yarating yoki mavjud loyihani tanlang
+3. **APIs & Services** > **Library** ga o'ting
+4. Quyidagi API'larni yoqing:
+   - Google Calendar API
+   - Google Meet API (agar mavjud bo'lsa)
+5. **APIs & Services** > **Credentials** ga o'ting
+6. **Create Credentials** > **OAuth client ID** ni tanlang
+7. Application type: **Web application**
+8. Authorized JavaScript origins: `http://localhost:3000` (development)
+9. Authorized redirect URIs: `http://localhost:3000` (development)
+10. Client ID ni nusxalab, `.env` faylga qo'ying:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your-google-client-id-here.apps.googleusercontent.com
+```
+
+**Eslatma:** Production uchun Authorized JavaScript origins va redirect URIs ni yangilang.
+
+### Google Meet Xususiyatlari
+
+- ✅ Google Calendar API orqali uchrashuv yaratish
+- ✅ Google Meet linklarini avtomatik yaratish
+- ✅ Uchrashuvlarni boshqarish (yaratish, o'chirish, yangilash)
+- ✅ OAuth2 autentifikatsiya
+- ✅ Jitsi Meet va Google Meet provider tanlash imkoniyati
 
 ## 📁 Loyiha Strukturasi
 

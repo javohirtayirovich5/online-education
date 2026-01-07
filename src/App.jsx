@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -15,6 +16,11 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
 import PrivateRoute from './components/auth/PrivateRoute';
+
+// Public Pages
+import Landing from './pages/Landing';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -88,22 +94,30 @@ function AppLayout({ children }) {
   );
 }
 
+// Google OAuth Client ID - Environment variable or default
+// Production uchun .env faylda VITE_GOOGLE_CLIENT_ID ni sozlang
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1087873877448-vn95loshinp5kggnselsfk1g8chlfiuq.apps.googleusercontent.com';
+
 function App() {
   return (
-    <Router>
-      <LanguageProvider>
-        <ThemeProvider>
-          <AuthProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Router>
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
           <Routes>
             {/* Public Routes */}
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
 
             {/* Protected Routes */}
-            <Route path="/" element={
+            <Route path="/dashboard" element={
               <PrivateRoute>
-                <Navigate to="/dashboard" />
+                <AppLayout><Dashboard /></AppLayout>
               </PrivateRoute>
             } />
             
@@ -293,6 +307,7 @@ function App() {
       </ThemeProvider>
       </LanguageProvider>
     </Router>
+    </GoogleOAuthProvider>
   );
 }
 

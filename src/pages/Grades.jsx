@@ -51,10 +51,10 @@ const Grades = () => {
             if (!seenSubjectIds.has(st.subjectId)) {
               seenSubjectIds.add(st.subjectId);
               uniqueSubjects.push({
-                id: st.subjectId,
-                name: st.subjectName,
-                teacherId: st.teacherId,
-                teacherName: st.teacherName
+            id: st.subjectId,
+            name: st.subjectName,
+            teacherId: st.teacherId,
+            teacherName: st.teacherName
               });
             }
           }

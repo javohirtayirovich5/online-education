@@ -447,6 +447,17 @@ const Register = () => {
         <div className="auth-switch">
           <p>{t('auth.hasAccount')} <Link to="/login">{t('auth.login')}</Link></p>
         </div>
+
+        {/* Footer Links */}
+        <div className="auth-footer">
+          <Link to="/privacy-policy" className="auth-footer-link">
+            Privacy Policy
+          </Link>
+          <span className="auth-footer-separator">•</span>
+          <Link to="/terms-of-service" className="auth-footer-link">
+            Terms of Service
+          </Link>
+        </div>
       </div>
 
       {/* Background Decoration */}

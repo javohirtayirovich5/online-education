@@ -46,6 +46,7 @@
     "student": "Talaba",
     "select": "tanlang",
     "optional": "ixtiyoriy",
+    "notSet": "Belgilanmagan",
     "create": "Yaratish",
     "uploading": "Yuklanmoqda...",
     "yesDelete": "Ha, o'chirish"
@@ -510,5 +511,40 @@
     "analytics": {
       "title": "Statistika"
     }
+  },
+  "liveSessions": {
+    "title": "Jonli darslar",
+    "startBroadcast": "Jonli efirni boshlash",
+    "endBroadcast": "Efirni to'xtatish",
+    "activeBroadcast": "Faol jonli efir",
+    "noBroadcast": "Hozir jonli efir yo'q",
+    "noBroadcastForGroup": "Tanlangan guruh uchun jonli efir mavjud emas",
+    "room": "Xona",
+    "provider": "Platforma",
+    "connectGoogle": "Google bilan ulash",
+    "googleAuthSuccess": "Google bilan muvaffaqiyatli ulandi",
+    "googleAuthError": "Google bilan ulashda xatolik",
+    "googleAuthRequired": "Google Meet uchun Google hisobingizga kirish kerak",
+    "meetLink": "Uchrashuv havolasi",
+    "copyLink": "Havolani nusxalash",
+    "openInNewTab": "Yangi oynada ochish",
+    "openGoogleMeet": "Google Meet'ni ochish",
+    "liveLesson": "Jonli dars",
+    "liveLessonDescription": "Online ta'lim platformasi orqali jonli dars",
+    "groupNotSelected": "Guruh tanlanmagan",
+    "broadcastStarted": "Jonli efir boshlandi",
+    "startError": "Jonli efirni boshlashda xatolik",
+    "errorOccurred": "Xatolik yuz berdi",
+    "broadcastEnded": "Jonli efir yakunlandi",
+    "endError": "Jonli efirni to'xtatishda xatolik",
+    "linkCopied": "Havola nusxalandi",
+    "iframeNote": "Agar uchrashuv yuklanmasa, quyidagi havolani bosing",
+    "googleMeetReady": "Google Meet tayyor",
+    "joinMeeting": "Efirga qo'shilish",
+    "selectSession": "Jonli efirni tanlang",
+    "selected": "Tanlangan",
+    "mySessions": "Mening efirlarim",
+    "unknownTeacher": "Noma'lum o'qituvchi",
+    "startedAt": "Boshlangan"
   }
 }

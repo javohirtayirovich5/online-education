@@ -118,6 +118,17 @@ const Login = () => {
         <div className="auth-switch">
           <p>{t('auth.noAccount')} <Link to="/register">{t('auth.register')}</Link></p>
         </div>
+
+        {/* Footer Links */}
+        <div className="auth-footer">
+          <Link to="/privacy-policy" className="auth-footer-link">
+            Privacy Policy
+          </Link>
+          <span className="auth-footer-separator">•</span>
+          <Link to="/terms-of-service" className="auth-footer-link">
+            Terms of Service
+          </Link>
+        </div>
       </div>
 
       {/* Background Decoration */}
