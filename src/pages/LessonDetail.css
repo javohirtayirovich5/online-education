@@ -120,10 +120,7 @@
 
 /* Lesson Info */
 .lesson-info {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
   padding: 2rem;
-  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .lesson-subject-badge {

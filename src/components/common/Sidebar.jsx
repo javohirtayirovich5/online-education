@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { liveService } from '../../services/liveService';
+import { groupService } from '../../services/groupService';
 import {
   FiHome,
   FiVideo,
@@ -22,14 +24,59 @@ import {
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, closeSidebar }) => {
-  const { userData, isAdmin, isTeacher } = useAuth();
+  const { userData, isAdmin, isTeacher, currentUser } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
+  const [hasActiveLiveSession, setHasActiveLiveSession] = useState(false);
   
   // Submenu states
   const [expandedMenus, setExpandedMenus] = useState({
     groups: location.pathname.startsWith('/teacher/groups')
   });
+
+  // Check for active live sessions
+  useEffect(() => {
+    const checkActiveSessions = async () => {
+      if (!userData) {
+        setHasActiveLiveSession(false);
+        return;
+      }
+
+      try {
+        let groupId = null;
+        if (isTeacher && currentUser) {
+          // O'qituvchi uchun: birinchi guruhni tekshirish
+          const res = await groupService.getGroupsByTeacher(currentUser.uid);
+          if (res.success && res.data && res.data.length > 0) {
+            groupId = res.data[0].id;
+          }
+        } else if (userData.groupId) {
+          // Talaba uchun: o'z guruhini tekshirish
+          groupId = userData.groupId;
+        }
+
+        if (groupId) {
+          const teacherId = isTeacher ? currentUser?.uid : null;
+          const res = await liveService.getActiveSessionsForGroup(groupId, teacherId);
+          if (res.success && res.data && res.data.length > 0) {
+            setHasActiveLiveSession(true);
+          } else {
+            setHasActiveLiveSession(false);
+          }
+        } else {
+          setHasActiveLiveSession(false);
+        }
+      } catch (error) {
+        console.error('Check active sessions error:', error);
+        setHasActiveLiveSession(false);
+      }
+    };
+
+    checkActiveSessions();
+    // Har 30 soniyada yangilash
+    const interval = setInterval(checkActiveSessions, 30000);
+    return () => clearInterval(interval);
+  }, [userData, isTeacher, currentUser]);
 
   const toggleMenu = (menuKey) => {
     setExpandedMenus(prev => ({
@@ -119,6 +166,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     }
 
     // Oddiy link
+    const isLiveSessionsLink = link.to === '/live-sessions';
     return (
       <NavLink
         key={link.to}
@@ -130,6 +178,9 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       >
         <link.icon size={20} />
         <span>{link.label}</span>
+        {isLiveSessionsLink && hasActiveLiveSession && (
+          <span className="live-badge-dot" style={{ marginLeft: 'auto' }} />
+        )}
       </NavLink>
     );
   };

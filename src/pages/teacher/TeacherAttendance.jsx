@@ -637,7 +637,7 @@ const TeacherAttendance = () => {
                 </select>
               </div>
             )}
-            <div className="filter-group">
+            <div className="filter-group date-group">
               <label>{t('teacher.attendance.date')}</label>
               <div className="hemis-date-display">
                 {selectedDate ? formatDateDisplay(selectedDate) : '-'}

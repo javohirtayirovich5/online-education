@@ -78,7 +78,7 @@ body {
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 10px;
-  height: 10px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {

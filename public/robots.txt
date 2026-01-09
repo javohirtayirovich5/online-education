@@ -21,5 +21,5 @@ Allow: /register
 Allow: /forgot-password
 
 # Sitemap
-Sitemap: https://edupro.uz/sitemap.xml
+Sitemap: https://technicalenglish.uz/sitemap.xml
 

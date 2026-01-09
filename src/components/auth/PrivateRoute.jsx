@@ -13,6 +13,11 @@ const PrivateRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" />;
   }
 
+  // Wait for userData to load if user is logged in
+  if (currentUser && userData === null) {
+    return <LoadingSpinner fullScreen />;
+  }
+
   // Check if user is approved (for teachers and admins)
   if (userData?.role !== 'student' && !userData?.isApproved) {
     return (

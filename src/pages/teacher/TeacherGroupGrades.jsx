@@ -464,7 +464,7 @@ const TeacherGroupGrades = () => {
           {/* Agar o'qituvchida bir nechta fan/shart bo'lsa, tanlash uchun selector */}
           {availableSubjectTeachers.length > 1 && (
             <select 
-              className="subject-select"
+              className="subject-select group-select"
               value={selectedSubjectTeacher ? `${selectedSubjectTeacher.subjectId}-${selectedSubjectTeacher.lessonType}` : ''}
               onChange={(e) => {
                 const selected = availableSubjectTeachers.find(
@@ -534,7 +534,7 @@ const TeacherGroupGrades = () => {
               <thead>
                 <tr>
                   <th className="col-num sticky-col">№</th>
-                  <th className="col-name sticky-col">Talaba</th>
+                  <th className="col-name">Talaba</th>
                   {scheduledDates.map(date => {
                     const { day, dayName } = formatDateWithDay(date);
                     return (
@@ -546,7 +546,7 @@ const TeacherGroupGrades = () => {
                       </th>
                     );
                   })}
-                  <th className="col-average sticky-col-right">O'rtacha</th>
+                  <th className="col-average">O'rtacha</th>
                 </tr>
               </thead>
               <tbody>
@@ -556,7 +556,7 @@ const TeacherGroupGrades = () => {
                   return (
                     <tr key={student.id}>
                       <td className="col-num sticky-col">{index + 1}</td>
-                      <td className="col-name sticky-col">
+                      <td className="col-name">
                         {student.displayName || 'Noma\'lum'}
                       </td>
                       {scheduledDates.map(date => {
@@ -578,7 +578,7 @@ const TeacherGroupGrades = () => {
                           </td>
                         );
                       })}
-                      <td className={`col-average sticky-col-right ${getAverageClass(avg)}`}>
+                      <td className={`col-average ${getAverageClass(avg)}`}>
                         {avg}
                       </td>
                     </tr>

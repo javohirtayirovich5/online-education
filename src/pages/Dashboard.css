@@ -117,11 +117,19 @@
   gap: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dashboard-card {
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: 0 2px 8px var(--shadow);
+  overflow: hidden;
+  min-width: 0;
 }
 
 .card-header {
@@ -296,6 +304,10 @@
   color: var(--text-primary);
   transition: var(--transition);
   border: 1px solid var(--border);
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .activity-item:hover {
@@ -318,18 +330,26 @@
 }
 
 .activity-info {
-  flex: 1;
+  flex: 1 1 0%;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  width: 0;
 }
 
 .activity-info h4 {
   font-size: 0.9375rem;
   font-weight: 600;
   margin: 0 0 0.25rem 0;
+  padding: 0;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: block;
 }
 
 .activity-meta {
@@ -597,7 +617,8 @@
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
   }
 
   .stat-card {
@@ -616,5 +637,18 @@
 
   .dashboard-grid {
     gap: 1rem;
+  }
+
+  .activity-item {
+    padding: 0.875rem;
+  }
+
+  .activity-info h4 {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .activity-meta {
+    font-size: 0.75rem;
   }
 }

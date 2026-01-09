@@ -226,6 +226,7 @@
 
   .filter-group {
     min-width: 100%;
+    flex-direction: column;
   }
 
   .resources-table-container {

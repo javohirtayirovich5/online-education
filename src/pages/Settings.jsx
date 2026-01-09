@@ -188,7 +188,7 @@ const Settings = () => {
             <div className="setting-item">
               <div className="setting-info">
                 <h4>{t('settings.systemLanguage')}</h4>
-                <p>{t('settings.currentLanguage')}</p>
+                {/* <p>{t('settings.currentLanguage')}</p> */}
               </div>
               <select 
                 className="form-select-sm"

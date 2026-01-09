@@ -1,6 +1,10 @@
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import SEO from '../components/common/SEO';
 import { 
   FiBook, 
@@ -12,33 +16,154 @@ import {
   FiCheckCircle,
   FiArrowRight,
   FiLogIn,
-  FiUserPlus
+  FiUserPlus,
+  FiSun,
+  FiMoon,
+  FiGlobe,
+  FiChevronDown
 } from 'react-icons/fi';
 import './Landing.css';
 
 const Landing = () => {
   const { t } = useTranslation();
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const { language, changeLanguage } = useLanguage();
+  const { currentUser, loading } = useAuth();
+  const vantaRef = useRef(null);
+  const vantaEffect = useRef(null);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const languageMenuRef = useRef(null);
+
+  // Initialize Vanta.js BIRDS background animation
+  useEffect(() => {
+    if (window.VANTA && vantaRef.current) {
+      vantaEffect.current = window.VANTA.BIRDS({
+        el: vantaRef.current,
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        scale: 1.00,
+        scaleMobile: 1.00,
+        backgroundColor: isDarkMode ? 0x111827 : 0xffffff,
+        birdSize: 1.20,
+        quantity: 4.00,
+        separation: 40
+      });
+    }
+
+    return () => {
+      if (vantaEffect.current) {
+        vantaEffect.current.destroy();
+      }
+    };
+  }, [isDarkMode]);
+
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target)) {
+        setShowLanguageMenu(false);
+      }
+    };
+
+    if (showLanguageMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLanguageMenu]);
+
+  const handleLanguageChange = (lang) => {
+    changeLanguage(lang);
+    setShowLanguageMenu(false);
+  };
+
+  // If user is already logged in, redirect to dashboard
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
+
+  if (currentUser) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <>
       <SEO 
-        title="Technical English - Online Education Platform"
-        description="Professional online education platform for universities. Manage video lessons, assignments, grades, attendance, and course resources."
-        keywords="online education, e-learning, university platform, video lessons, assignments, grades, Technical English"
+        title={t('landing.heroTitle')}
+        description={t('landing.heroDescription')}
+        keywords="online ta'lim, video darslar, universitet platformasi, topshiriqlar, baholar, Technical English"
       />
       <div className="landing-page">
+        <div ref={vantaRef} className="vanta-background"></div>
         {/* Header */}
         <header className="landing-header">
           <div className="landing-container">
             <div className="landing-nav">
               <div className="landing-logo">
-                <span className="logo-icon">📚</span>
+                <img src="/favicon.png" alt="Technical English" className="logo-icon" />
                 <span className="logo-text">Technical English</span>
               </div>
               <div className="landing-nav-links">
-                <Link to="/login" className="nav-link">Login</Link>
-                <Link to="/register" className="nav-link btn-primary">Register</Link>
+                {/* Theme Toggle */}
+                <button 
+                  className="landing-icon-btn" 
+                  onClick={toggleTheme} 
+                  title={isDarkMode ? t('navbar.lightMode') : t('navbar.darkMode')}
+                  aria-label={isDarkMode ? t('navbar.lightMode') : t('navbar.darkMode')}
+                >
+                  {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
+                </button>
+
+                {/* Language Selector */}
+                <div className="landing-language-wrapper" ref={languageMenuRef}>
+                  <button 
+                    className="landing-icon-btn landing-language-btn" 
+                    onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                    title={t('navbar.language')}
+                    aria-label={t('navbar.language')}
+                  >
+                    <FiGlobe size={20} />
+                    <span className="landing-language-code">{language.toUpperCase()}</span>
+                    <FiChevronDown size={14} className={`landing-chevron ${showLanguageMenu ? 'open' : ''}`} />
+                  </button>
+                  
+                  {showLanguageMenu && (
+                    <div className="landing-language-dropdown">
+                      <button 
+                        className={`landing-language-option ${language === 'uz' ? 'active' : ''}`}
+                        onClick={() => handleLanguageChange('uz')}
+                      >
+                        <span className="landing-language-flag">🇺🇿</span>
+                        <span className="landing-language-name">O'zbekcha</span>
+                        {language === 'uz' && <span className="landing-check-icon">✓</span>}
+                      </button>
+                      <button 
+                        className={`landing-language-option ${language === 'en' ? 'active' : ''}`}
+                        onClick={() => handleLanguageChange('en')}
+                      >
+                        <span className="landing-language-flag">🇬🇧</span>
+                        <span className="landing-language-name">English</span>
+                        {language === 'en' && <span className="landing-check-icon">✓</span>}
+                      </button>
+                      <button 
+                        className={`landing-language-option ${language === 'ru' ? 'active' : ''}`}
+                        onClick={() => handleLanguageChange('ru')}
+                      >
+                        <span className="landing-language-flag">🇷🇺</span>
+                        <span className="landing-language-name">Русский</span>
+                        {language === 'ru' && <span className="landing-check-icon">✓</span>}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <Link to="/login" className="nav-link">{t('landing.login')}</Link>
+                <Link to="/register" className="nav-link btn-primary">{t('landing.register')}</Link>
               </div>
             </div>
           </div>
@@ -49,18 +174,17 @@ const Landing = () => {
           <div className="landing-container">
             <div className="hero-content">
               <h1 className="hero-title">
-                Professional Online Education Platform
+                {t('landing.heroTitle')}
               </h1>
               <p className="hero-description">
-                Manage video lessons, assignments, grades, attendance, and course resources 
-                all in one place. Designed for universities and educational institutions.
+                {t('landing.heroDescription')}
               </p>
               <div className="hero-buttons">
                 <Link to="/register" className="btn btn-primary btn-large">
-                  <FiUserPlus /> Get Started
+                  <FiUserPlus /> {t('landing.getStarted')}
                 </Link>
                 <Link to="/login" className="btn btn-secondary btn-large">
-                  <FiLogIn /> Sign In
+                  <FiLogIn /> {t('landing.signIn')}
                 </Link>
               </div>
             </div>
@@ -70,54 +194,54 @@ const Landing = () => {
         {/* Features Section */}
         <section className="landing-features">
           <div className="landing-container">
-            <h2 className="section-title">Platform Features</h2>
+            <h2 className="section-title">{t('landing.platformFeatures')}</h2>
             <div className="features-grid">
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiVideo />
                 </div>
-                <h3>Video Lessons</h3>
-                <p>Upload and manage video lessons with organized course structure</p>
+                <h3>{t('landing.videoLessons')}</h3>
+                <p>{t('landing.videoLessonsDesc')}</p>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiFileText />
                 </div>
-                <h3>Assignments</h3>
-                <p>Create, distribute, and grade assignments efficiently</p>
+                <h3>{t('landing.assignments')}</h3>
+                <p>{t('landing.assignmentsDesc')}</p>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiBarChart2 />
                 </div>
-                <h3>Grades & Analytics</h3>
-                <p>Track student performance with detailed grade reports</p>
+                <h3>{t('landing.gradesAnalytics')}</h3>
+                <p>{t('landing.gradesAnalyticsDesc')}</p>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiUsers />
                 </div>
-                <h3>Attendance Management</h3>
-                <p>Record and monitor student attendance easily</p>
+                <h3>{t('landing.attendanceManagement')}</h3>
+                <p>{t('landing.attendanceManagementDesc')}</p>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiBook />
                 </div>
-                <h3>Course Resources</h3>
-                <p>Share course materials, documents, and resources</p>
+                <h3>{t('landing.courseResources')}</h3>
+                <p>{t('landing.courseResourcesDesc')}</p>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">
                   <FiShield />
                 </div>
-                <h3>Secure & Reliable</h3>
-                <p>Your data is protected with industry-standard security</p>
+                <h3>{t('landing.secureReliable')}</h3>
+                <p>{t('landing.secureReliableDesc')}</p>
               </div>
             </div>
           </div>
@@ -126,31 +250,30 @@ const Landing = () => {
         {/* Why Google Sign-In Section */}
         <section className="landing-why-google">
           <div className="landing-container">
-            <h2 className="section-title">Why We Use Google Sign-In</h2>
+            <h2 className="section-title">{t('landing.whyGoogleSignIn')}</h2>
             <div className="why-google-content">
               <div className="why-google-text">
                 <p>
-                  We use Google OAuth to provide you with a secure and convenient way to access our platform. 
-                  By signing in with Google, you can:
+                  {t('landing.whyGoogleDesc')}
                 </p>
                 <ul className="benefits-list">
                   <li>
-                    <FiCheckCircle /> Access your account securely without creating a new password
+                    <FiCheckCircle /> {t('landing.benefit1')}
                   </li>
                   <li>
-                    <FiCheckCircle /> Use Google Calendar integration for live sessions and scheduling
+                    <FiCheckCircle /> {t('landing.benefit2')}
                   </li>
                   <li>
-                    <FiCheckCircle /> Seamlessly join Google Meet live lessons directly from the platform
+                    <FiCheckCircle /> {t('landing.benefit3')}
                   </li>
                   <li>
-                    <FiCheckCircle /> Enjoy a faster registration and login process
+                    <FiCheckCircle /> {t('landing.benefit4')}
                   </li>
                 </ul>
                 <p className="privacy-note">
-                  We only request access to your basic profile information and Google Calendar 
-                  (for live session management). Your privacy is important to us. 
-                  Read our <Link to="/privacy-policy">Privacy Policy</Link> to learn more.
+                  {t('landing.privacyNote')}{' '}
+                  <Link to="/privacy-policy">{t('landing.privacyPolicyLink')}</Link>
+                  {' '}{t('landing.privacyNoteEnd')}
                 </p>
               </div>
             </div>
@@ -161,11 +284,11 @@ const Landing = () => {
         <section className="landing-cta">
           <div className="landing-container">
             <div className="cta-content">
-              <h2>Ready to Get Started?</h2>
-              <p>Join our platform today and experience modern online education management</p>
+              <h2>{t('landing.readyToGetStarted')}</h2>
+              <p>{t('landing.ctaDescription')}</p>
               <div className="cta-buttons">
                 <Link to="/register" className="btn btn-primary btn-large">
-                  Create Account <FiArrowRight />
+                  {t('landing.createAccount')} <FiArrowRight />
                 </Link>
               </div>
             </div>
@@ -176,18 +299,14 @@ const Landing = () => {
         <footer className="landing-footer">
           <div className="landing-container">
             <div className="footer-content">
-              <div className="footer-logo">
-                <span className="logo-icon">📚</span>
-                <span className="logo-text">Technical English</span>
-              </div>
               <div className="footer-links">
-                <Link to="/privacy-policy">Privacy Policy</Link>
-                <Link to="/terms-of-service">Terms of Service</Link>
-                <a href="mailto:javohir.tayirovich@gmail.com">Contact Us</a>
+                <Link to="/privacy-policy">{t('landing.privacyPolicy')}</Link>
+                <Link to="/terms-of-service">{t('landing.termsOfService')}</Link>
+                <a href="mailto:javohir.tayirovich@gmail.com">{t('landing.contactUs')}</a>
               </div>
             </div>
             <div className="footer-copyright">
-              <p>&copy; 2026 Technical English. All rights reserved.</p>
+              <p>&copy; 2026 Technical English. {t('landing.allRightsReserved')}.</p>
             </div>
           </div>
         </footer>

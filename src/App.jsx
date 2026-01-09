@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastContainer } from 'react-toastify';
@@ -97,6 +97,17 @@ function AppLayout({ children }) {
 // Google OAuth Client ID - Environment variable or default
 // Production uchun .env faylda VITE_GOOGLE_CLIENT_ID ni sozlang
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1087873877448-vn95loshinp5kggnselsfk1g8chlfiuq.apps.googleusercontent.com';
+
+// 404 Redirect Component
+const NotFoundRedirect = () => {
+  const { currentUser, loading } = useAuth();
+  
+  if (loading) {
+    return null; // AuthProvider will handle loading
+  }
+  
+  return <Navigate to={currentUser ? "/dashboard" : "/"} replace />;
+};
 
 function App() {
   return (
@@ -288,7 +299,7 @@ function App() {
             } />
 
             {/* 404 */}
-            <Route path="*" element={<Navigate to="/dashboard" />} />
+            <Route path="*" element={<NotFoundRedirect />} />
           </Routes>
 
           <ToastContainer

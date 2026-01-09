@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from 'react-toastify';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiHome } from 'react-icons/fi';
+import LoadingSpinner from '../common/LoadingSpinner';
 import SEO from '../common/SEO';
 import './Auth.css';
 
@@ -15,8 +16,41 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const vantaRef = useRef(null);
+  const vantaEffect = useRef(null);
+
+  // Initialize Vanta.js 3D background
+  useEffect(() => {
+    if (window.VANTA && vantaRef.current) {
+      vantaEffect.current = window.VANTA.GLOBE({
+        el: vantaRef.current,
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.00,
+        minWidth: 200.00,
+        scale: 1.00,
+        scaleMobile: 1.00
+      });
+    }
+
+    return () => {
+      if (vantaEffect.current) {
+        vantaEffect.current.destroy();
+      }
+    };
+  }, []);
+
+  // If user is already logged in, redirect to dashboard
+  if (authLoading) {
+    return <LoadingSpinner fullScreen />;
+  }
+
+  if (currentUser) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -50,14 +84,22 @@ const Login = () => {
         keywords={t('auth.loginKeywords')}
       />
       <div className="auth-container">
+        <div ref={vantaRef} className="vanta-background"></div>
         <div className="auth-box">
         {/* Logo */}
         <div className="auth-logo">
           <div className="brand-icon">
-            <span>📚</span>
+            <img src="/favicon.png" alt="Technical English" className="brand-logo" />
           </div>
           <h1>Technical English</h1>
           <p>{t('auth.platformName')}</p>
+        </div>
+
+        {/* Back to Landing Page */}
+        <div className="auth-back-link">
+          <Link to="/" className="back-link">
+            <FiHome /> {t('common.backToHome') || 'Bosh sahifaga qaytish'}
+          </Link>
         </div>
 
         {/* Form */}
@@ -131,12 +173,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Background Decoration */}
-      <div className="auth-background">
-        <div className="bg-shape shape-1"></div>
-        <div className="bg-shape shape-2"></div>
-        <div className="bg-shape shape-3"></div>
-      </div>
     </div>
     </>
   );

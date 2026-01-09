@@ -21,6 +21,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const languageMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
   // Subscribe to unread notifications count
   useEffect(() => {
@@ -54,6 +55,23 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLanguageMenu]);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   const handleLanguageChange = (lang) => {
     changeLanguage(lang);
@@ -93,7 +111,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
           
           <Link to="/" className="navbar-brand">
             <div className="brand-icon">
-              <span>📚</span>
+              <img src="/favicon.png" alt="Technical English" className="brand-logo" />
             </div>
             <span className="brand-text">Technical English</span>
           </Link>
@@ -171,7 +189,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
           </div>
 
           {/* Profile Menu */}
-          <div className="profile-wrapper">
+          <div className="profile-wrapper" ref={profileMenuRef}>
             <button 
               className="profile-btn" 
               onClick={() => setShowProfileMenu(!showProfileMenu)}

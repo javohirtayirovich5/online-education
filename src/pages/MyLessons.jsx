@@ -842,10 +842,11 @@ const MyLessons = () => {
 
   if (loading) {
     return <LoadingSpinner fullScreen />;
+
   }
 
   return (
-    <div className="lessons-page">
+    <div className="lessons-page ">
       <div className="page-header">
         <div>
           <h1>{isTeacher ? t('lessons.myLessons') : t('lessons.title')}</h1>

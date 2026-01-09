@@ -189,23 +189,25 @@ const TimeTable = () => {
                     >
                       <div className="lesson-number">{index + 1}.</div>
                       <div className="lesson-content">
-                        <div className="lesson-subject">{lesson.subjectName}</div>
                         <div className="lesson-info">
-                          {lesson.location && (
-                            <>
-                              <FiMapPin />
-                              <span>{lesson.location}</span>
-                            </>
-                          )}
-                          <span className="lesson-type" style={{ color: getLessonTypeColor(lesson.lessonType) }}>
-                            {getLessonTypeName(lesson.lessonType)}
-                          </span>
-                          {lesson.teacherName && (
-                            <>
-                              <span>O'qituvchi</span>
-                              <span>{lesson.teacherName}</span>
-                            </>
-                          )}
+                          <span className="lesson-subject">{lesson.subjectName}</span>
+                          <div className="lesson-details">
+                            {lesson.teacherName && (
+                              <>
+                                <FiUser />
+                                <span>{lesson.teacherName}</span>
+                              </>
+                            )}
+                            <span className="lesson-type" style={{ color: getLessonTypeColor(lesson.lessonType) }}>
+                              {getLessonTypeName(lesson.lessonType)}
+                            </span>
+                            {lesson.location && (
+                              <>
+                                <FiMapPin />
+                                <span>{lesson.location}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

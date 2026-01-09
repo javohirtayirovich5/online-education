@@ -3,9 +3,9 @@ import { useLocation } from 'react-router-dom';
 
 const SEO = ({ title, description, keywords, image, url }) => {
   const location = useLocation();
-  const baseUrl = 'https://edupro.uz';
+  const baseUrl = 'https://technicalenglish.uz';
   const fullUrl = url || `${baseUrl}${location.pathname}`;
-  const defaultImage = `${baseUrl}/default-course.jpg`;
+  const defaultImage = `${baseUrl}/favicon.png`;
 
   useEffect(() => {
     // Update document title

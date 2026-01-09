@@ -133,14 +133,12 @@ const LiveSessions = () => {
     try {
       const groupName = groups.find(g => g.id === groupId)?.name || `Group ${groupId}`;
       const summary = `${groupName} - ${t('liveSessions.liveLesson')}`;
-      const description = t('liveSessions.liveLessonDescription');
 
       const res = await liveService.createSession({
         groupId,
         teacherId: currentUser.uid,
         googleAccessToken,
         summary,
-        description,
         attendees: []
       });
 
@@ -291,20 +289,31 @@ const LiveSessions = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ 
-                          fontWeight: 700, 
-                          fontSize: '1.1rem',
-                          marginBottom: 8,
-                          color: 'var(--text-primary)'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          marginBottom: 8
                         }}>
-                          {session.summary || t('liveSessions.liveLesson')}
+                          <span className="live-badge" style={{ margin: 0 }}>
+                            <span className="live-badge-dot" />
+                          </span>
+                          <div style={{ 
+                            fontWeight: 700, 
+                            fontSize: '1.1rem',
+                            color: 'var(--text-primary)'
+                          }}>
+                            {session.summary || t('liveSessions.liveLesson')}
+                          </div>
                         </div>
-                        <div style={{ 
-                          fontSize: '0.9rem', 
-                          color: 'var(--text-secondary)',
-                          marginBottom: 12
-                        }}>
-                          {session.description || t('liveSessions.liveLessonDescription')}
-                        </div>
+                        {session.description && (
+                          <div style={{ 
+                            fontSize: '0.9rem', 
+                            color: 'var(--text-secondary)',
+                            marginBottom: 12
+                          }}>
+                            {session.description}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: 'var(--text-secondary)' }}>
