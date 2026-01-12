@@ -1,11 +1,21 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const SEO = ({ title, description, keywords, image, url }) => {
   const location = useLocation();
+  const { language } = useLanguage();
   const baseUrl = 'https://technicalenglish.uz';
   const fullUrl = url || `${baseUrl}${location.pathname}`;
   const defaultImage = `${baseUrl}/favicon.png`;
+  
+  // Map language codes to locale codes
+  const localeMap = {
+    uz: 'uz_UZ',
+    en: 'en_US',
+    ru: 'ru_RU'
+  };
+  const locale = localeMap[language] || 'uz_UZ';
 
   useEffect(() => {
     // Update document title
@@ -51,6 +61,20 @@ const SEO = ({ title, description, keywords, image, url }) => {
     updateMetaTag('twitter:image', ogImage, true);
     updateMetaTag('og:url', fullUrl, true);
     updateMetaTag('twitter:url', fullUrl, true);
+    
+    // Update og:type based on path
+    const path = location.pathname;
+    let ogType = 'website';
+    if (path.includes('/lesson/') || path.includes('/course/')) {
+      ogType = 'article';
+    }
+    updateMetaTag('og:type', ogType, true);
+    updateMetaTag('og:locale', locale, true);
+    
+    // Update HTML lang attribute
+    if (document.documentElement) {
+      document.documentElement.setAttribute('lang', language);
+    }
 
     // Update canonical URL
     let canonical = document.querySelector('link[rel="canonical"]');
@@ -61,7 +85,7 @@ const SEO = ({ title, description, keywords, image, url }) => {
     }
     canonical.setAttribute('href', fullUrl);
 
-  }, [title, description, keywords, image, url, fullUrl, defaultImage]);
+  }, [title, description, keywords, image, url, fullUrl, defaultImage, location.pathname, language, locale]);
 
   return null;
 };

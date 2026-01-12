@@ -139,7 +139,7 @@ const Landing = () => {
                         onClick={() => handleLanguageChange('uz')}
                       >
                         <span className="landing-language-flag">🇺🇿</span>
-                        <span className="landing-language-name">O'zbekcha</span>
+                        <span className="landing-language-name">{t('navbar.languageUz')}</span>
                         {language === 'uz' && <span className="landing-check-icon">✓</span>}
                       </button>
                       <button 
@@ -147,7 +147,7 @@ const Landing = () => {
                         onClick={() => handleLanguageChange('en')}
                       >
                         <span className="landing-language-flag">🇬🇧</span>
-                        <span className="landing-language-name">English</span>
+                        <span className="landing-language-name">{t('navbar.languageEn')}</span>
                         {language === 'en' && <span className="landing-check-icon">✓</span>}
                       </button>
                       <button 
@@ -155,7 +155,7 @@ const Landing = () => {
                         onClick={() => handleLanguageChange('ru')}
                       >
                         <span className="landing-language-flag">🇷🇺</span>
-                        <span className="landing-language-name">Русский</span>
+                        <span className="landing-language-name">{t('navbar.languageRu')}</span>
                         {language === 'ru' && <span className="landing-check-icon">✓</span>}
                       </button>
                     </div>

@@ -19,7 +19,8 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiCalendar,
-  FiHelpCircle
+  FiHelpCircle,
+  FiBook
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -91,6 +92,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/users', icon: FiUsers, label: t('sidebar.users') },
     { to: '/lessons', icon: FiVideo, label: t('sidebar.allLessons') },
     { to: '/analytics', icon: FiBarChart2, label: t('sidebar.statistics') },
+    { to: '/library', icon: FiBook, label: t('sidebar.library') },
     { to: '/settings', icon: FiSettings, label: t('common.settings') }
   ];
 
@@ -109,7 +111,8 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myLessons') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
-    { to: '/teacher/tests', icon: FiHelpCircle, label: t('sidebar.tests') }
+    { to: '/teacher/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
+    { to: '/library', icon: FiBook, label: t('sidebar.library') }
   ];
 
   const studentLinks = [
@@ -122,7 +125,8 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
     { to: '/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
     { to: '/my-grades', icon: FiStar, label: t('sidebar.myGrades') },
-    { to: '/attendance', icon: FiClipboard, label: t('sidebar.attendance') }
+    { to: '/attendance', icon: FiClipboard, label: t('sidebar.attendance') },
+    { to: '/library', icon: FiBook, label: t('sidebar.library') }
   ];
 
   const links = isAdmin ? adminLinks : isTeacher ? teacherLinks : studentLinks;

@@ -933,11 +933,11 @@ const MyLessons = () => {
                 <div className="lesson-stats">
                   <div className="stat-item">
                     <FiBook />
-                    <span>{getTotalLessons(course)} dars</span>
+                    <span>{getTotalLessons(course)} {t('lessons.lessonsCount')}</span>
                   </div>
                   <div className="stat-item">
                     <FiUsers />
-                    <span>{course.views || 0} ko'rish</span>
+                    <span>{course.views || 0} {t('lessons.views')}</span>
                   </div>
                 </div>
               </div>
@@ -947,7 +947,7 @@ const MyLessons = () => {
                   className="btn btn-primary btn-sm"
                   onClick={() => navigate(`/course/${course.id}`)}
                 >
-                  <FiPlay /> Ko'rish
+                  <FiPlay /> {t('common.view')}
                 </button>
                 {isTeacher && course.instructorId === userData.uid && (
                   <>
@@ -955,7 +955,7 @@ const MyLessons = () => {
                       className="btn btn-secondary btn-sm"
                       onClick={() => openAddLessonModal(course)}
                     >
-                      <FiPlus /> Dars qo'shish
+                      <FiPlus /> {t('lessons.addLesson')}
                     </button>
                     <div className="lesson-actions">
                       <button 

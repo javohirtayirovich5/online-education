@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { FiMenu, FiX, FiSun, FiMoon, FiBell, FiSearch, FiUser, FiLogOut, FiSettings, FiGlobe, FiChevronDown } from 'react-icons/fi';
+import { FiMenu, FiSun, FiMoon, FiBell, FiSearch, FiUser, FiLogOut, FiSettings, FiGlobe, FiChevronDown } from 'react-icons/fi';
 import NotificationDropdown from './NotificationDropdown';
 import { notificationService } from '../../services/notificationService';
 import './Navbar.css';
@@ -80,9 +80,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
 
   const getLanguageName = (lang) => {
     const names = {
-      uz: "O'zbekcha",
-      en: "English",
-      ru: "Русский"
+      uz: t('navbar.languageUz'),
+      en: t('navbar.languageEn'),
+      ru: t('navbar.languageRu')
     };
     return names[lang] || lang;
   };
@@ -106,7 +106,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
         {/* Left Section */}
         <div className="navbar-left">
           <button className="menu-toggle" onClick={toggleSidebar}>
-            {isSidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            <FiMenu size={24} />
           </button>
           
           <Link to="/" className="navbar-brand">
@@ -144,7 +144,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
                   onClick={() => handleLanguageChange('uz')}
                 >
                   <span className="language-flag">🇺🇿</span>
-                  <span className="language-name">O'zbekcha</span>
+                  <span className="language-name">{t('navbar.languageUz')}</span>
                   {language === 'uz' && <span className="check-icon">✓</span>}
                 </button>
                 <button 
@@ -152,7 +152,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
                   onClick={() => handleLanguageChange('en')}
                 >
                   <span className="language-flag">🇬🇧</span>
-                  <span className="language-name">English</span>
+                  <span className="language-name">{t('navbar.languageEn')}</span>
                   {language === 'en' && <span className="check-icon">✓</span>}
                 </button>
                 <button 
@@ -160,7 +160,7 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
                   onClick={() => handleLanguageChange('ru')}
                 >
                   <span className="language-flag">🇷🇺</span>
-                  <span className="language-name">Русский</span>
+                  <span className="language-name">{t('navbar.languageRu')}</span>
                   {language === 'ru' && <span className="check-icon">✓</span>}
                 </button>
               </div>

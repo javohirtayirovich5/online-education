@@ -52,19 +52,32 @@ import TimeTable from './pages/student/TimeTable';
 import StudentResources from './pages/student/StudentResources';
 import StudentTests from './pages/student/StudentTests';
 import TakeTest from './pages/student/TakeTest';
+import Library from './pages/Library';
+import BookReader from './pages/BookReader';
 
 import './App.css';
 
 function AppLayout({ children }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  // localStorage'dan sidebar holatini olish
+  const getInitialSidebarState = () => {
+    const saved = localStorage.getItem('sidebarOpen');
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    // Agar saqlanmagan bo'lsa, katta ekranlarda ochiq, kichik ekranlarda yopiq
+    return window.innerWidth > 1024;
+  };
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(getInitialSidebarState);
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 1024) {
-        setIsSidebarOpen(true);
-      } else {
+      // Kichik ekranlarda har doim yopiq
+      if (window.innerWidth <= 1024) {
         setIsSidebarOpen(false);
       }
+      // Katta ekranlarda localStorage'dan holatni tiklash
+      // Lekin foydalanuvchi tomonidan o'zgartirilgan holatni saqlash
     };
 
     window.addEventListener('resize', handleResize);
@@ -72,13 +85,16 @@ function AppLayout({ children }) {
   }, []);
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    const newState = !isSidebarOpen;
+    setIsSidebarOpen(newState);
+    // localStorage'ga saqlash
+    localStorage.setItem('sidebarOpen', newState.toString());
   };
 
   const closeSidebar = () => {
-    if (window.innerWidth <= 1024) {
-      setIsSidebarOpen(false);
-    }
+    setIsSidebarOpen(false);
+    // localStorage'ga saqlash
+    localStorage.setItem('sidebarOpen', 'false');
   };
 
   return (
@@ -288,6 +304,19 @@ function App() {
             <Route path="/tests/:testId" element={
               <PrivateRoute requiredRole="student">
                 <AppLayout><TakeTest /></AppLayout>
+              </PrivateRoute>
+            } />
+
+            {/* Library (all authenticated users) */}
+            <Route path="/library" element={
+              <PrivateRoute>
+                <AppLayout><Library /></AppLayout>
+              </PrivateRoute>
+            } />
+
+            <Route path="/library/read/:bookId" element={
+              <PrivateRoute>
+                <BookReader />
               </PrivateRoute>
             } />
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { FiX, FiPlus, FiTrash2, FiChevronDown } from 'react-icons/fi';
 import { toast } from 'react-toastify';
@@ -59,14 +59,14 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }));
   };
 
-  const QUESTION_TYPES = [
-    { value: 'multiple', label: 'Variantni tanlash' },
-    { value: 'text', label: 'Matnli javob' },
-    { value: 'truefalse', label: 'True / False' },
-    { value: 'wordbank', label: 'Bo\'shliqni to\'ldrish'},
-    { value: 'matching', label: 'Matching (Moslashtirish)' },
-    { value: 'audio', label: 'Audio savol' }
-  ];
+  const QUESTION_TYPES = useMemo(() => [
+    { value: 'multiple', label: t('tests.questionTypeMultiple') },
+    { value: 'text', label: t('tests.questionTypeText') },
+    { value: 'truefalse', label: t('tests.questionTypeTrueFalse') },
+    { value: 'wordbank', label: t('tests.questionTypeWordBank') },
+    { value: 'matching', label: t('tests.questionTypeMatching') },
+    { value: 'audio', label: t('tests.questionTypeAudio') }
+  ], [t]);
 
   const normalizeQuestionForType = (type) => {
     switch (type) {
@@ -724,7 +724,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
         {/* Questions Section */}
         <div className="editor-section">
-          <h3>Savollar ({formData.questions.length})</h3>
+          <h3>{t('tests.questions')} ({formData.questions.length})</h3>
 
           {/* Questions List with inline editing */}
           <div className="questions-list">
@@ -733,7 +733,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                 <div className="question-header">
                   <div style={{ flex: 1 }}>
                     <div className="d-flex">
-                      <h4>Savol {index + 1}</h4>
+                      <h4>{t('tests.question')} {index + 1}</h4>
                       {formData.questions.length > 1 && (
                         <button
                           type="button"
@@ -746,7 +746,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     </div>
 
                     <div className="form-group">
-                      <label>Savol turi</label>
+                      <label>{t('tests.questionType')}</label>
                       <select
                         value={question.type}
                         onChange={(e) => handleChangeQuestionType(index, e.target.value)}
@@ -759,12 +759,12 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     </div>
 
                     <div className="form-group">
-                      <label>Savol matni *</label>
+                      <label>{t('tests.questionText')} *</label>
                       {question.type === 'audio' ? (
                         <textarea
                           value={question.text || ''}
                           onChange={(e) => handleQuestionChange(index, 'text', e.target.value)}
-                          placeholder="Audio savol uchun tavsif (ixtiyoriy)"
+                          placeholder={t('tests.audioQuestionDescription')}
                           className="form-textarea question-edit-textarea"
                           rows="2"
                         />
@@ -802,7 +802,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                           <div className="wordbank-controls">
                             <div className="bank-management">
-                              <label>Word Bank</label>
+                              <label>{t('tests.wordBank')}</label>
                               <div className="bank-add">
                                 <input
                                   type="text"
@@ -821,7 +821,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                       updateEditorSelects(index, newBank);
                                     }
                                   }}
-                                  placeholder="So'z qo'shish"
+                                  placeholder={t('tests.addWordPlaceholder')}
                                   className="form-input"
                                 />
                                 <button
@@ -836,7 +836,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                     // update selects inside editor immediately with new bank
                                     updateEditorSelects(index, newBank);
                                   }}
-                                >Qo'sh</button>
+                                >{t('tests.addWord')}</button>
                               </div>
 
                               <div className="bank-list">
@@ -863,7 +863,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                 type="button"
                                 className="btn btn-sm btn-primary"
                                 onClick={() => insertBlankAtCursor(index)}
-                              >Add Blank</button>
+                              >{t('tests.addBlank')}</button>
                             </div>
                           </div>
                         </div>
@@ -931,7 +931,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === true}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', true)}
                         />
-                        True
+                        {t('tests.true')}
                       </label>
                       <label className={`tf-option ${question.correctAnswer === false ? 'selected' : ''}`}>
                         <input
@@ -940,7 +940,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === false}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', false)}
                         />
-                        False
+                        {t('tests.false')}
                       </label>
                     </div>
                   </div>
@@ -1082,7 +1082,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                     />
                                     <div className="wordbank-controls">
                                       <div className="bank-management">
-                                        <label>Word Bank</label>
+                                        <label>{t('tests.wordBank')}</label>
                                         <div className="bank-add">
                                           <input
                                             type="text"
@@ -1101,7 +1101,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                                 updateSubQuestionEditorSelects(index, subIndex, newBank);
                                               }
                                             }}
-                                            placeholder="So'z qo'shish"
+                                            placeholder={t('tests.addWordPlaceholder')}
                                             className="form-input"
                                           />
                                           <button
@@ -1116,7 +1116,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                               // update selects inside editor immediately with new bank
                                               updateSubQuestionEditorSelects(index, subIndex, newBank);
                                             }}
-                                          >Qo'sh</button>
+                                          >{t('tests.addWord')}</button>
                                         </div>
                                         <div className="bank-list">
                                           {(subQ.bank || []).map((w, wi) => (
@@ -1199,7 +1199,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                         checked={subQ.correctAnswer === true}
                                         onChange={() => handleSubQuestionChange(index, subIndex, 'correctAnswer', true)}
                                       />
-                                      True
+                                      {t('tests.true')}
                                     </label>
                                     <label className={`tf-option ${subQ.correctAnswer === false ? 'selected' : ''}`}>
                                       <input
@@ -1208,7 +1208,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                         checked={subQ.correctAnswer === false}
                                         onChange={() => handleSubQuestionChange(index, subIndex, 'correctAnswer', false)}
                                       />
-                                      False
+                                      {t('tests.false')}
                                     </label>
                                   </div>
                                 </div>

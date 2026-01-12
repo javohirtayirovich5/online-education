@@ -494,11 +494,11 @@ const Register = () => {
         {/* Footer Links */}
         <div className="auth-footer">
           <Link to="/privacy-policy" className="auth-footer-link">
-            Privacy Policy
+            {t('auth.privacyPolicy')}
           </Link>
           <span className="auth-footer-separator">•</span>
           <Link to="/terms-of-service" className="auth-footer-link">
-            Terms of Service
+            {t('auth.termsOfService')}
           </Link>
         </div>
       </div>

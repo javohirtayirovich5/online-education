@@ -9,6 +9,11 @@
   transition: transform 0.3s ease;
   z-index: 900;
   overflow-y: auto;
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
 }
 
 .sidebar-content {
@@ -214,14 +219,6 @@
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
   .sidebar-overlay {
     display: block;
     position: fixed;

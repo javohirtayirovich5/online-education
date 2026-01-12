@@ -13,12 +13,23 @@ Disallow: /assignments
 Disallow: /my-courses
 Disallow: /my-lessons
 Disallow: /course/
+Disallow: /lesson/
+Disallow: /tests/
+Disallow: /live-sessions
+Disallow: /my-subjects
+Disallow: /timetable
+Disallow: /resources
+Disallow: /users
+Disallow: /analytics
+Disallow: /structure/
 
 # Allow public pages
 Allow: /
 Allow: /login
 Allow: /register
 Allow: /forgot-password
+Allow: /privacy-policy
+Allow: /terms-of-service
 
 # Sitemap
 Sitemap: https://technicalenglish.uz/sitemap.xml

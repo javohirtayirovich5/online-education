@@ -573,6 +573,29 @@ service cloud.firestore {
       // Only admin can delete sessions
       allow delete: if isAdmin();
     }
+    
+    // ============================================
+    // LIBRARY COLLECTION (Favorites, Reading List)
+    // ============================================
+    match /library/{documentId} {
+      // Users can read their own library data (including queries)
+      allow read: if isAuthenticated() && 
+                     (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Users can create their own library entries
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       hasRequiredFields(['userId', 'bookId', 'type']);
+      
+      // Users can update their own library entries
+      allow update: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own library entries
+      allow delete: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid;
+    }
   }
 }
 

@@ -115,7 +115,7 @@ const TeacherTests = () => {
 
   const getGroupName = (groupId) => {
     const group = groups.find(g => g.id === groupId);
-    return group ? group.name : 'Hamma uchun';
+    return group ? group.name : t('tests.forAll');
   };
 
   if (loading) return <LoadingSpinner />;
@@ -123,12 +123,12 @@ const TeacherTests = () => {
   return (
     <div className="tests-container">
       <div className="tests-header">
-        <h1>Testlar</h1>
+        <h1>{t('teacher.tests.title')}</h1>
         <button 
           className="btn btn-primary"
           onClick={() => setShowCreateModal(true)}
         >
-          <FiPlus /> Yangi test
+          <FiPlus /> {t('teacher.tests.newTest')}
         </button>
       </div>
 
@@ -154,7 +154,7 @@ const TeacherTests = () => {
                 <div>
                   <h3>{test.title}</h3>
                   <p className="test-info">
-                    {test.questions?.length || 0} savoldan iborat • {getGroupName(test.groupId)}
+                    {test.questions?.length || 0} {t('tests.questionsFrom')} • {getGroupName(test.groupId)}
                   </p>
                 </div>
                 <div className="test-actions">
@@ -257,7 +257,7 @@ const TeacherTests = () => {
       <ConfirmModal
         isOpen={showDeleteConfirm}
         title={t('teacher.tests.delete')}
-        message={`"${selectedTest?.title}" testini o'chirmoqchisiz? Bu amalni qaytarib bo'lmaydi.`}
+        message={`"${selectedTest?.title}" ${t('tests.deleteTestConfirm')}`}
         onConfirm={handleDeleteTest}
         onClose={() => {
           setShowDeleteConfirm(false);

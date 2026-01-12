@@ -8,10 +8,12 @@
   margin-left: 0;
   min-height: calc(100vh - var(--navbar-height));
   transition: margin-left 0.3s ease;
+  width: 100%;
 }
 
 .app-main.sidebar-open {
   margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
 }
 
 .app-content {
@@ -25,6 +27,7 @@
 @media (max-width: 1024px) {
   .app-main.sidebar-open {
     margin-left: 0;
+    width: 100%;
   }
 
   .app-content {

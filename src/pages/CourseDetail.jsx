@@ -5,7 +5,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { courseService } from '../services/courseService';
 import ReactPlayer from 'react-player';
 import { toast } from 'react-toastify';
-import { formatRelativeTime } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import { 
   FiBook, 
   FiUsers, 
@@ -101,9 +101,9 @@ const CourseDetail = () => {
       setNewComment('');
       loadComments();
       loadCourse(); // Kurs ma'lumotlarini yangilash (commentsCount uchun)
-      toast.success('Izoh qo\'shildi');
+      toast.success(t('courseDetail.commentAdded'));
     } else {
-      toast.error('Izoh qo\'shishda xatolik');
+      toast.error(t('courseDetail.commentAddError'));
     }
     setSubmittingComment(false);
   };
@@ -115,9 +115,9 @@ const CourseDetail = () => {
       if (result.success) {
         loadComments();
         loadCourse(); // Kurs ma'lumotlarini yangilash
-        toast.success('Izoh o\'chirildi');
+        toast.success(t('courseDetail.commentDeleted'));
       } else {
-        toast.error('Izoh o\'chirishda xatolik');
+        toast.error(t('courseDetail.commentDeleteError'));
       }
     });
     setShowConfirmModal(true);
@@ -222,14 +222,14 @@ const CourseDetail = () => {
         <div className="content-header">
           <h2>{t('dashboard.totalLessons')}</h2>
           <span className="modules-count">
-            {getTotalLessons(course)} dars
+            {getTotalLessons(course)} {t('lessons.lessonsCount')}
           </span>
         </div>
 
         {getTotalLessons(course) === 0 ? (
           <div className="empty-modules">
             <FiBook size={48} />
-            <p>Hozircha darslar qo'shilmagan</p>
+            <p>{t('lessons.noLessonsAdded')}</p>
           </div>
         ) : (
           <div className="lessons-grid">
@@ -245,7 +245,7 @@ const CourseDetail = () => {
                       setShowVideoModal(true);
                       await handleViewIncrement(); // Ko'rishlar sonini oshirish
                     } else {
-                      toast.info('Bu dars uchun video hali yuklanmagan');
+                      toast.info(t('courseDetail.videoNotUploaded'));
                     }
                   }}
                   style={{ cursor: lesson.videoURL ? 'pointer' : 'default' }}
@@ -264,7 +264,7 @@ const CourseDetail = () => {
                     )}
                     {lesson.duration && (
                       <div className="lesson-duration-badge">
-                        <FiClock size={12} /> {lesson.duration} daqiqa
+                        <FiClock size={12} /> {lesson.duration} {t('tests.minutes')}
                       </div>
                     )}
                     <div className="lesson-play-overlay">
@@ -284,7 +284,7 @@ const CourseDetail = () => {
                             e.stopPropagation();
                             navigate(`/my-lessons?editLesson=${course.id}&moduleIndex=${moduleIndex}&lessonIndex=${lessonIndex}`);
                           }}
-                          title="Tahrirlash"
+                          title={t('common.edit')}
                         >
                           <FiEdit size={14} />
                         </button>
@@ -302,10 +302,10 @@ const CourseDetail = () => {
                                   lesson.lessonId
                                 );
                                 if (result.success) {
-                                  toast.success('Dars o\'chirildi');
+                                  toast.success(t('courseDetail.lessonDeleted'));
                                   loadCourse();
                                 } else {
-                                  toast.error('Dars o\'chirishda xatolik');
+                                  toast.error(t('courseDetail.lessonDeleteError'));
                                 }
                               }
                             });
@@ -379,20 +379,20 @@ const CourseDetail = () => {
                     <span className={`comment-role ${comment.authorRole}`}>
                       {comment.authorRole === 'teacher' ? 'O\'qituvchi' : 'Talaba'}
                     </span>
-                    <span className="comment-time">{formatRelativeTime(comment.createdAt)}</span>
+                    <span className="comment-time">{formatDate(comment.createdAt, 'dd/MM/yyyy, HH:mm')}</span>
+                    {(comment.authorId === userData?.uid || isInstructor) && (
+                      <button 
+                        className="delete-comment-btn"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        title="O'chirish"
+                      >
+                        <FiTrash size={16} />
+                      </button>
+                    )}
                   </div>
                   <div className="comment-bubble">
                     <p className="comment-text">{comment.content}</p>
                   </div>
-                  {(comment.authorId === userData?.uid || isInstructor) && (
-                    <button 
-                      className="delete-comment-btn"
-                      onClick={() => handleDeleteComment(comment.id)}
-                      title="O'chirish"
-                    >
-                      <FiTrash size={14} />
-                    </button>
-                  )}
                 </div>
               </div>
             ))
@@ -408,7 +408,7 @@ const CourseDetail = () => {
           setSelectedLesson(null);
           setVideoError(null); // Error state ni tozalash
         }}
-        title={selectedLesson?.title || 'Video dars'}
+        title={selectedLesson?.title || t('courseDetail.videoTitle')}
         size="large"
       >
         {selectedLesson && (
@@ -421,9 +421,9 @@ const CourseDetail = () => {
                   style={{ maxHeight: '70vh' }}
                   src={selectedLesson.videoURL}
                   className="course-video-player"
-                  onError={() => setVideoError('Video yuklashda xatolik')}
+                  onError={() => setVideoError(t('courseDetail.videoLoadError'))}
                 >
-                  Brauzeringiz video tegini qo'llab-quvvatlamaydi.
+                  {t('courseDetail.videoNotSupported')}
                 </video>
               ) : videoError ? (
                 <div className="video-error-message" style={{
@@ -433,11 +433,11 @@ const CourseDetail = () => {
                   borderRadius: '8px',
                   border: '1px solid var(--border)'
                 }}>
-                  <h3 style={{ color: 'var(--error)', marginBottom: '16px' }}>Video ko'rsatib bo'lmadi</h3>
+                  <h3 style={{ color: 'var(--error)', marginBottom: '16px' }}>{t('courseDetail.videoLoadError')}</h3>
                   <p style={{ color: 'var(--text-secondary)' }}>
                     {videoError === 150 || videoError === '150' 
-                      ? 'Bu video embedding uchun ruxsat berilmagan yoki cheklangan. Video muallifi embedding ni o\'chirgan bo\'lishi mumkin.'
-                      : 'Video yuklashda xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.'}
+                      ? t('courseDetail.videoEmbedError')
+                      : t('courseDetail.videoError')}
                   </p>
                 </div>
               ) : (

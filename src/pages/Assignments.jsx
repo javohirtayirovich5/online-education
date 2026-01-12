@@ -304,9 +304,9 @@ const Assignments = () => {
       return { status: 'not_submitted', text: t('assignments.notSubmitted'), color: '#ef4444' };
     }
     if (submission.grade !== null && submission.grade !== undefined) {
-      return { status: 'graded', text: 'Baholandi', color: '#10b981' };
+      return { status: 'graded', text: t('assignments.graded'), color: '#10b981' };
     }
-    return { status: 'submitted', text: 'Jo\'natildi', color: '#f59e0b' };
+    return { status: 'submitted', text: t('assignments.submittedStatus'), color: '#f59e0b' };
   };
 
   // Get filtered submissions based on tab
@@ -455,17 +455,17 @@ const Assignments = () => {
         className="back-btn"
         onClick={() => navigate('/dashboard')}
       >
-        <FiArrowLeft /> Orqaga
+        <FiArrowLeft /> {t('common.back')}
       </button>
       <div className="page-header">
         <div>
-          <h1>Topshiriqlar</h1>
+          <h1>{t('assignments.title')}</h1>
           <p>{isTeacher ? t('assignments.manageAssignments') : t('assignments.yourAssignments')}</p>
           {isTeacher && Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0) > 0 && (
             <div className="header-stats">
               <span className="ungraded-count-badge">
                 <FiClock />
-                {Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0)} ta baholanmagan topshiriq
+                {Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0)} {t('assignments.ungradedAssignments')}
               </span>
             </div>
           )}
@@ -638,7 +638,7 @@ const Assignments = () => {
       >
         <form onSubmit={handleCreate}>
           <div className="form-group">
-            <label className="form-label">Topshiriq nomi *</label>
+            <label className="form-label">{t('assignments.assignmentTitle')} *</label>
             <input
               type="text"
               className="form-input"
@@ -649,7 +649,7 @@ const Assignments = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tavsif *</label>
+            <label className="form-label">{t('assignments.description')} *</label>
             <textarea
               className="form-textarea"
               value={formData.description}
@@ -661,7 +661,7 @@ const Assignments = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Muddat</label>
+              <label className="form-label">{t('assignments.dueDate')}</label>
               <input
                 type="datetime-local"
                 className="form-input"
@@ -671,7 +671,7 @@ const Assignments = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Maksimal ball</label>
+              <label className="form-label">{t('assignments.maxScore')}</label>
               <input
                 type="number"
                 className="form-input"
@@ -683,7 +683,7 @@ const Assignments = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Qo'shimcha fayllar (ixtiyoriy)</label>
+            <label className="form-label">{t('assignments.attachedFiles')}</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -697,7 +697,7 @@ const Assignments = () => {
                 className="file-upload-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FiUpload /> Fayl yuklash
+                <FiUpload /> {t('assignments.uploadFile')}
               </button>
             </div>
             {attachedFiles.length > 0 && (
@@ -733,10 +733,10 @@ const Assignments = () => {
                 }
               }}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={uploading}>
-              {uploading ? 'Yuklanmoqda...' : 'Yaratish'}
+              {uploading ? t('common.uploading') : t('common.create')}
             </button>
           </div>
         </form>
@@ -754,12 +754,12 @@ const Assignments = () => {
             fileInputRef.current.value = '';
           }
         }}
-        title="Topshiriqni tahrirlash"
+        title={t('assignments.editAssignment')}
         size="large"
       >
         <form onSubmit={handleUpdate}>
           <div className="form-group">
-            <label className="form-label">Topshiriq nomi *</label>
+            <label className="form-label">{t('assignments.assignmentTitle')} *</label>
             <input
               type="text"
               className="form-input"
@@ -770,7 +770,7 @@ const Assignments = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tavsif *</label>
+            <label className="form-label">{t('assignments.description')} *</label>
             <textarea
               className="form-textarea"
               value={formData.description}
@@ -782,7 +782,7 @@ const Assignments = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Muddat</label>
+              <label className="form-label">{t('assignments.dueDate')}</label>
               <input
                 type="datetime-local"
                 className="form-input"
@@ -792,7 +792,7 @@ const Assignments = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Maksimal ball</label>
+              <label className="form-label">{t('assignments.maxScore')}</label>
               <input
                 type="number"
                 className="form-input"
@@ -804,7 +804,7 @@ const Assignments = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Qo'shimcha fayllar (ixtiyoriy)</label>
+            <label className="form-label">{t('assignments.attachedFiles')}</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
@@ -818,7 +818,7 @@ const Assignments = () => {
                 className="file-upload-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FiUpload /> Fayl yuklash
+                <FiUpload /> {t('assignments.uploadFile')}
               </button>
             </div>
             {attachedFiles.length > 0 && (
@@ -869,10 +869,10 @@ const Assignments = () => {
                 }
               }}
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={uploading}>
-              {uploading ? 'Yuklanmoqda...' : 'Saqlash'}
+              {uploading ? t('common.uploading') : t('common.save')}
             </button>
           </div>
         </form>
@@ -900,7 +900,7 @@ const Assignments = () => {
               <div className="assignment-meta-full">
                 <div className="meta-item">
                   <FiClock />
-                  <span>Muddat: {formatDate(selectedAssignment.dueDate)}</span>
+                  <span>{t('assignments.dueDateLabel')} {formatDate(selectedAssignment.dueDate)}</span>
                 </div>
                 {isStudent && (() => {
                   const timeRemaining = getTimeRemaining(selectedAssignment.dueDate);
@@ -916,7 +916,7 @@ const Assignments = () => {
                   );
                 })()}
                 <div className="meta-item">
-                  <span className="score-badge">{selectedAssignment.maxScore} ball</span>
+                  <span className="score-badge">{selectedAssignment.maxScore} {t('assignments.pointsLabel')}</span>
                 </div>
                 {isStudent && studentSubmissions[selectedAssignment.id] && (
                   <div className="meta-item">
@@ -933,7 +933,7 @@ const Assignments = () => {
                           </span>
                           {submission.grade !== null && submission.grade !== undefined && (
                             <span className="grade-display">
-                              Ball: {submission.grade} / {selectedAssignment.maxScore}
+                              {t('assignments.score')}: {submission.grade} / {selectedAssignment.maxScore}
                             </span>
                           )}
                         </>
@@ -945,7 +945,7 @@ const Assignments = () => {
 
               {selectedAssignment.attachedFiles && selectedAssignment.attachedFiles.length > 0 && (
                 <div className="assignment-files">
-                  <h4>Qo'shimcha fayllar:</h4>
+                  <h4>{t('assignments.attachedFilesLabel')}</h4>
                   <div className="files-list">
                     {selectedAssignment.attachedFiles.map((file, index) => (
                       <a
@@ -967,7 +967,7 @@ const Assignments = () => {
               <div className="submission-section">
                 {isStudent && studentSubmissions[selectedAssignment.id] ? (
                   <>
-                    <h4>Jo'natilgan topshiriq:</h4>
+                    <h4>{t('assignments.submittedAssignment')}</h4>
                     <div className="submitted-file-info">
                       <div className="submitted-file-details">
                         <FiFile />
@@ -987,7 +987,7 @@ const Assignments = () => {
                         </a>
                       </div>
                       <div className="submission-meta">
-                        <span>Jo'natilgan: {formatDate(studentSubmissions[selectedAssignment.id].submittedAt)}</span>
+                        <span>{t('assignments.submittedAt')}: {formatDate(studentSubmissions[selectedAssignment.id].submittedAt)}</span>
                         {studentSubmissions[selectedAssignment.id].grade !== null && 
                          studentSubmissions[selectedAssignment.id].grade !== undefined && (
                           <span className="grade-display">
@@ -999,7 +999,7 @@ const Assignments = () => {
                   </>
                 ) : (
                   <>
-                    <h4>Topshiriqni jo'natish:</h4>
+                    <h4>{t('assignments.submitAssignment')}</h4>
                     <div className="file-upload-wrapper">
                       <input
                         type="file"
@@ -1012,7 +1012,7 @@ const Assignments = () => {
                         className="file-upload-btn"
                         onClick={() => submissionFileInputRef.current?.click()}
                       >
-                        <FiUpload /> Fayl tanlash
+                        <FiUpload /> {t('assignments.selectFile')}
                       </button>
                     </div>
                     {submissionFile && (
@@ -1045,7 +1045,7 @@ const Assignments = () => {
           setSelectedAssignment(null);
           setSubmissions([]);
         }}
-        title={`${selectedAssignment?.title} - Topshiriqlar`}
+        title={`${selectedAssignment?.title} - ${t('assignments.submissionsTitle')}`}
         size="large"
       >
         {selectedAssignment && (
@@ -1053,7 +1053,7 @@ const Assignments = () => {
             {submissions.length === 0 ? (
               <div className="empty-state">
                 <FiFileText size={48} />
-                <p>Hozircha topshiriqlar jo'natilmagan</p>
+                <p>{t('assignments.noSubmissions')}</p>
               </div>
             ) : (
               <>
@@ -1064,15 +1064,15 @@ const Assignments = () => {
                     return (
                       <>
                         <div className="stat-item">
-                          <span className="stat-label">Jami:</span>
+                          <span className="stat-label">{t('assignments.total')}</span>
                           <span className="stat-value">{stats.total}</span>
                         </div>
                         <div className="stat-item">
-                          <span className="stat-label">Baholangan:</span>
+                          <span className="stat-label">{t('assignments.gradedCount')}</span>
                           <span className="stat-value" style={{ color: '#10b981' }}>{stats.graded}</span>
                         </div>
                         <div className="stat-item">
-                          <span className="stat-label">Baholanmagan:</span>
+                          <span className="stat-label">{t('assignments.ungradedCount')}</span>
                           <span className="stat-value" style={{ color: '#f59e0b' }}>{stats.ungraded}</span>
                         </div>
                       </>
@@ -1086,19 +1086,19 @@ const Assignments = () => {
                     className={`submission-tab ${submissionsTab === 'all' ? 'active' : ''}`}
                     onClick={() => setSubmissionsTab('all')}
                   >
-                    Barchasi ({submissions.length})
+                    {t('assignments.allSubmissions')} ({submissions.length})
                   </button>
                   <button 
                     className={`submission-tab ${submissionsTab === 'ungraded' ? 'active' : ''}`}
                     onClick={() => setSubmissionsTab('ungraded')}
                   >
-                    Baholanmagan ({getSubmissionStats().ungraded})
+                    {t('assignments.ungradedSubmissions')} ({getSubmissionStats().ungraded})
                   </button>
                   <button 
                     className={`submission-tab ${submissionsTab === 'graded' ? 'active' : ''}`}
                     onClick={() => setSubmissionsTab('graded')}
                   >
-                    Baholangan ({getSubmissionStats().graded})
+                    {t('assignments.gradedSubmissions')} ({getSubmissionStats().graded})
                   </button>
                 </div>
 
@@ -1106,11 +1106,11 @@ const Assignments = () => {
                   <table>
                     <thead>
                       <tr>
-                        <th>Talaba</th>
-                        <th>Jo'natilgan sana</th>
-                        <th>Fayl</th>
-                        <th>Ball</th>
-                        <th>Amallar</th>
+                        <th>{t('assignments.student')}</th>
+                        <th>{t('assignments.submittedDate')}</th>
+                        <th>{t('assignments.file')}</th>
+                        <th>{t('assignments.grade')}</th>
+                        <th>{t('assignments.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1147,7 +1147,7 @@ const Assignments = () => {
                           {submission.grade !== null && submission.grade !== undefined ? (
                             <span className="grade-value">{submission.grade} / {selectedAssignment.maxScore}</span>
                           ) : (
-                            <span className="grade-pending">Baholanmagan</span>
+                            <span className="grade-pending">{t('assignments.gradePending')}</span>
                           )}
                         </td>
                         <td>
@@ -1156,7 +1156,7 @@ const Assignments = () => {
                               <input
                                 type="number"
                                 className="grade-input"
-                                placeholder="Ball"
+                                placeholder={t('assignments.score')}
                                 min="0"
                                 max={selectedAssignment.maxScore}
                                 onKeyPress={(e) => {
@@ -1173,12 +1173,12 @@ const Assignments = () => {
                                 }}
                                 disabled={grading[submission.id]}
                               >
-                                {grading[submission.id] ? '...' : 'Baholash'}
+                                {grading[submission.id] ? '...' : t('assignments.gradeAction')}
                               </button>
                             </div>
                           ) : (
                             <span className="graded-badge">
-                              <FiCheckCircle /> Baholangan
+                              <FiCheckCircle /> {t('assignments.gradedBadge')}
                             </span>
                           )}
                         </td>

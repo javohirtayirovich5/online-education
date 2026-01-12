@@ -561,7 +561,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
                               subAnswers: newSubAnswers
                             });
                           }}
-                          placeholder="Javobingizni yozing..."
+                          placeholder={t('tests.writeAnswer')}
                           className="text-answer"
                           rows="3"
                         />
@@ -752,7 +752,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
             <textarea
               value={answers[currentQuestion] || ''}
               onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder="Javobingizni yozing..."
+              placeholder={t('tests.writeAnswer')}
               className="text-answer"
               rows="4"
             />
@@ -764,8 +764,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         {question.type === 'truefalse' && (
           <div className="answers-section">
             {[
-              { label: 'True', value: true },
-              { label: 'False', value: false }
+              { label: t('tests.true'), value: true },
+              { label: t('tests.false'), value: false }
             ].map((opt, i) => (
               <label
                 key={i}

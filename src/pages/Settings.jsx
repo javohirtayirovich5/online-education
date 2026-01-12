@@ -195,9 +195,9 @@ const Settings = () => {
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value)}
               >
-                <option value="uz">O'zbekcha</option>
-                <option value="ru">Русский</option>
-                <option value="en">English</option>
+                <option value="uz">{t('settings.languageUz')}</option>
+                <option value="ru">{t('settings.languageRu')}</option>
+                <option value="en">{t('settings.languageEn')}</option>
               </select>
             </div>
           </div>

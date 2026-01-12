@@ -326,21 +326,21 @@ const LessonDetail = () => {
               
               <div className="lesson-stats-row">
                 <div className="stat">
-                  <FiEye /> {lesson.viewsCount || 0} ko'rilgan
+                  <FiEye /> {lesson.viewsCount || 0} {t('lessons.viewed')}
                 </div>
                 <div className="stat">
-                  <FiMessageSquare /> {lesson.commentsCount || 0} izoh
+                  <FiMessageSquare /> {lesson.commentsCount || 0} {t('lessons.comment')}
                 </div>
                 {lesson.duration && (
                   <div className="stat">
-                    <FiClock /> {lesson.duration} daqiqa
+                    <FiClock /> {lesson.duration} {t('tests.minutes')}
                   </div>
                 )}
               </div>
             </div>
 
             <div className="lesson-description">
-              <h3>Dars haqida</h3>
+              <h3>{t('lessons.aboutLesson')}</h3>
               <p>{lesson.description}</p>
             </div>
           </div>
