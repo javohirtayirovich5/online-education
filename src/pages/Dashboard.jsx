@@ -11,19 +11,16 @@ import {
   FiTrendingUp,
   FiClock,
   FiAward,
-  FiActivity,
   FiEye,
   FiMessageSquare,
   FiPlay,
   FiBookOpen,
-  FiPlus,
   FiCalendar,
-  FiAlertCircle,
   FiArrowRight
 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import { formatRelativeTime, getTimeRemaining, isPastDate, formatDate } from '../utils/helpers';
+import DashboardSkeleton from '../components/common/DashboardSkeleton';
+import { formatRelativeTime, getTimeRemaining, formatDate } from '../utils/helpers';
 import { assignmentService } from '../services/assignmentService';
 import { testService } from '../services/testService';
 import { attendanceService } from '../services/attendanceService';
@@ -66,11 +63,16 @@ const Dashboard = () => {
   };
 
   const loadAdminData = async () => {
-    const usersSnap = await getDocs(collection(db, 'users'));
+    // Parallel loading - barcha ma'lumotlarni bir vaqtda yuklash
+    const [usersSnap, lessonsSnap, recentSnap] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'lessons')),
+      getDocs(query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(5)))
+    ]);
+    
+    // Faqat count'lar uchun filter
     const students = usersSnap.docs.filter(doc => doc.data().role === 'student');
     const teachers = usersSnap.docs.filter(doc => doc.data().role === 'teacher');
-    
-    const lessonsSnap = await getDocs(collection(db, 'lessons'));
     
     setStats({
       lessons: lessonsSnap.size,
@@ -79,36 +81,44 @@ const Dashboard = () => {
       users: usersSnap.size
     });
 
-    // Recent lessons
-    const recentQuery = query(collection(db, 'lessons'), orderBy('createdAt', 'desc'), limit(5));
-    const recentSnap = await getDocs(recentQuery);
+    // Recent lessons - faqat 5 ta
     setRecentLessons(recentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
   };
 
   const loadTeacherData = async () => {
-    // Kurslardan ko'rishlar sonini yig'ish va darslar sonini hisoblash
+    // Faqat o'qituvchining kurslari
     const coursesQuery = query(
       collection(db, 'courses'),
       where('instructorId', '==', userData.uid)
     );
     const coursesSnap = await getDocs(coursesQuery);
     
+    // Stats hisoblash - bir marta kurslarni o'qib, barcha statistikani hisoblash
     let totalViews = 0;
     let totalLessons = 0;
     let totalComments = 0;
+    const recentLessons = [];
     
     coursesSnap.docs.forEach(doc => {
       const data = doc.data();
       totalViews += data.views || 0;
       
-      // Kursdagi barcha darslarni sanash
+      // Kursdagi barcha darslarni sanash va recent lessons uchun to'plash
       if (data.modules && Array.isArray(data.modules)) {
         data.modules.forEach(module => {
           if (module.lessons && Array.isArray(module.lessons)) {
             totalLessons += module.lessons.length;
-            // Har bir darsdan izohlar sonini yig'ish
+            // Har bir darsdan izohlar sonini yig'ish va recent lessons uchun to'plash
             module.lessons.forEach(lesson => {
               totalComments += lesson.commentsCount || 0;
+              // Faqat video darslarni recent lessons uchun qo'shish
+              if (lesson.videoURL || lesson.youtubeUrl || lesson.videoType) {
+                recentLessons.push({
+                  ...lesson,
+                  courseId: doc.id,
+                  courseTitle: data.title
+                });
+              }
             });
           }
         });
@@ -122,35 +132,13 @@ const Dashboard = () => {
       assignments: 0
     });
 
-    // Recent lessons - faqat video darslarni olish (videoURL yoki youtubeUrl bo'lgan)
-    const recentLessons = [];
-    coursesSnap.docs.forEach(doc => {
-      const courseData = doc.data();
-      if (courseData.modules && Array.isArray(courseData.modules)) {
-        courseData.modules.forEach(module => {
-          if (module.lessons && Array.isArray(module.lessons)) {
-            module.lessons.forEach(lesson => {
-              // Faqat video darslarni qo'shish (videoURL yoki youtubeUrl bo'lgan)
-              if (lesson.videoURL || lesson.youtubeUrl || lesson.videoType) {
-                recentLessons.push({
-                  ...lesson,
-                  courseId: doc.id,
-                  courseTitle: courseData.title
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    // Sort by createdAt and take first 3
+    // Recent lessons - sort va limit
     recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     setRecentLessons(recentLessons.slice(0, 3));
 
-    // Upcoming deadlines - topshiriqlar
+    // Upcoming deadlines - faqat o'qituvchining topshiriqlari
     try {
-      const assignmentsResult = await assignmentService.getAllAssignments();
+      const assignmentsResult = await assignmentService.getAssignmentsByTeacher(userData.uid);
       if (assignmentsResult.success) {
         const now = new Date();
         const deadlines = assignmentsResult.data
@@ -176,9 +164,16 @@ const Dashboard = () => {
   };
 
   const loadStudentData = async () => {
-    // Barcha kurslardan video darsliklar sonini hisoblash
-    const coursesSnap = await getDocs(collection(db, 'courses'));
+    // Parallel loading - barcha asosiy ma'lumotlarni bir vaqtda yuklash
+    const [coursesSnap, gradesSnap, assignmentsSnap] = await Promise.all([
+      getDocs(collection(db, 'courses')),
+      getDocs(query(collection(db, 'grades'), where('studentId', '==', userData.uid))),
+      getDocs(collection(db, 'assignments'))
+    ]);
+    
+    // Stats hisoblash - bir marta kurslarni o'qib, barcha statistikani hisoblash
     let totalLessons = 0;
+    const recentLessons = [];
     
     coursesSnap.docs.forEach(doc => {
       const courseData = doc.data();
@@ -186,65 +181,8 @@ const Dashboard = () => {
         courseData.modules.forEach(module => {
           if (module.lessons && Array.isArray(module.lessons)) {
             totalLessons += module.lessons.length;
-          }
-        });
-      }
-    });
-    
-    // Baholarni yuklash (yangi format - 1-5 ball)
-    const gradesQuery = query(
-      collection(db, 'grades'),
-      where('studentId', '==', userData.uid)
-    );
-    const gradesSnap = await getDocs(gradesQuery);
-    
-    // O'rtacha baho hisoblash (yangi format)
-    let totalGrade = 0;
-    let validGrades = 0;
-    gradesSnap.docs.forEach(doc => {
-      const grade = doc.data();
-      if (grade.grade && grade.grade > 0) {
-        totalGrade += grade.grade;
-        validGrades++;
-      }
-    });
-    const avgGrade = validGrades > 0 ? totalGrade / validGrades : 0;
-
-    // Fanlar soni
-    let subjectsCount = 0;
-    if (userData?.groupId) {
-      try {
-        const { groupService } = await import('../services/groupService');
-        const groupResult = await groupService.getGroupById(userData.groupId);
-        if (groupResult.success && groupResult.data.subjectTeachers) {
-          subjectsCount = groupResult.data.subjectTeachers.length;
-        }
-      } catch (error) {
-        console.error('Load subjects count error:', error);
-      }
-    }
-
-    // Topshiriqlar soni
-    const assignmentsQuery = query(collection(db, 'assignments'));
-    const assignmentsSnap = await getDocs(assignmentsQuery);
-    const assignmentsCount = assignmentsSnap.size;
-
-    setStats({
-      lessons: totalLessons,
-      avgGrade: Math.round(avgGrade * 100) / 100,
-      assignments: assignmentsCount,
-      subjects: subjectsCount
-    });
-
-    // Recent lessons - faqat video darslarni olish (videoURL yoki youtubeUrl bo'lgan)
-    const recentLessons = [];
-    coursesSnap.docs.forEach(doc => {
-      const courseData = doc.data();
-      if (courseData.modules && Array.isArray(courseData.modules)) {
-        courseData.modules.forEach(module => {
-          if (module.lessons && Array.isArray(module.lessons)) {
+            // Recent lessons uchun faqat video darslarni to'plash
             module.lessons.forEach(lesson => {
-              // Faqat video darslarni qo'shish (videoURL yoki youtubeUrl bo'lgan)
               if (lesson.videoURL || lesson.youtubeUrl || lesson.videoType) {
                 recentLessons.push({
                   ...lesson,
@@ -258,145 +196,186 @@ const Dashboard = () => {
       }
     });
     
-    // Sort by createdAt and take first 3
+    // O'rtacha baho hisoblash
+    let totalGrade = 0;
+    let validGrades = 0;
+    gradesSnap.docs.forEach(doc => {
+      const grade = doc.data();
+      if (grade.grade && grade.grade > 0) {
+        totalGrade += grade.grade;
+        validGrades++;
+      }
+    });
+    const avgGrade = validGrades > 0 ? totalGrade / validGrades : 0;
+
+    // Fanlar soni - lazy import
+    let subjectsCount = 0;
+    if (userData?.groupId) {
+      try {
+        const { groupService } = await import('../services/groupService');
+        const groupResult = await groupService.getGroupById(userData.groupId);
+        if (groupResult.success && groupResult.data.subjectTeachers) {
+          subjectsCount = groupResult.data.subjectTeachers.length;
+        }
+      } catch (error) {
+        console.error('Load subjects count error:', error);
+      }
+    }
+
+    setStats({
+      lessons: totalLessons,
+      avgGrade: Math.round(avgGrade * 100) / 100,
+      assignments: assignmentsSnap.size,
+      subjects: subjectsCount
+    });
+
+    // Recent lessons - sort va limit
     recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     setRecentLessons(recentLessons.slice(0, 3));
 
-    // Upcoming deadlines - topshiriqlar va testlar
-    const deadlines = [];
+    // Parallel loading - deadlines, attendance va recent tests
+    // Testlar bir marta yuklanib, ikki marta ishlatiladi (deadlines va recent tests uchun)
+    const loadPromises = [];
     
-    // Topshiriqlar
-    try {
-      const assignmentsResult = await assignmentService.getAllAssignments();
-      if (assignmentsResult.success) {
-        const now = new Date();
-        assignmentsResult.data.forEach(assignment => {
-          if (assignment.dueDate) {
-            const dueDate = assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate);
-            if (dueDate >= now) {
-              deadlines.push({
+    // Deadlines - topshiriqlar
+    loadPromises.push(
+      assignmentService.getAllAssignments()
+        .then(result => {
+          if (result.success) {
+            const now = new Date();
+            return result.data
+              .filter(assignment => {
+                if (!assignment.dueDate) return false;
+                const dueDate = assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate);
+                return dueDate >= now;
+              })
+              .map(assignment => ({
                 id: assignment.id,
                 title: assignment.title,
                 type: 'assignment',
-                dueDate: dueDate,
+                dueDate: assignment.dueDate.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate),
                 url: `/assignments`
-              });
-            }
+              }));
           }
-        });
-      }
-    } catch (error) {
-      console.error('Load assignments error:', error);
+          return [];
+        })
+        .catch(() => [])
+    );
+
+    // Testlar - bir marta yuklab, deadlines va recent tests uchun ishlatiladi
+    if (userData?.groupId) {
+      loadPromises.push(
+        testService.getTestsForStudent(userData.groupId)
+          .catch(() => ({ success: false, data: [] }))
+      );
+    } else {
+      loadPromises.push(Promise.resolve({ success: false, data: [] }));
     }
 
-    // Testlar
+    // Attendance
     if (userData?.groupId) {
-      try {
-        const testsResult = await testService.getTestsForStudent(userData.groupId);
-        if (testsResult.success) {
-          const now = new Date();
-          testsResult.data.forEach(test => {
-            if (test.dueDate) {
-              const dueDate = test.dueDate.toDate ? test.dueDate.toDate() : new Date(test.dueDate);
-              if (dueDate >= now) {
-                deadlines.push({
-                  id: test.id,
-                  title: test.title,
-                  type: 'test',
-                  dueDate: dueDate,
-                  url: `/tests/${test.id}`
-                });
-              }
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Load tests error:', error);
-      }
-    }
-
-    // Sort by due date and take first 5
-    deadlines.sort((a, b) => a.dueDate - b.dueDate);
-    setUpcomingDeadlines(deadlines.slice(0, 5));
-
-    // Davomat foizi
-    if (userData?.groupId) {
-      try {
-        const attendanceResult = await attendanceService.getAttendanceByStudent(userData.uid, userData.groupId);
-        if (attendanceResult.success && attendanceResult.data && attendanceResult.data.length > 0) {
-          const records = attendanceResult.data;
-          let presentCount = 0;
-          records.forEach(record => {
-            if (record.records && record.records[userData.uid] && record.records[userData.uid].status === 'present') {
-              presentCount++;
-            }
-          });
-          const percentage = Math.round((presentCount / records.length) * 100);
-          setAttendancePercentage(percentage);
-        }
-      } catch (error) {
-        console.error('Load attendance error:', error);
-      }
-    }
-
-    // Recent tests
-    if (userData?.groupId) {
-      try {
-        const testsResult = await testService.getTestsForStudent(userData.groupId);
-        if (testsResult.success) {
-          const allTests = testsResult.data || [];
-          const completedTests = [];
-          
-          // Check submissions for each test
-          const submissionPromises = allTests.map(test =>
-            testService.getStudentTestSubmission(userData.uid, test.id)
-              .catch(() => ({ success: false }))
-          );
-          
-          const submissions = await Promise.all(submissionPromises);
-          
-          allTests.forEach((test, index) => {
-            const submissionResult = submissions[index];
-            if (submissionResult && submissionResult.success && submissionResult.data) {
-              const submission = submissionResult.data;
-              // Score structure: score (number), maxScore (number), percentage (string or number)
-              const earned = typeof submission.score === 'number' ? submission.score : 0;
-              const max = typeof submission.maxScore === 'number' ? submission.maxScore : 0;
-              const percentage = submission.percentage 
-                ? (typeof submission.percentage === 'string' 
-                    ? parseFloat(submission.percentage) 
-                    : submission.percentage)
-                : (max > 0 ? Math.round((earned / max) * 100) : 0);
-              
-              completedTests.push({
-                id: test.id,
-                title: test.title,
-                score: {
-                  earned: earned,
-                  max: max,
-                  percentage: percentage
+      loadPromises.push(
+        attendanceService.getAttendanceByStudent(userData.uid, userData.groupId)
+          .then(result => {
+            if (result.success && result.data && result.data.length > 0) {
+              const records = result.data;
+              let presentCount = 0;
+              records.forEach(record => {
+                if (record.records && record.records[userData.uid] && record.records[userData.uid].status === 'present') {
+                  presentCount++;
                 }
               });
+              return Math.round((presentCount / records.length) * 100);
             }
-          });
-          
-          // Sort by submission date (most recent first) and take first 3
-          completedTests.sort((a, b) => {
-            const dateA = submissions[allTests.findIndex(t => t.id === a.id)]?.data?.submittedAt || '';
-            const dateB = submissions[allTests.findIndex(t => t.id === b.id)]?.data?.submittedAt || '';
-            return new Date(dateB) - new Date(dateA);
-          });
-          
-          setRecentTests(completedTests.slice(0, 3));
-        }
-      } catch (error) {
-        console.error('Load recent tests error:', error);
-      }
+            return 0;
+          })
+          .catch(() => 0)
+      );
+    } else {
+      loadPromises.push(Promise.resolve(0));
     }
+
+    // Barcha ma'lumotlarni parallel yuklash
+    const [assignmentDeadlines, testsResult, attendance] = await Promise.all(loadPromises);
+    
+    // Testlar ma'lumotlarini ishlash
+    let testDeadlines = [];
+    let recentTests = [];
+    
+    if (testsResult.success && testsResult.data && testsResult.data.length > 0) {
+      const allTests = testsResult.data;
+      const now = new Date();
+      
+      // Test deadlines
+      testDeadlines = allTests
+        .filter(test => {
+          if (!test.dueDate) return false;
+          const dueDate = test.dueDate.toDate ? test.dueDate.toDate() : new Date(test.dueDate);
+          return dueDate >= now;
+        })
+        .map(test => ({
+          id: test.id,
+          title: test.title,
+          type: 'test',
+          dueDate: test.dueDate.toDate ? test.dueDate.toDate() : new Date(test.dueDate),
+          url: `/tests/${test.id}`
+        }));
+      
+      // Recent tests - parallel submissions yuklash
+      const submissionPromises = allTests.map(test =>
+        testService.getStudentTestSubmission(userData.uid, test.id)
+          .catch(() => ({ success: false }))
+      );
+      
+      const submissions = await Promise.all(submissionPromises);
+      
+      allTests.forEach((test, index) => {
+        const submissionResult = submissions[index];
+        if (submissionResult && submissionResult.success && submissionResult.data) {
+          const submission = submissionResult.data;
+          const earned = typeof submission.score === 'number' ? submission.score : 0;
+          const max = typeof submission.maxScore === 'number' ? submission.maxScore : 0;
+          const percentage = submission.percentage 
+            ? (typeof submission.percentage === 'string' 
+                ? parseFloat(submission.percentage) 
+                : submission.percentage)
+            : (max > 0 ? Math.round((earned / max) * 100) : 0);
+          
+          recentTests.push({
+            id: test.id,
+            title: test.title,
+            score: {
+              earned: earned,
+              max: max,
+              percentage: percentage
+            },
+            submittedAt: submission.submittedAt
+          });
+        }
+      });
+      
+      // Sort by submission date (most recent first) and take first 3
+      recentTests.sort((a, b) => {
+        const dateA = a.submittedAt || '';
+        const dateB = b.submittedAt || '';
+        return new Date(dateB) - new Date(dateA);
+      });
+      recentTests = recentTests.slice(0, 3);
+    }
+    
+    // Deadlines birlashtirish va sort qilish
+    const allDeadlines = [...assignmentDeadlines, ...testDeadlines]
+      .sort((a, b) => a.dueDate - b.dueDate)
+      .slice(0, 5);
+    setUpcomingDeadlines(allDeadlines);
+    
+    // Attendance va recent tests
+    setAttendancePercentage(attendance);
+    setRecentTests(recentTests);
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return <DashboardSkeleton />;
   }
 
   return (

@@ -48,20 +48,60 @@ const Register = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Initialize Vanta.js 3D background
+  // Initialize Vanta.js GLOBE background - dynamic loading
   useEffect(() => {
-    if (window.VANTA && vantaRef.current) {
-      vantaEffect.current = window.VANTA.GLOBE({
-        el: vantaRef.current,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.00,
-        minWidth: 200.00,
-        scale: 1.00,
-        scaleMobile: 1.00
-      });
-    }
+    const loadVantaScripts = async () => {
+      // Check if scripts are already loaded
+      if (window.VANTA && window.VANTA.GLOBE && window.THREE) {
+        initVantaEffect();
+        return;
+      }
+
+      // Load Three.js first
+      if (!window.THREE) {
+        const threeScript = document.createElement('script');
+        threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js';
+        threeScript.async = true;
+        await new Promise((resolve, reject) => {
+          threeScript.onload = resolve;
+          threeScript.onerror = reject;
+          document.head.appendChild(threeScript);
+        });
+      }
+
+      // Load Vanta Globe
+      if (!window.VANTA || !window.VANTA.GLOBE) {
+        const vantaGlobeScript = document.createElement('script');
+        vantaGlobeScript.src = 'https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js';
+        vantaGlobeScript.async = true;
+        await new Promise((resolve, reject) => {
+          vantaGlobeScript.onload = resolve;
+          vantaGlobeScript.onerror = reject;
+          document.head.appendChild(vantaGlobeScript);
+        });
+      }
+
+      initVantaEffect();
+    };
+
+    const initVantaEffect = () => {
+      if (window.VANTA && window.VANTA.GLOBE && vantaRef.current) {
+        vantaEffect.current = window.VANTA.GLOBE({
+          el: vantaRef.current,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00,
+          scale: 1.00,
+          scaleMobile: 1.00
+        });
+      }
+    };
+
+    loadVantaScripts().catch(error => {
+      console.error('Failed to load Vanta.js scripts:', error);
+    });
 
     return () => {
       if (vantaEffect.current) {

@@ -106,9 +106,21 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   const handleChangeQuestionType = (index, newType) => {
     setFormData(prev => ({
       ...prev,
-      questions: prev.questions.map((q, i) =>
-        i === index ? { ...normalizeQuestionForType(newType), text: q.text || '' } : q
-      )
+      questions: prev.questions.map((q, i) => {
+        if (i === index) {
+          // Agar yangi tur wordbank emas bo'lsa, text maydonini bo'sh qilish
+          const normalized = normalizeQuestionForType(newType);
+          if (newType !== 'wordbank') {
+            normalized.text = '';
+          } else {
+            // Agar wordbank ga o'tilayotgan bo'lsa, text ni saqlash (lekin <p></p> bo'lsa bo'sh qilish)
+            const oldText = q.text || '';
+            normalized.text = (oldText === '<p></p>' || oldText.trim() === '') ? '' : oldText;
+          }
+          return normalized;
+        }
+        return q;
+      })
     }));
     if (newType === 'wordbank') {
       setTimeout(() => updateEditorSelects(index), 0);
@@ -255,11 +267,21 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
         i === questionIndex
           ? {
               ...q,
-              subQuestions: (q.subQuestions || []).map((sq, sqi) =>
-                sqi === subQuestionIndex
-                  ? { ...normalizeQuestionForType(newType), text: sq.text || '' }
-                  : sq
-              )
+              subQuestions: (q.subQuestions || []).map((sq, sqi) => {
+                if (sqi === subQuestionIndex) {
+                  // Agar yangi tur wordbank emas bo'lsa, text maydonini bo'sh qilish
+                  const normalized = normalizeQuestionForType(newType);
+                  if (newType !== 'wordbank') {
+                    normalized.text = '';
+                  } else {
+                    // Agar wordbank ga o'tilayotgan bo'lsa, text ni saqlash (lekin <p></p> bo'lsa bo'sh qilish)
+                    const oldText = sq.text || '';
+                    normalized.text = (oldText === '<p></p>' || oldText.trim() === '') ? '' : oldText;
+                  }
+                  return normalized;
+                }
+                return sq;
+              })
             }
           : q
       )
@@ -883,7 +905,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                 {question.type === 'multiple' && (
                   <div className="form-group">
-                    <label>{t('tests.variants')} * ({t('tests.markCorrectAnswer')})</label>
+                    <label>{t('tests.variants')}</label>
                     <div className="options-list">
                       {question.options.map((option, optIndex) => (
                         <div key={optIndex} className="option-item">
@@ -1151,7 +1173,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                               {subQ.type === 'multiple' && (
                                 <div className="form-group">
-                                  <label>{t('tests.variants')} * ({t('tests.markCorrectAnswer')})</label>
+                                  <label>{t('tests.variants')}</label>
                                   <div className="options-list">
                                     {subQ.options.map((option, optIndex) => (
                                       <div key={optIndex} className="option-item">

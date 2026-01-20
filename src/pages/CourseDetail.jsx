@@ -131,7 +131,18 @@ const CourseDetail = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '60vh',
+        width: '100%'
+      }}>
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   if (!course) {
@@ -159,12 +170,12 @@ const CourseDetail = () => {
         <div className="course-header-content">
           <button 
             className="back-btn"
-            onClick={() => navigate('/my-courses')}
+            onClick={() => navigate('/my-lessons')}
           >
             <FiArrowLeft /> {t('common.back')}
           </button>
           <div className="breadcrumb">
-            <Link to="/my-courses">Kurslar</Link>
+            <Link to="/my-lessons">Kurslar</Link>
             <span>/</span>
             <span>{course.title}</span>
           </div>

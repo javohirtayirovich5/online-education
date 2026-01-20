@@ -11,7 +11,7 @@ const db = getFirestore();
 
 /**
  * Delete user from both Firestore and Firebase Authentication
- * This function can only be called by authenticated admin users
+ * This function can only be called by authenticated admin usersF
  * 
  * @param {string} userId - The user ID to delete
  * @param {string} userEmail - The user's email address

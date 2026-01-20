@@ -175,6 +175,123 @@
 }
 
 /* Action Buttons */
+/* Teacher Subjects Modal */
+.teacher-subjects-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.modal-description {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.subjects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.subject-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subject-checkbox-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.subject-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.subject-checkbox-item span {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+
+.subject-code {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  margin-left: 0.5rem;
+}
+
+/* Student Group Modal */
+.student-group-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.group-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.group-radio-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.group-radio-item input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.group-radio-item span {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+
+.group-year {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  margin-left: 0.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .action-buttons {
   display: flex;
   gap: 0.5rem;

@@ -446,7 +446,18 @@ const Assignments = () => {
   });
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '60vh',
+        width: '100%'
+      }}>
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   return (

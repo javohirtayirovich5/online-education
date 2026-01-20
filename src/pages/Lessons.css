@@ -85,6 +85,9 @@
   flex-direction: row;
 }
 
+.lessons-page .filter-group {
+  flex-direction: row;
+}
 .filter-group svg {
   color: var(--text-secondary);
 }
@@ -205,6 +208,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.5;
 }
@@ -262,11 +266,135 @@
   gap: 0.5rem;
 }
 
+.lesson-actions-menu {
+  position: relative;
+}
+
+.btn-icon {
+  padding: 10px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.btn-icon-menu {
+  padding: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+}
+
+.btn-icon-menu:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.lesson-menu-dropdown {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 0.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lesson-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.lesson-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.lesson-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.lesson-menu-item-danger {
+  color: var(--error);
+}
+
+.lesson-menu-item-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
 /* Lesson Form */
 .lesson-form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.form-actions .btn {
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-actions .btn .loader {
+  margin-right: 0.5rem;
 }
 
 /* Selected File Info */

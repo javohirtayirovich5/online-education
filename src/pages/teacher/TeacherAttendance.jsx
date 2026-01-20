@@ -562,13 +562,7 @@ const TeacherAttendance = () => {
         </button>
       </div>
 
-      {/* Schedule Info */}
-      <div className="schedule-info-bar">
-        <FiInfo />
-        <span>{t('teacher.attendance.lessonDaysLabel')}: <strong>{scheduleDaysNames}</strong></span>
-        <span className="schedule-count">{scheduledDates.length} {t('teacher.attendance.lessons')}</span>
-      </div>
-
+    
       {/* Date Selector - Dars kunlari ro'yxati */}
       {scheduledDates.length > 0 && (
         <div className="date-selector-bar">
@@ -591,7 +585,7 @@ const TeacherAttendance = () => {
           {/* Filters Row */}
           <div className="hemis-filters">
             <div className="filter-group">
-              <label>GURUH</label>
+              <label>{t('teacher.attendance.group')}</label>
               <select
                 className="hemis-select"
                 value={selectedGroup?.id || ''}
@@ -614,6 +608,7 @@ const TeacherAttendance = () => {
             {/* Agar o'qituvchida bir nechta fan/shart bo'lsa, tanlash uchun selector */}
             {availableSubjectTeachers.length > 1 && (
               <div className="filter-group">
+                <label>{t('teacher.attendance.subject')}</label>
                 <select
                   className="hemis-select"
                   value={selectedSubjectTeacher ? `${selectedSubjectTeacher.subjectId}-${selectedSubjectTeacher.lessonType}` : ''}
@@ -790,6 +785,14 @@ const TeacherAttendance = () => {
             </span>
           </div>
 
+          <div className="info-row">
+            <span className="info-label">
+              <FiCalendar /> {t('dashboard.totalLessons')}
+            </span>
+            <span className="info-value schedule-days">
+              {scheduledDates.length} {t('teacher.attendance.lessons')}
+            </span>
+          </div>
         </div>
       </div>
       {/* Student missed-dates modal */}

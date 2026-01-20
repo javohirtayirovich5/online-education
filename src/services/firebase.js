@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
 import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -11,8 +10,7 @@ const firebaseConfig = {
   projectId: "education-pro1",
   storageBucket: "education-pro1.firebasestorage.app",
   messagingSenderId: "1087873877448",
-  appId: "1:1087873877448:web:d4955231340208905b6cfd",
-  measurementId: "G-1PGC8MR2BK"
+  appId: "1:1087873877448:web:d4955231340208905b6cfd"
 };
 
 // Initialize Firebase
@@ -31,7 +29,6 @@ if (typeof window !== 'undefined') {
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 export default app;
 

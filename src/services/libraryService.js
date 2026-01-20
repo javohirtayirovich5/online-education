@@ -287,12 +287,25 @@ export const libraryService = {
   // HTML linkini olish
   getHTMLLink(gutenbergId, formats = {}) {
     if (!gutenbergId) return null;
-    // Formats object'dan HTML linkini olish
+    
+    // Project Gutenberg cache URL formatini ishlatish (HTTPS)
+    // https://www.gutenberg.org/cache/epub/{id}/pg{id}-images.html
+    const cacheLink = `https://www.gutenberg.org/cache/epub/${gutenbergId}/pg${gutenbergId}-images.html`;
+    
+    // Formats object'dan HTML linkini olish (agar mavjud bo'lsa)
     if (formats.html) {
-      // HTTP'ni HTTPS'ga o'zgartirish
-      return formats.html.replace(/^http:/, 'https:');
+      // HTTP'ni HTTPS'ga o'zgartirish va cache formatiga o'zgartirish
+      let httpsLink = formats.html.replace(/^http:/, 'https:');
+      
+      // Agar URL /ebooks/ formatida bo'lsa, uni /cache/epub/ formatiga o'zgartirish
+      if (httpsLink.includes('/ebooks/') && httpsLink.includes('.html')) {
+        httpsLink = cacheLink;
+      }
+      
+      return httpsLink;
     }
-    return `${GUTENBERG_FILES}/${gutenbergId}/${gutenbergId}-h/${gutenbergId}-h.htm`;
+    
+    return cacheLink;
   },
 
   // PDF mavjudligini tekshirish (Gutenberg'da barcha kitoblar bepul, faqat format mavjudligini tekshiramiz)

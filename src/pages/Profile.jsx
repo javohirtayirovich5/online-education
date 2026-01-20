@@ -71,7 +71,6 @@ const Profile = () => {
         <FiArrowLeft /> {t('common.back')}
       </button>
       <div className="profile-header-section">
-        <div className="profile-cover"></div>
         <div className="profile-header-content">
           <div className="profile-avatar-section">
             <div className="avatar-wrapper">
@@ -208,16 +207,6 @@ const Profile = () => {
                 <div className="info-item">
                   <span className="info-label">{t('profile.phoneNumber')}</span>
                   <span className="info-value">{userData?.phoneNumber || '-'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Fakultet</span>
-                  <span className="info-value">{userData?.department || '-'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">ID raqam</span>
-                  <span className="info-value">
-                    {userData?.studentId || userData?.teacherId || '-'}
-                  </span>
                 </div>
               </div>
             </div>

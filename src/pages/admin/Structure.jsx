@@ -556,26 +556,6 @@ const Structure = () => {
                 </select>
               </div>
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Semestr boshlanish sanasi</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.semesterStartDate || ''}
-                  onChange={(e) => setFormData({ ...formData, semesterStartDate: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Semestr tugash sanasi</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.semesterEndDate || ''}
-                  onChange={(e) => setFormData({ ...formData, semesterEndDate: e.target.value })}
-                />
-              </div>
-            </div>
           </>
         );
 
@@ -629,20 +609,11 @@ const Structure = () => {
 
   return (
     <div className="structure-page">
-      {/* Header */}
-      <div className="page-header">
-        <div className="header-left">
-          <h1>Universitet tuzilmasi</h1>
-          <p>Fakultetlar, yo'nalishlar, guruhlar va fanlarni boshqaring</p>
-        </div>
-      </div>
-
       {/* Global semester settings */}
       <div className="semester-settings-card">
         <div className="semester-settings-header">
           <div>
             <h2>Semestr sozlamalari</h2>
-            <p>Butun universitet uchun semestr davrini bir marta belgilang</p>
           </div>
         </div>
         <div className="semester-settings-body">
@@ -683,6 +654,16 @@ const Structure = () => {
           </div>
         </div>
       </div>
+
+      {/* Header */}
+      <div className="page-header">
+        <div className="header-left">
+          <h1>Universitet tuzilmasi</h1>
+          <p>Fakultetlar, yo'nalishlar, guruhlar va fanlarni boshqaring</p>
+        </div>
+      </div>
+
+
 
       {/* Tabs */}
       <div className="structure-tabs">
@@ -1035,9 +1016,6 @@ const Structure = () => {
                   </div>
                   <h3 className="card-title">{subject.name}</h3>
                   {subject.code && <span className="card-code">{subject.code}</span>}
-                  <div className="card-stats">
-                    <span className="badge badge-success">{subject.credits || 0} kredit</span>
-                  </div>
                 </div>
               ))}
             {subjects.length === 0 && (

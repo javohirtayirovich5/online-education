@@ -275,7 +275,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
 
       if (isCorrect) {
         // Correct match - mark as correct (disabled with green)
-        toast.success('✓ To\'g\'ri!');
         const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: true }];
         setMatchingState(prev => ({
           ...prev,
@@ -292,11 +291,9 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         if (newMatched.length === (question.pairs || []).length) {
           // All matched - update answers
           handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length });
-          setTimeout(() => toast.success('Barcha juftliklar topildi!'), 300);
         }
       } else {
         // Incorrect match - mark as incorrect (disabled with red) - cannot retry
-        toast.error('✗ Noto\'g\'ri!');
         const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: false }];
         setMatchingState(prev => ({
           ...prev,

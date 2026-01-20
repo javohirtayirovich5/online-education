@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -24,7 +24,7 @@ import {
 } from 'react-icons/fi';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen, closeSidebar }) => {
+const Sidebar = memo(({ isOpen, closeSidebar }) => {
   const { userData, isAdmin, isTeacher, currentUser } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
@@ -79,14 +79,20 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     return () => clearInterval(interval);
   }, [userData, isTeacher, currentUser]);
 
-  const toggleMenu = (menuKey) => {
+  const toggleMenu = useCallback((menuKey) => {
     setExpandedMenus(prev => ({
       ...prev,
       [menuKey]: !prev[menuKey]
     }));
-  };
+  }, []);
 
-  const adminLinks = [
+  const handleLinkClick = useCallback(() => {
+    if (window.innerWidth <= 1024) {
+      closeSidebar();
+    }
+  }, [closeSidebar]);
+
+  const adminLinks = useMemo(() => [
     { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { to: '/structure', icon: FiGrid, label: t('sidebar.structure') },
     { to: '/users', icon: FiUsers, label: t('sidebar.users') },
@@ -94,9 +100,9 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/analytics', icon: FiBarChart2, label: t('sidebar.statistics') },
     { to: '/library', icon: FiBook, label: t('sidebar.library') },
     { to: '/settings', icon: FiSettings, label: t('common.settings') }
-  ];
+  ], [t]);
 
-  const teacherLinks = [
+  const teacherLinks = useMemo(() => [
     { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { 
       key: 'groups',
@@ -108,14 +114,14 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       ]
     },
     { to: '/teacher/resources', icon: FiFileText, label: t('sidebar.courseResources') },
-    { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myLessons') },
+    { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myCourses') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
     { to: '/teacher/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
     { to: '/library', icon: FiBook, label: t('sidebar.library') }
-  ];
+  ], [t]);
 
-  const studentLinks = [
+  const studentLinks = useMemo(() => [
     { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { to: '/my-subjects', icon: FiBookOpen, label: t('sidebar.mySubjects') },
     { to: '/timetable', icon: FiCalendar, label: t('sidebar.schedule') },
@@ -127,9 +133,11 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
     { to: '/my-grades', icon: FiStar, label: t('sidebar.myGrades') },
     { to: '/attendance', icon: FiClipboard, label: t('sidebar.attendance') },
     { to: '/library', icon: FiBook, label: t('sidebar.library') }
-  ];
+  ], [t]);
 
-  const links = isAdmin ? adminLinks : isTeacher ? teacherLinks : studentLinks;
+  const links = useMemo(() => {
+    return isAdmin ? adminLinks : isTeacher ? teacherLinks : studentLinks;
+  }, [isAdmin, isTeacher, adminLinks, teacherLinks, studentLinks]);
 
   const renderLink = (link) => {
     // Submenu mavjud bo'lsa
@@ -157,7 +165,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
                   className={({ isActive }) => 
                     `sidebar-sublink ${isActive ? 'active' : ''}`
                   }
-                  onClick={closeSidebar}
+                  onClick={handleLinkClick}
                 >
                   <subLink.icon size={16} />
                   <span>{subLink.label}</span>
@@ -178,7 +186,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
         className={({ isActive }) => 
           `sidebar-link ${isActive ? 'active' : ''}`
         }
-        onClick={closeSidebar}
+        onClick={handleLinkClick}
       >
         <link.icon size={20} />
         <span>{link.label}</span>
@@ -221,6 +229,8 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
       </aside>
     </>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

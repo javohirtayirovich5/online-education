@@ -378,7 +378,6 @@
 .book-action-btn {
   background: rgba(255, 255, 255, 0.9);
   border: none;
-  color: var(--text-primary);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -469,6 +468,9 @@
   line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.book-subjects svg{
+  margin-right: 0.5rem;
 }
 
 .book-actions {

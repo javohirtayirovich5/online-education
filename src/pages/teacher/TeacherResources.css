@@ -15,7 +15,8 @@
   flex-direction: row;
   gap: 0.5rem;
   min-width: 200px;
-  flex: 1;
+  flex: 1; 
+  align-items: center;
 }
 
 .filter-group label {

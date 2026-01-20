@@ -1,0 +1,351 @@
+.dashboard-skeleton {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header Skeleton */
+.skeleton-header {
+  margin-bottom: 2rem;
+}
+
+.skeleton-title {
+  width: 300px;
+  height: 32px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-subtitle {
+  width: 200px;
+  height: 20px;
+}
+
+/* Stats Grid Skeleton */
+.stats-grid-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.skeleton-stat-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 2px 8px var(--shadow);
+  border-left: 4px solid var(--border);
+}
+
+.skeleton-stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.skeleton-stat-content {
+  flex: 1;
+}
+
+.skeleton-stat-label {
+  width: 120px;
+  height: 14px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-stat-value {
+  width: 80px;
+  height: 32px;
+}
+
+/* Dashboard Grid Skeleton */
+.dashboard-grid-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid-skeleton {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeleton-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.skeleton-card-title {
+  width: 180px;
+  height: 24px;
+}
+
+.skeleton-link {
+  width: 80px;
+  height: 16px;
+}
+
+/* Activities Skeleton */
+.skeleton-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.skeleton-activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.skeleton-activity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeleton-activity-title {
+  width: 70%;
+  height: 16px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-activity-meta {
+  width: 50%;
+  height: 12px;
+}
+
+.skeleton-arrow {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+/* Deadlines Skeleton */
+.skeleton-deadlines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-deadline-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+}
+
+.skeleton-deadline-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.skeleton-deadline-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeleton-deadline-title {
+  width: 70%;
+  height: 16px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-deadline-meta {
+  width: 60%;
+  height: 12px;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+/* Quick Actions Skeleton */
+.skeleton-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-action-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+}
+
+/* Progress Skeleton */
+.skeleton-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.skeleton-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeleton-progress-label {
+  width: 150px;
+  height: 16px;
+}
+
+.skeleton-progress-value {
+  width: 50px;
+  height: 16px;
+}
+
+.skeleton-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-tertiary);
+}
+
+/* Tests Skeleton */
+.skeleton-tests {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-test-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.skeleton-test-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.skeleton-test-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeleton-test-title {
+  width: 70%;
+  height: 16px;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-test-score {
+  width: 50%;
+  height: 12px;
+}
+
+/* Skeleton Animation */
+.skeleton-line,
+.skeleton-stat-icon,
+.skeleton-activity-icon,
+.skeleton-arrow,
+.skeleton-deadline-icon,
+.skeleton-badge,
+.skeleton-action-btn,
+.skeleton-progress-bar,
+.skeleton-test-icon {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid-skeleton {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .skeleton-stat-card {
+    padding: 1.25rem;
+  }
+
+  .skeleton-stat-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .skeleton-stat-value {
+    height: 28px;
+  }
+
+  .dashboard-grid-skeleton {
+    gap: 1rem;
+  }
+
+  .skeleton-activity-item,
+  .skeleton-deadline-item,
+  .skeleton-test-item {
+    padding: 0.875rem;
+  }
+}

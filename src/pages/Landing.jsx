@@ -34,24 +34,64 @@ const Landing = () => {
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const languageMenuRef = useRef(null);
 
-  // Initialize Vanta.js BIRDS background animation
+  // Initialize Vanta.js BIRDS background animation - dynamic loading
   useEffect(() => {
-    if (window.VANTA && vantaRef.current) {
-      vantaEffect.current = window.VANTA.BIRDS({
-        el: vantaRef.current,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.00,
-        minWidth: 200.00,
-        scale: 1.00,
-        scaleMobile: 1.00,
-        backgroundColor: isDarkMode ? 0x111827 : 0xffffff,
-        birdSize: 1.20,
-        quantity: 4.00,
-        separation: 40
-      });
-    }
+    const loadVantaScripts = async () => {
+      // Check if scripts are already loaded
+      if (window.VANTA && window.VANTA.BIRDS && window.THREE) {
+        initVantaEffect();
+        return;
+      }
+
+      // Load Three.js first
+      if (!window.THREE) {
+        const threeScript = document.createElement('script');
+        threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js';
+        threeScript.async = true;
+        await new Promise((resolve, reject) => {
+          threeScript.onload = resolve;
+          threeScript.onerror = reject;
+          document.head.appendChild(threeScript);
+        });
+      }
+
+      // Load Vanta Birds
+      if (!window.VANTA || !window.VANTA.BIRDS) {
+        const vantaBirdsScript = document.createElement('script');
+        vantaBirdsScript.src = 'https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.birds.min.js';
+        vantaBirdsScript.async = true;
+        await new Promise((resolve, reject) => {
+          vantaBirdsScript.onload = resolve;
+          vantaBirdsScript.onerror = reject;
+          document.head.appendChild(vantaBirdsScript);
+        });
+      }
+
+      initVantaEffect();
+    };
+
+    const initVantaEffect = () => {
+      if (window.VANTA && window.VANTA.BIRDS && vantaRef.current) {
+        vantaEffect.current = window.VANTA.BIRDS({
+          el: vantaRef.current,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00,
+          scale: 1.00,
+          scaleMobile: 1.00,
+          backgroundColor: isDarkMode ? 0x111827 : 0xffffff,
+          birdSize: 1.20,
+          quantity: 4.00,
+          separation: 40
+        });
+      }
+    };
+
+    loadVantaScripts().catch(error => {
+      console.error('Failed to load Vanta.js scripts:', error);
+    });
 
     return () => {
       if (vantaEffect.current) {

@@ -1,63 +1,64 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
-// Layout Components
+// Layout Components (always loaded - used on every page)
 import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
-
-// Auth Components
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import ForgotPassword from './components/auth/ForgotPassword';
 import PrivateRoute from './components/auth/PrivateRoute';
 
-// Public Pages
-import Landing from './pages/Landing';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
+// Auth Components (lazy loaded - only needed on auth pages)
+const Login = lazy(() => import('./components/auth/Login'));
+const Register = lazy(() => import('./components/auth/Register'));
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
 
-// Pages
-import Dashboard from './pages/Dashboard';
-import MyLessons from './pages/MyLessons';
-import LessonDetail from './pages/LessonDetail';
-import CourseDetail from './pages/CourseDetail';
-import Assignments from './pages/Assignments';
-import Grades from './pages/Grades';
-import Attendance from './pages/Attendance';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
+// Public Pages (lazy loaded)
+const Landing = lazy(() => import('./pages/Landing'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 
-// Admin Pages
-import Users from './pages/admin/Users';
-import Analytics from './pages/admin/Analytics';
-import Structure from './pages/admin/Structure';
-import GroupDetail from './pages/admin/GroupDetail';
+// Pages (lazy loaded)
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const MyLessons = lazy(() => import('./pages/MyLessons'));
+const LessonDetail = lazy(() => import('./pages/LessonDetail'));
+const CourseDetail = lazy(() => import('./pages/CourseDetail'));
+const Assignments = lazy(() => import('./pages/Assignments'));
+const Grades = lazy(() => import('./pages/Grades'));
+const Attendance = lazy(() => import('./pages/Attendance'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
 
-// Teacher Pages
-import TeacherAttendance from './pages/teacher/TeacherAttendance';
-import TeacherGroupGrades from './pages/teacher/TeacherGroupGrades';
-import TeacherResources from './pages/teacher/TeacherResources';
-import TeacherTests from './pages/teacher/TeacherTests';
-import LiveSessions from './pages/LiveSessions';
+// Admin Pages (lazy loaded)
+const Users = lazy(() => import('./pages/admin/Users'));
+const Analytics = lazy(() => import('./pages/admin/Analytics'));
+const Structure = lazy(() => import('./pages/admin/Structure'));
+const GroupDetail = lazy(() => import('./pages/admin/GroupDetail'));
 
-// Student Pages
-import StudentSubjects from './pages/student/StudentSubjects';
-import TimeTable from './pages/student/TimeTable';
-import StudentResources from './pages/student/StudentResources';
-import StudentTests from './pages/student/StudentTests';
-import TakeTest from './pages/student/TakeTest';
-import Library from './pages/Library';
-import BookReader from './pages/BookReader';
+// Teacher Pages (lazy loaded)
+const TeacherAttendance = lazy(() => import('./pages/teacher/TeacherAttendance'));
+const TeacherGroupGrades = lazy(() => import('./pages/teacher/TeacherGroupGrades'));
+const TeacherResources = lazy(() => import('./pages/teacher/TeacherResources'));
+const TeacherTests = lazy(() => import('./pages/teacher/TeacherTests'));
+const LiveSessions = lazy(() => import('./pages/LiveSessions'));
+
+// Student Pages (lazy loaded)
+const StudentSubjects = lazy(() => import('./pages/student/StudentSubjects'));
+const TimeTable = lazy(() => import('./pages/student/TimeTable'));
+const StudentResources = lazy(() => import('./pages/student/StudentResources'));
+const StudentTests = lazy(() => import('./pages/student/StudentTests'));
+const TakeTest = lazy(() => import('./pages/student/TakeTest'));
+const Library = lazy(() => import('./pages/Library'));
+const BookReader = lazy(() => import('./pages/BookReader'));
 
 import './App.css';
 
-function AppLayout({ children }) {
+function AppLayout() {
   // localStorage'dan sidebar holatini olish
   const getInitialSidebarState = () => {
     const saved = localStorage.getItem('sidebarOpen');
@@ -76,8 +77,6 @@ function AppLayout({ children }) {
       if (window.innerWidth <= 1024) {
         setIsSidebarOpen(false);
       }
-      // Katta ekranlarda localStorage'dan holatni tiklash
-      // Lekin foydalanuvchi tomonidan o'zgartirilgan holatni saqlash
     };
 
     window.addEventListener('resize', handleResize);
@@ -87,13 +86,11 @@ function AppLayout({ children }) {
   const toggleSidebar = () => {
     const newState = !isSidebarOpen;
     setIsSidebarOpen(newState);
-    // localStorage'ga saqlash
     localStorage.setItem('sidebarOpen', newState.toString());
   };
 
   const closeSidebar = () => {
     setIsSidebarOpen(false);
-    // localStorage'ga saqlash
     localStorage.setItem('sidebarOpen', 'false');
   };
 
@@ -103,7 +100,7 @@ function AppLayout({ children }) {
       <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
       <main className={`app-main ${isSidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="app-content">
-          {children}
+          <Outlet />
         </div>
       </main>
     </div>
@@ -111,15 +108,32 @@ function AppLayout({ children }) {
 }
 
 // Google OAuth Client ID - Environment variable or default
-// Production uchun .env faylda VITE_GOOGLE_CLIENT_ID ni sozlang
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1087873877448-vn95loshinp5kggnselsfk1g8chlfiuq.apps.googleusercontent.com';
+
+// Lazy Route Wrapper Component
+const LazyRoute = ({ children }) => (
+  <Suspense fallback={
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      minHeight: '60vh',
+      width: '100%'
+    }}>
+      <LoadingSpinner size="large" />
+    </div>
+  }>
+    {children}
+  </Suspense>
+);
 
 // 404 Redirect Component
 const NotFoundRedirect = () => {
   const { currentUser, loading } = useAuth();
   
   if (loading) {
-    return null; // AuthProvider will handle loading
+    return null;
   }
   
   return <Navigate to={currentUser ? "/dashboard" : "/"} replace />;
@@ -132,221 +146,87 @@ function App() {
         <LanguageProvider>
           <ThemeProvider>
             <AuthProvider>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LazyRoute><Landing /></LazyRoute>} />
+                <Route path="/login" element={<LazyRoute><Login /></LazyRoute>} />
+                <Route path="/register" element={<LazyRoute><Register /></LazyRoute>} />
+                <Route path="/forgot-password" element={<LazyRoute><ForgotPassword /></LazyRoute>} />
+                <Route path="/privacy-policy" element={<LazyRoute><PrivacyPolicy /></LazyRoute>} />
+                <Route path="/terms-of-service" element={<LazyRoute><TermsOfService /></LazyRoute>} />
 
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <AppLayout><Dashboard /></AppLayout>
-              </PrivateRoute>
-            } />
-            
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <AppLayout><Dashboard /></AppLayout>
-              </PrivateRoute>
-            } />
+                {/* Protected Routes with Layout */}
+                <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+                  <Route path="/dashboard" element={<LazyRoute><Dashboard /></LazyRoute>} />
+                  <Route path="/profile" element={<LazyRoute><Profile /></LazyRoute>} />
+                  <Route path="/settings" element={<LazyRoute><Settings /></LazyRoute>} />
+                  <Route path="/library" element={<LazyRoute><Library /></LazyRoute>} />
+                  <Route path="/live-sessions" element={<LazyRoute><LiveSessions /></LazyRoute>} />
+                  
+                  {/* Shared Protected Routes */}
+                  <Route path="/my-lessons" element={<LazyRoute><MyLessons /></LazyRoute>} />
+                  <Route path="/lessons" element={<LazyRoute><MyLessons /></LazyRoute>} />
+                  <Route path="/lesson/:id" element={<LazyRoute><LessonDetail /></LazyRoute>} />
+                  <Route path="/course/:id" element={<LazyRoute><CourseDetail /></LazyRoute>} />
+                  <Route path="/assignments" element={<LazyRoute><Assignments /></LazyRoute>} />
+                  <Route path="/grades" element={<LazyRoute><Grades /></LazyRoute>} />
+                  <Route path="/my-grades" element={<LazyRoute><Grades /></LazyRoute>} />
+                  <Route path="/attendance" element={<LazyRoute><Attendance /></LazyRoute>} />
 
-            {/* Lessons */}
-            <Route path="/my-lessons" element={
-              <PrivateRoute>
-                <AppLayout><MyLessons /></AppLayout>
-              </PrivateRoute>
-            } />
+                  {/* Admin Only Routes */}
+                  <Route element={<PrivateRoute requiredRole="admin"><Outlet /></PrivateRoute>}>
+                    <Route path="/users" element={<LazyRoute><Users /></LazyRoute>} />
+                    <Route path="/analytics" element={<LazyRoute><Analytics /></LazyRoute>} />
+                    <Route path="/structure" element={<LazyRoute><Structure /></LazyRoute>} />
+                    <Route path="/structure/groups/:groupId" element={<LazyRoute><GroupDetail /></LazyRoute>} />
+                  </Route>
 
-            <Route path="/lessons" element={
-              <PrivateRoute>
-                <AppLayout><MyLessons /></AppLayout>
-              </PrivateRoute>
-            } />
+                  {/* Teacher Only Routes */}
+                  <Route element={<PrivateRoute requiredRole="teacher"><Outlet /></PrivateRoute>}>
+                    <Route path="/teacher/groups" element={<Navigate to="/teacher/groups/attendance" />} />
+                    <Route path="/teacher/groups/attendance" element={<LazyRoute><TeacherAttendance /></LazyRoute>} />
+                    <Route path="/teacher/groups/grades" element={<LazyRoute><TeacherGroupGrades /></LazyRoute>} />
+                    <Route path="/teacher/resources" element={<LazyRoute><TeacherResources /></LazyRoute>} />
+                    <Route path="/teacher/tests" element={<LazyRoute><TeacherTests /></LazyRoute>} />
+                  </Route>
 
-            <Route path="/lesson/:id" element={
-              <PrivateRoute>
-                <AppLayout><LessonDetail /></AppLayout>
-              </PrivateRoute>
-            } />
+                  {/* Student Only Routes */}
+                  <Route element={<PrivateRoute requiredRole="student"><Outlet /></PrivateRoute>}>
+                    <Route path="/my-subjects" element={<LazyRoute><StudentSubjects /></LazyRoute>} />
+                    <Route path="/timetable" element={<LazyRoute><TimeTable /></LazyRoute>} />
+                    <Route path="/resources" element={<LazyRoute><StudentResources /></LazyRoute>} />
+                    <Route path="/tests" element={<LazyRoute><StudentTests /></LazyRoute>} />
+                    <Route path="/tests/:testId" element={<LazyRoute><TakeTest /></LazyRoute>} />
+                  </Route>
+                </Route>
 
-            {/* Courses */}
-            <Route path="/course/:id" element={
-              <PrivateRoute>
-                <AppLayout><CourseDetail /></AppLayout>
-              </PrivateRoute>
-            } />
+                {/* Special Case: Book Reader (No Sidebar/Navbar Layout) */}
+                <Route path="/library/read/:bookId" element={
+                  <PrivateRoute>
+                    <LazyRoute><BookReader /></LazyRoute>
+                  </PrivateRoute>
+                } />
 
-            {/* Assignments */}
-            <Route path="/assignments" element={
-              <PrivateRoute>
-                <AppLayout><Assignments /></AppLayout>
-              </PrivateRoute>
-            } />
+                {/* 404 */}
+                <Route path="*" element={<NotFoundRedirect />} />
+              </Routes>
 
-            {/* Grades */}
-            <Route path="/grades" element={
-              <PrivateRoute>
-                <AppLayout><Grades /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/my-grades" element={
-              <PrivateRoute>
-                <AppLayout><Grades /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* Attendance */}
-            <Route path="/attendance" element={
-              <PrivateRoute>
-                <AppLayout><Attendance /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* Profile & Settings */}
-            <Route path="/profile" element={
-              <PrivateRoute>
-                <AppLayout><Profile /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/settings" element={
-              <PrivateRoute>
-                <AppLayout><Settings /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* ====== Admin Routes ====== */}
-            <Route path="/users" element={
-              <PrivateRoute requiredRole="admin">
-                <AppLayout><Users /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/analytics" element={
-              <PrivateRoute requiredRole="admin">
-                <AppLayout><Analytics /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/structure" element={
-              <PrivateRoute requiredRole="admin">
-                <AppLayout><Structure /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/structure/groups/:groupId" element={
-              <PrivateRoute requiredRole="admin">
-                <AppLayout><GroupDetail /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* ====== Teacher Routes ====== */}
-            <Route path="/teacher/groups" element={
-              <PrivateRoute requiredRole="teacher">
-                <Navigate to="/teacher/groups/attendance" />
-              </PrivateRoute>
-            } />
-
-            <Route path="/teacher/groups/attendance" element={
-              <PrivateRoute requiredRole="teacher">
-                <AppLayout><TeacherAttendance /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/teacher/groups/grades" element={
-              <PrivateRoute requiredRole="teacher">
-                <AppLayout><TeacherGroupGrades /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/teacher/resources" element={
-              <PrivateRoute requiredRole="teacher">
-                <AppLayout><TeacherResources /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/teacher/tests" element={
-              <PrivateRoute requiredRole="teacher">
-                <AppLayout><TeacherTests /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* ====== Student Routes ====== */}
-            <Route path="/my-subjects" element={
-              <PrivateRoute requiredRole="student">
-                <AppLayout><StudentSubjects /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/timetable" element={
-              <PrivateRoute requiredRole="student">
-                <AppLayout><TimeTable /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/resources" element={
-              <PrivateRoute requiredRole="student">
-                <AppLayout><StudentResources /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/tests" element={
-              <PrivateRoute requiredRole="student">
-                <AppLayout><StudentTests /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/tests/:testId" element={
-              <PrivateRoute requiredRole="student">
-                <AppLayout><TakeTest /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* Library (all authenticated users) */}
-            <Route path="/library" element={
-              <PrivateRoute>
-                <AppLayout><Library /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            <Route path="/library/read/:bookId" element={
-              <PrivateRoute>
-                <BookReader />
-              </PrivateRoute>
-            } />
-
-            {/* Live Sessions (teachers and students) */}
-            <Route path="/live-sessions" element={
-              <PrivateRoute>
-                <AppLayout><LiveSessions /></AppLayout>
-              </PrivateRoute>
-            } />
-
-            {/* 404 */}
-            <Route path="*" element={<NotFoundRedirect />} />
-          </Routes>
-
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-          />
-        </AuthProvider>
-      </ThemeProvider>
-      </LanguageProvider>
-    </Router>
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="colored"
+              />
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </Router>
     </GoogleOAuthProvider>
   );
 }

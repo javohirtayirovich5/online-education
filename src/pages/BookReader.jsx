@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 import { 
   FiArrowLeft,
   FiDownload,
-  FiExternalLink,
   FiUser
 } from 'react-icons/fi';
 import Navbar from '../components/common/Navbar';
@@ -100,22 +99,22 @@ const BookReader = () => {
           )}
         </div>
       </div>
-      <div className="book-reader-content">
-        {readLink ? (
-          <iframe
-            src={readLink}
-            className="book-reader-iframe"
-            title={book.title}
-            allow="fullscreen"
-            onError={() => {
-              console.error('Book iframe load error');
-            }}
-          />
-        ) : (
-          <div className="book-reader-error">
-            <p>{t('library.readNotAvailable') || 'Onlayn o\'qish imkoni mavjud emas'}</p>
-          </div>
-        )}
+        <div className="book-reader-content">
+          {readLink ? (
+            <iframe
+              src={readLink}
+              className="book-reader-iframe"
+              title={book.title}
+              allow="fullscreen"
+              onError={() => {
+                console.error('Book iframe load error');
+              }}
+            />
+          ) : (
+            <div className="book-reader-error">
+              <p>{t('library.readNotAvailable') || 'Onlayn o\'qish imkoni mavjud emas'}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

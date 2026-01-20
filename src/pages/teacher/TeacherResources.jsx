@@ -236,7 +236,18 @@ const TeacherResources = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '60vh',
+        width: '100%'
+      }}>
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   return (
@@ -379,8 +390,8 @@ const TeacherResources = () => {
         </div>
       ) : (
         <div className="empty-state">
-          <FiBookOpen size={48} />
-          <p>{t('teacher.resources.selectGroupAndSubject')}</p>
+          {/* <FiBookOpen size={48} /> */}
+          <p>{t('common.noData')}</p>
         </div>
       )}
 

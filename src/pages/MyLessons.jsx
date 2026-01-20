@@ -19,9 +19,11 @@ import {
   FiUpload,
   FiX,
   FiUsers,
-  FiFile
+  FiFile,
+  FiMoreVertical
 } from 'react-icons/fi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import '../components/common/LoadingSpinner.css';
 import Modal from '../components/common/Modal';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { toast } from 'react-toastify';
@@ -47,6 +49,8 @@ const MyLessons = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRefs = useRef({});
   
   // Kurs yaratish formasi
   const [courseFormData, setCourseFormData] = useState({
@@ -56,6 +60,7 @@ const MyLessons = () => {
     thumbnailFile: null
   });
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [creatingCourse, setCreatingCourse] = useState(false);
   const thumbnailInputRef = useRef(null);
 
   // Dars qo'shish formasi
@@ -304,6 +309,11 @@ const MyLessons = () => {
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     
+    // Agar kurs yaratilmoqda bo'lsa, qayta bosilishini oldini olish
+    if (creatingCourse) {
+      return;
+    }
+    
     if (!courseFormData.title || !courseFormData.subjectId) {
       toast.error(t('lessons.courseNameAndSubjectRequired'));
       return;
@@ -314,6 +324,7 @@ const MyLessons = () => {
       return;
     }
 
+    setCreatingCourse(true);
     setUploadingThumbnail(true);
 
     try {
@@ -365,6 +376,7 @@ const MyLessons = () => {
       toast.error(error.message || t('lessons.courseCreateError'));
     } finally {
       setUploadingThumbnail(false);
+      setCreatingCourse(false);
     }
   };
 
@@ -841,20 +853,29 @@ const MyLessons = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen />;
-
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '60vh',
+        width: '100%'
+      }}>
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   return (
     <div className="lessons-page ">
       <div className="page-header">
         <div>
-          <h1>{isTeacher ? t('lessons.myLessons') : t('lessons.title')}</h1>
-          <p>{isTeacher ? t('lessons.myLessons') : t('lessons.title')}</p>
+          <h1>{t('lessons.myCourses')}</h1>
         </div>
         {isTeacher && (
           <button className="btn btn-primary" onClick={() => setShowCreateCourseModal(true)}>
-            <FiPlus /> {t('lessons.addLesson')}
+            <FiPlus /> {t('lessons.addCourse')}
           </button>
         )}
       </div>
@@ -957,21 +978,36 @@ const MyLessons = () => {
                     >
                       <FiPlus /> {t('lessons.addLesson')}
                     </button>
-                    <div className="lesson-actions">
+                    <div className="lesson-actions-menu" ref={el => menuRefs.current[course.id] = el}>
                       <button 
-                        className="btn-icon" 
-                        onClick={() => openEditCourseModal(course)}
-                        title={t('common.edit')}
+                        className="btn-icon-menu" 
+                        onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)}
+                        aria-label="More actions"
                       >
-                        <FiEdit />
+                        <FiMoreVertical />
                       </button>
-                      <button 
-                        className="btn-icon btn-danger" 
-                        onClick={() => handleDeleteCourse(course.id)}
-                        title={t('common.delete')}
-                      >
-                        <FiTrash2 />
-                      </button>
+                      {openMenuId === course.id && (
+                        <div className="lesson-menu-dropdown">
+                          <button 
+                            className="lesson-menu-item"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              openEditCourseModal(course);
+                            }}
+                          >
+                            <FiEdit /> {t('common.edit')}
+                          </button>
+                          <button 
+                            className="lesson-menu-item lesson-menu-item-danger"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleDeleteCourse(course.id);
+                            }}
+                          >
+                            <FiTrash2 /> {t('common.delete')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -985,7 +1021,7 @@ const MyLessons = () => {
       <Modal
         isOpen={showCreateCourseModal}
         onClose={() => setShowCreateCourseModal(false)}
-        title={t('lessons.addLesson')}
+        title={t('lessons.addCourse')}
         size="large"
       >
         <form onSubmit={handleCreateCourse} className="lesson-form">
@@ -1002,7 +1038,7 @@ const MyLessons = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t('lessons.lessonDescription')}</label>
+            <label className="form-label">{t('lessons.courceDescription')}</label>
             <textarea
               className="form-textarea"
               value={courseFormData.description}
@@ -1065,11 +1101,31 @@ const MyLessons = () => {
           </div>
 
           <div className="form-actions">
-            <button type="button" className="btn btn-secondary" onClick={() => setShowCreateCourseModal(false)}>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={() => {
+                if (!creatingCourse) {
+                  setShowCreateCourseModal(false);
+                }
+              }}
+              disabled={creatingCourse}
+            >
               {t('common.cancel')}
             </button>
-            <button type="submit" className="btn btn-primary">
-              {t('common.create')}
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={creatingCourse}
+            >
+              {creatingCourse ? (
+                <>
+                  <div className="loader loader-small" style={{ display: 'inline-block', marginRight: '0.5rem' }}></div>
+                  <span>Yaratilmoqda...</span>
+                </>
+              ) : (
+                t('common.create')
+              )}
             </button>
           </div>
         </form>

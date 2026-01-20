@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -9,7 +9,7 @@ import NotificationDropdown from './NotificationDropdown';
 import { notificationService } from '../../services/notificationService';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
+const Navbar = memo(({ toggleSidebar, isSidebarOpen }) => {
   const { currentUser, userData, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const { language, changeLanguage } = useLanguage();
@@ -87,10 +87,10 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
     return names[lang] || lang;
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -226,7 +226,9 @@ const Navbar = ({ toggleSidebar, isSidebarOpen }) => {
       </div>
     </nav>
   );
-};
+});
+
+Navbar.displayName = 'Navbar';
 
 export default Navbar;
 

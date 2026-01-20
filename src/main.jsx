@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './styles/index.css';
 
+// Preload react-icons to prevent icon loading delays
+import 'react-icons/fi';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

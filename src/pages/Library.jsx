@@ -19,7 +19,7 @@ import {
   FiGlobe,
   FiCalendar,
   FiUser,
-  FiTag,
+  FiList,
   FiExternalLink
 } from 'react-icons/fi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -36,7 +36,6 @@ const Library = () => {
   const [selectedBook, setSelectedBook] = useState(null);
   const [showBookModal, setShowBookModal] = useState(false);
   const [favorites, setFavorites] = useState([]);
-  const [readingList, setReadingList] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
@@ -72,7 +71,6 @@ const Library = () => {
 
   useEffect(() => {
     loadFavorites();
-    loadReadingList();
     loadPopularBooks(); // Component mount bo'lganda mashhur kitoblarni yuklash
   }, [userData]);
 
@@ -90,14 +88,6 @@ const Library = () => {
     const result = await libraryService.getFavorites(userData.uid);
     if (result.success) {
       setFavorites(result.data.map(item => item.bookId));
-    }
-  };
-
-  const loadReadingList = async () => {
-    if (!userData?.uid) return;
-    const result = await libraryService.getReadingList(userData.uid);
-    if (result.success) {
-      setReadingList(result.data.map(item => item.bookId));
     }
   };
 
@@ -169,21 +159,6 @@ const Library = () => {
       } else {
         toast.error(result.error || t('library.favoriteError') || 'Xatolik yuz berdi');
       }
-    }
-  };
-
-  const handleAddToReadingList = async (book) => {
-    if (!userData?.uid) {
-      toast.info(t('library.loginRequired') || 'Iltimos, avval tizimga kiring');
-      return;
-    }
-
-    const result = await libraryService.addToReadingList(userData.uid, book);
-    if (result.success) {
-      setReadingList(prev => [...prev, book.id]);
-      toast.success(t('library.addedToReadingList') || 'O\'qish ro\'yxatiga qo\'shildi');
-    } else {
-      toast.error(t('library.readingListError') || 'Xatolik yuz berdi');
     }
   };
 
@@ -447,7 +422,7 @@ const Library = () => {
                     )}
                     {book.subject && (
                       <p className="book-subjects">
-                        <FiTag size={14} />
+                        <FiList size={14} />
                         {book.subject}
                       </p>
                     )}
@@ -460,14 +435,6 @@ const Library = () => {
                     >
                       <FiEye /> {t('library.view') || 'Ko\'rish'}
                     </button>
-                    {!readingList.includes(book.id) && (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleAddToReadingList(book)}
-                      >
-                        <FiBookOpen /> {t('library.addToReadingList') || 'O\'qish ro\'yxati'}
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
@@ -595,7 +562,7 @@ const Library = () => {
                     )}
                     {book.subject && (
                       <p className="book-subjects">
-                        <FiTag size={14} />
+                        <FiList size={14} />
                         {book.subject}
                       </p>
                     )}
@@ -608,14 +575,6 @@ const Library = () => {
                     >
                       <FiEye /> {t('library.view') || 'Ko\'rish'}
                     </button>
-                    {!readingList.includes(book.id) && (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleAddToReadingList(book)}
-                      >
-                        <FiBookOpen /> {t('library.addToReadingList') || 'O\'qish ro\'yxati'}
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
@@ -751,14 +710,6 @@ const Library = () => {
                 <FiHeart fill={favorites.includes(selectedBook.id) ? 'currentColor' : 'none'} />
                 {favorites.includes(selectedBook.id) ? t('library.removeFromFavorites') : t('library.addToFavorites')}
               </button>
-              {!readingList.includes(selectedBook.id) && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleAddToReadingList(selectedBook)}
-                >
-                  <FiBookOpen /> {t('library.addToReadingList') || 'O\'qish ro\'yxati'}
-                </button>
-              )}
               {selectedBook.gutenbergId && (selectedBook.formats?.text || selectedBook.formats?.html || selectedBook.formats?.epub || selectedBook.formats?.pdf) && (
                 <>
                   <button

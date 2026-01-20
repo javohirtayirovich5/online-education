@@ -11,6 +11,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { format } from 'date-fns';
 import './LiveSessions.css';
+import './teacher/TeacherAttendance.css';
 
 const LiveSessions = () => {
   const { currentUser, userData, isTeacher } = useAuth();

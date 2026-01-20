@@ -99,8 +99,6 @@
 }
 
 .btn-icon {
-  /* width: 40px;
-  height: 40px; */
   padding: 10px !important;
   display: flex;
   align-items: center;
@@ -120,12 +118,11 @@
 }
 
 .btn-icon.btn-danger {
-  color: #ffffff;
+  color: var(--error);
 }
 
 .btn-icon.btn-danger:hover {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--error);
 }
 
 .test-card-body {
