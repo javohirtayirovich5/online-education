@@ -1,32 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
 import { groupService } from '../../services/groupService';
-import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart2, FiMoreVertical } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiBarChart2, FiMoreVertical } from 'react-icons/fi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import TestEditor from '../../components/tests/TestEditor';
-import StudentTestTaker from '../../components/tests/StudentTestTaker';
 import TestResultsModal from '../../components/tests/TestResultsModal';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/helpers';
-import './TeacherTests.css';
+import '../teacher/TeacherTests.css';
 
-const TeacherTests = () => {
-  const { userData } = useAuth();
+const AdminTests = () => {
   const { t } = useTranslation();
-  const [tests, setTests] = useState([]);
   const [allTests, setAllTests] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('myTests');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
   const [editingTest, setEditingTest] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,20 +28,16 @@ const TeacherTests = () => {
 
   useEffect(() => {
     loadData();
-  }, [userData]);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [testsResult, allTestsResult, groupsResult] = await Promise.all([
-        testService.getTestsByTeacher(userData.uid),
+      const [allTestsResult, groupsResult] = await Promise.all([
         testService.getAllTests(),
         groupService.getAllGroups()
       ]);
 
-      if (testsResult.success) {
-        setTests(testsResult.data);
-      }
       if (allTestsResult.success) {
         setAllTests(allTestsResult.data);
       }
@@ -60,30 +49,6 @@ const TeacherTests = () => {
       toast.error('Ma\'lumotlarni yuklashda xatolik');
     }
     setLoading(false);
-  };
-
-  const handleCreateTest = async (testData) => {
-    try {
-      const groupIds = Array.isArray(testData.groupIds) ? testData.groupIds : [];
-      const primaryGroupId = groupIds[0] || testData.groupId || null;
-
-      const result = await testService.createTest({
-        ...testData,
-        createdBy: userData.uid,
-        createdByName: userData.displayName,
-        groupId: primaryGroupId,
-        groupIds
-      });
-
-      if (result.success) {
-        toast.success('Test muvaffaqiyatli yaratildi');
-        setShowCreateModal(false);
-        loadData();
-      }
-    } catch (error) {
-      console.error('Create test error:', error);
-      toast.error('Testni yaratishda xatolik');
-    }
   };
 
   const handleEditTest = async (testData) => {
@@ -130,9 +95,9 @@ const TeacherTests = () => {
     return [...new Set(teachers)].sort();
   };
 
-  const filteredTests = (activeTab === 'myTests' ? tests : allTests).filter(test => {
+  const filteredTests = allTests.filter(test => {
     const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTeacher = activeTab === 'myTests' || !selectedTeacherFilter || test.createdByName === selectedTeacherFilter;
+    const matchesTeacher = !selectedTeacherFilter || test.createdByName === selectedTeacherFilter;
     return matchesSearch && matchesTeacher;
   });
 
@@ -165,29 +130,6 @@ const TeacherTests = () => {
     <div className="tests-container">
       <div className="tests-header">
         <h1>{t('teacher.tests.title')}</h1>
-        {activeTab === 'myTests' && (
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <FiPlus /> {t('teacher.tests.newTest')}
-          </button>
-        )}
-      </div>
-
-      <div className="tests-tabs">
-        <button
-          className={`tab-button ${activeTab === 'myTests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('myTests')}
-        >
-          {t('teacher.tests.myTests')}
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'allTests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('allTests')}
-        >
-          {t('teacher.tests.allTests')}
-        </button>
       </div>
 
       <div className="tests-search">
@@ -198,20 +140,18 @@ const TeacherTests = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
         />
-        {activeTab === 'allTests' && (
-          <select
-            className="search-input teacher-filter"
-            value={selectedTeacherFilter || ''}
-            onChange={(e) => setSelectedTeacherFilter(e.target.value || null)}
-          >
-            <option value="">{t('teacher.tests.allTeachers')}</option>
-            {getUniqueTeachers().map((teacher) => (
-              <option key={teacher} value={teacher}>
-                {teacher}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          className="search-input teacher-filter"
+          value={selectedTeacherFilter || ''}
+          onChange={(e) => setSelectedTeacherFilter(e.target.value || null)}
+        >
+          <option value="">{t('teacher.tests.allTeachers')}</option>
+          {getUniqueTeachers().map((teacher) => (
+            <option key={teacher} value={teacher}>
+              {teacher}
+            </option>
+          ))}
+        </select>
       </div>
 
       {filteredTests.length === 0 ? (
@@ -227,33 +167,19 @@ const TeacherTests = () => {
                   <h3>{test.title}</h3>
                   <p className="test-info">
                     {test.questions?.length || 0} {t('tests.questionsFrom')} • {getGroupName(test)}
-                    {activeTab === 'allTests' && test.createdByName && (
+                    {test.createdByName && (
                       <> • <span className="teacher-name">{test.createdByName}</span></>
                     )}
                   </p>
                 </div>
                 <div className="test-actions">
-                  {activeTab === 'allTests' && (
-                    <button
-                      className="btn btn-sm btn-icon"
-                      onClick={() => {
-                        setSelectedTest(test);
-                        setShowViewModal(true);
-                      }}
-                      title={t('student.tests.viewQuestions')}
-                    >
-                      <FiEye /> {t('student.tests.viewQuestions')}
-                    </button>
-                  )}
-                  {activeTab === 'myTests' && (
-                    <button
-                      className="btn btn-sm btn-icon"
-                      onClick={() => handleViewResults(test)}
-                      title={t('teacher.tests.viewResults')}
-                    >
-                      <FiBarChart2 /> {t('teacher.tests.viewResults')}
-                    </button>
-                  )}
+                  <button
+                    className="btn btn-sm btn-icon"
+                    onClick={() => handleViewResults(test)}
+                    title={t('teacher.tests.viewResults')}
+                  >
+                    <FiBarChart2 /> {t('teacher.tests.viewResults')}
+                  </button>
                   <div className="action-menu-container">
                     <button
                       className="btn btn-sm btn-icon"
@@ -264,50 +190,26 @@ const TeacherTests = () => {
                     </button>
                     {openDropdownId === test.id && (
                       <div className="action-dropdown-menu">
-                        {activeTab === 'allTests' && (
-                          <button
-                            className="dropdown-menu-item"
-                            onClick={() => {
-                              handleViewResults(test);
-                              setOpenDropdownId(null);
-                            }}
-                          >
-                            <FiBarChart2 /> {t('teacher.tests.viewResults')}
-                          </button>
-                        )}
-                        {activeTab === 'myTests' && (
-                          <>
-                            <button
-                              className="dropdown-menu-item"
-                              onClick={() => {
-                                handleViewResults(test);
-                                setOpenDropdownId(null);
-                              }}
-                            >
-                              <FiBarChart2 /> {t('teacher.tests.viewResults')}
-                            </button>
-                            <button
-                              className="dropdown-menu-item"
-                              onClick={() => {
-                                setEditingTest(test);
-                                setShowEditModal(true);
-                                setOpenDropdownId(null);
-                              }}
-                            >
-                              <FiEdit /> {t('teacher.tests.edit')}
-                            </button>
-                            <button
-                              className="dropdown-menu-item dropdown-menu-danger"
-                              onClick={() => {
-                                setSelectedTest(test);
-                                setShowDeleteConfirm(true);
-                                setOpenDropdownId(null);
-                              }}
-                            >
-                              <FiTrash2 /> {t('teacher.tests.delete')}
-                            </button>
-                          </>
-                        )}
+                        <button
+                          className="dropdown-menu-item"
+                          onClick={() => {
+                            setEditingTest(test);
+                            setShowEditModal(true);
+                            setOpenDropdownId(null);
+                          }}
+                        >
+                          <FiEdit /> {t('teacher.tests.edit')}
+                        </button>
+                        <button
+                          className="dropdown-menu-item dropdown-menu-danger"
+                          onClick={() => {
+                            setSelectedTest(test);
+                            setShowDeleteConfirm(true);
+                            setOpenDropdownId(null);
+                          }}
+                        >
+                          <FiTrash2 /> {t('teacher.tests.delete')}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -327,21 +229,6 @@ const TeacherTests = () => {
           ))}
         </div>
       )}
-
-      {/* Create Test Modal */}
-      <Modal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title={t('teacher.tests.newTest')}
-        size="large"
-        disableEscClose={true}
-      >
-        <TestEditor
-          groups={groups}
-          onSave={handleCreateTest}
-          onCancel={() => setShowCreateModal(false)}
-        />
-      </Modal>
 
       {/* Edit Test Modal */}
       {editingTest && (
@@ -379,28 +266,6 @@ const TeacherTests = () => {
         />
       )}
 
-      {/* View Test Questions Modal */}
-      {selectedTest && (
-        <Modal
-          isOpen={showViewModal}
-          onClose={() => {
-            setShowViewModal(false);
-            setSelectedTest(null);
-          }}
-          title={selectedTest.title}
-          size="large"
-        >
-          <StudentTestTaker
-            test={selectedTest}
-            onCancel={() => {
-              setShowViewModal(false);
-              setSelectedTest(null);
-            }}
-            readOnly={true}
-          />
-        </Modal>
-      )}
-
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteConfirm}
@@ -419,4 +284,4 @@ const TeacherTests = () => {
   );
 };
 
-export default TeacherTests;
+export default AdminTests;

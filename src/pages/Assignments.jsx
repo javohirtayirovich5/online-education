@@ -97,7 +97,7 @@ const Assignments = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description) {
+    if (!formData.title || !formData.description || !formData.dueDate) {
       toast.error('Barcha majburiy maydonlarni to\'ldiring');
       return;
     }
@@ -188,7 +188,7 @@ const Assignments = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description) {
+    if (!formData.title || !formData.description || !formData.dueDate) {
       toast.error('Barcha majburiy maydonlarni to\'ldiring');
       return;
     }
@@ -472,14 +472,14 @@ const Assignments = () => {
         <div>
           <h1>{t('assignments.title')}</h1>
           <p>{isTeacher ? t('assignments.manageAssignments') : t('assignments.yourAssignments')}</p>
-          {isTeacher && Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0) > 0 && (
+          {/* {isTeacher && Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0) > 0 && (
             <div className="header-stats">
               <span className="ungraded-count-badge">
                 <FiClock />
                 {Object.values(ungradedCounts).reduce((sum, count) => sum + count, 0)} {t('assignments.ungradedAssignments')}
               </span>
             </div>
-          )}
+          )} */}
         </div>
         {isTeacher && (
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
@@ -672,12 +672,13 @@ const Assignments = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">{t('assignments.dueDate')}</label>
+              <label className="form-label">{t('assignments.dueDate')} *</label>
               <input
                 type="datetime-local"
                 className="form-input"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                required
               />
             </div>
 
@@ -793,12 +794,13 @@ const Assignments = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">{t('assignments.dueDate')}</label>
+              <label className="form-label">{t('assignments.dueDate')} *</label>
               <input
                 type="datetime-local"
                 className="form-input"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                required
               />
             </div>
 

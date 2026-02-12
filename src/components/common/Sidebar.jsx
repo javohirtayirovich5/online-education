@@ -97,6 +97,8 @@ const Sidebar = memo(({ isOpen, closeSidebar }) => {
     { to: '/structure', icon: FiGrid, label: t('sidebar.structure') },
     { to: '/users', icon: FiUsers, label: t('sidebar.users') },
     { to: '/lessons', icon: FiVideo, label: t('sidebar.allLessons') },
+    { to: '/admin/tests', icon: FiFileText, label: t('teacher.tests.title') },
+    { to: '/admin/resources', icon: FiBook, label: t('sidebar.Resources') },
     { to: '/analytics', icon: FiBarChart2, label: t('sidebar.statistics') },
     { to: '/library', icon: FiBook, label: t('sidebar.library') },
     { to: '/settings', icon: FiSettings, label: t('common.settings') }
@@ -113,7 +115,7 @@ const Sidebar = memo(({ isOpen, closeSidebar }) => {
         { to: '/teacher/groups/grades', icon: FiStar, label: t('sidebar.grades') }
       ]
     },
-    { to: '/teacher/resources', icon: FiFileText, label: t('sidebar.courseResources') },
+    { to: '/teacher/resources', icon: FiFileText, label: t('sidebar.Resources') },
     { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myCourses') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
@@ -125,7 +127,7 @@ const Sidebar = memo(({ isOpen, closeSidebar }) => {
     { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { to: '/my-subjects', icon: FiBookOpen, label: t('sidebar.mySubjects') },
     { to: '/timetable', icon: FiCalendar, label: t('sidebar.schedule') },
-    { to: '/resources', icon: FiFileText, label: t('sidebar.courseResources') },
+    { to: '/resources', icon: FiFileText, label: t('sidebar.Resources') },
     { to: '/lessons', icon: FiVideo, label: t('sidebar.videoLessons') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },

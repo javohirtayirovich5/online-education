@@ -156,7 +156,7 @@ const StudentTests = () => {
                     <p className="test-description">{test.description}</p>
                     <div className="test-details">
                       <span className="test-questions">
-                        {test.questions?.length || 0} {t('tests.questions')}
+                        {test.questions?.length || 0} {t('teacher.tests.questions')}
                       </span>
                       <span className="test-date">
                         {formatDate(test.createdAt)}

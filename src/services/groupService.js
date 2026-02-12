@@ -132,6 +132,23 @@ export const groupService = {
   async updateGroup(groupId, updates) {
     try {
       const docRef = doc(db, COLLECTION_NAME, groupId);
+      
+      // Guruh nomi o'zgartirilsa, barcha talabalarning groupName'ni yangilash
+      if (updates.name) {
+        const groupResult = await this.getGroupById(groupId);
+        if (groupResult.success && groupResult.data.students) {
+          const studentIds = groupResult.data.students;
+          
+          // Har bir talabaning groupName'ni yangilash
+          for (const studentId of studentIds) {
+            const userRef = doc(db, 'users', studentId);
+            await updateDoc(userRef, {
+              groupName: updates.name
+            });
+          }
+        }
+      }
+      
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -147,6 +164,19 @@ export const groupService = {
   async addStudentToGroup(groupId, studentId) {
     try {
       const docRef = doc(db, COLLECTION_NAME, groupId);
+      
+      // Guruh ma'lumotlarini olish
+      const groupResult = await this.getGroupById(groupId);
+      if (groupResult.success) {
+        const groupName = groupResult.data.name;
+        
+        // Talaba ma'lumotlarini yangilash
+        const userRef = doc(db, 'users', studentId);
+        await updateDoc(userRef, {
+          groupName: groupName
+        });
+      }
+      
       // Faqat students arrayni yangilash (Firebase rules shunga ruxsat beradi)
       await updateDoc(docRef, {
         students: arrayUnion(studentId)
@@ -161,6 +191,13 @@ export const groupService = {
   // Guruhdan talabani olib tashlash
   async removeStudentFromGroup(groupId, studentId) {
     try {
+      // Talaba ma'lumotlarini yangilash - groupName'ni olib tashlash
+      const userRef = doc(db, 'users', studentId);
+      await updateDoc(userRef, {
+        groupId: null,
+        groupName: null
+      });
+      
       const docRef = doc(db, COLLECTION_NAME, groupId);
       await updateDoc(docRef, {
         students: arrayRemove(studentId),

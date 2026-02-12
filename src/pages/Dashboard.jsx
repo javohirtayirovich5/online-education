@@ -125,21 +125,12 @@ const Dashboard = () => {
       }
     });
 
-    setStats({
-      lessons: totalLessons,
-      views: totalViews,
-      comments: totalComments,
-      assignments: 0
-    });
-
-    // Recent lessons - sort va limit
-    recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    setRecentLessons(recentLessons.slice(0, 3));
-
     // Upcoming deadlines - faqat o'qituvchining topshiriqlari
+    let assignmentsCount = 0;
     try {
       const assignmentsResult = await assignmentService.getAssignmentsByTeacher(userData.uid);
       if (assignmentsResult.success) {
+        assignmentsCount = assignmentsResult.data.length;
         const now = new Date();
         const deadlines = assignmentsResult.data
           .filter(assignment => {
@@ -161,6 +152,17 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Load deadlines error:', error);
     }
+
+    setStats({
+      lessons: totalLessons,
+      views: totalViews,
+      comments: totalComments,
+      assignments: assignmentsCount
+    });
+
+    // Recent lessons - sort va limit
+    recentLessons.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    setRecentLessons(recentLessons.slice(0, 3));
   };
 
   const loadStudentData = async () => {

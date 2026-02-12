@@ -128,7 +128,7 @@
     "groups": "Группы",
     "attendance": "Посещаемость",
     "grades": "Оценки",
-    "courseResources": "Ресурсы курса",
+    "Resources": "Ресурсы",
     "myLessons": "Мои уроки",
     "myCourses": "Мои курсы",
     "liveLessons": "Живые уроки",
@@ -279,7 +279,7 @@
     "noLessons": "Уроков пока нет",
     "views": "Просмотры",
     "comments": "Комментарии",
-    "createdAt": "Создано",
+    "createdAt": "Создано в",
     "updatedAt": "Обновлено",
     "courseTitle": "Название курса",
     "courseTitleExample": "Например: Основы математики",
@@ -427,7 +427,11 @@
     "questionTypeTrueFalse": "Верно / Неверно",
     "questionTypeWordBank": "Заполнить пропуск",
     "questionTypeMatching": "Сопоставление",
-    "questionTypeAudio": "Аудио вопрос"
+    "questionTypeAudio": "Аудио вопрос",
+    "fillBlanks": "Заполните пропуски подходящими словами.",
+    "keywords": "Ключевые слова",
+    "notLinked": "Не связано",
+    "correctAnswer": "Правильный ответ"
   },
   "courseDetail": {
     "commentAdded": "Комментарий добавлен",
@@ -512,6 +516,9 @@
     },
     "tests": {
       "title": "Тесты",
+      "myTests": "Мои тесты",
+      "allTests": "Все тесты",
+      "allTeachers": "Все учителя",
       "newTest": "Новый тест",
       "searchTests": "Поиск тестов",
       "noTests": "Тесты еще не созданы",
@@ -530,7 +537,15 @@
       "testError": "Ошибка сохранения теста",
       "questionsFrom": "вопросов",
       "forAll": "Для всех",
-      "deleteTestConfirm": "тест? Это действие нельзя отменить."
+      "deleteTestConfirm": "тест? Это действие нельзя отменить.",
+      "contextTexts": "Контекстные тексты (опционально)",
+      "addText": "Добавить текст",
+      "createContextTexts": "Создавайте контекстные тексты и связывайте их с релевантными вопросами.",
+      "sectionName": "Название раздела",
+      "sectionNamePlaceholder": "Например: Первый раздел, чтение, информация...",
+      "deleteSection": "Удалить раздел",
+      "contextText": "Текст / Отрывок (опционально)",
+      "contextTextPlaceholder": "Текст, параграф или контекст, связанный с этим разделом..."
     }
   },
   "student": {
@@ -557,7 +572,8 @@
       "lessonType": "Тип занятия",
       "staff": "Сотрудник",
       "files": "Файлы",
-      "created": "Создано"
+      "created": "Создано",
+      "collections": "Коллекции"
     },
     "tests": {
       "title": "Тесты",
@@ -565,6 +581,7 @@
       "completedTests": "Завершенные тесты",
       "noTests": "Тестов пока нет",
       "startTest": "Начать тест",
+      "viewQuestions": "Просмотр вопросов",
       "viewResults": "Просмотр результатов",
       "score": "Балл",
       "completed": "Завершено"
@@ -592,6 +609,11 @@
     },
     "analytics": {
       "title": "Аналитика"
+    }
+    ,
+    "resources": {
+      "permissionDenied": "Недостаточно прав для чтения коллекций. Войдите под администратором или обновите правила Firestore.",
+      "permissionDeniedHelp": "Если вы управляете правилами Firestore, убедитесь, что resourceCollections доступны для чтения администраторам. Подробности см. в консоли Firebase."
     }
   },
   "liveSessions": {

@@ -206,9 +206,19 @@ const Users = () => {
     try {
       const userRef = doc(db, 'users', selectedStudent.id);
       
-      // Update user's groupId
+      // Get group name if groupId is provided
+      let groupName = null;
+      if (groupId) {
+        const groupResult = await groupService.getGroupById(groupId);
+        if (groupResult.success) {
+          groupName = groupResult.data.name;
+        }
+      }
+      
+      // Update user's groupId and groupName
       await updateDoc(userRef, {
-        groupId: groupId || null
+        groupId: groupId || null,
+        groupName: groupName || null
       });
       
       // If student had a previous group, remove from that group

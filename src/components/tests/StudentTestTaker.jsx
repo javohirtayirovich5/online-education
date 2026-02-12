@@ -7,24 +7,24 @@ import AudioPlayer from './AudioPlayer';
 import './StudentTestTaker.css';
 import { useTranslation } from '../../hooks/useTranslation';
 
-const StudentTestTaker = ({ test, onComplete, onCancel }) => {
+const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
   const { userData } = useAuth();
   const { t } = useTranslation();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeRemaining, setTimeRemaining] = useState(test.timeLimit ? test.timeLimit * 60 : null);
+  const [timeRemaining, setTimeRemaining] = useState(readOnly ? null : (test.timeLimit ? test.timeLimit * 60 : null));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [testStarted, setTestStarted] = useState(false);
+  const [testStarted, setTestStarted] = useState(readOnly ? true : false);
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(null);
-  // Matching question state: track active/selected items and shuffled order
   const [matchingState, setMatchingState] = useState({});
   const [matchingShuffled, setMatchingShuffled] = useState({});
   const svgRef = useRef(null);
+  const clozeRef = useRef(null);
+  const subQuestionClozeRefs = useRef({});
 
   useEffect(() => {
     if (!timeRemaining || !testStarted) return;
-
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -35,27 +35,31 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timeRemaining, testStarted]);
 
-  // Refs and helpers for wordbank cloze rendering (declared unconditionally to preserve hooks order)
-  const clozeRef = useRef(null);
-  const subQuestionClozeRefs = useRef({});
-
   const buildClozeHtml = (q, studentAns = {}) => {
-    // Parse instructor HTML (with select[data-blank-id]) and rebuild selects with question.bank options
     const wrapper = document.createElement('div');
     wrapper.innerHTML = q.text || '';
+    // DEBUG: inspect stored HTML and bank
+    try {
+      console.debug('[buildClozeHtml] q.id?', q.id, 'textLen', (q.text || '').length, 'bankLen', (q.bank || []).length);
+    } catch (e) { /* ignore */ }
     const selects = wrapper.querySelectorAll('select[data-blank-id]');
     selects.forEach(sel => {
       const id = sel.getAttribute('data-blank-id');
-      // create new select
       const newSel = document.createElement('select');
       newSel.setAttribute('data-blank-id', id);
-      const empty = document.createElement('option'); empty.value = ''; empty.textContent = '—'; newSel.appendChild(empty);
-      (q.bank || []).forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; newSel.appendChild(o); });
-      // set selected from studentAnswers if present
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = '———';
+      newSel.appendChild(empty);
+      (q.bank || []).forEach(w => {
+        const o = document.createElement('option');
+        o.value = w;
+        o.textContent = w;
+        newSel.appendChild(o);
+      });
       if (studentAns && typeof studentAns[id] !== 'undefined') {
         newSel.value = studentAns[id] === null ? '' : studentAns[id];
       }
@@ -64,15 +68,17 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     return wrapper.innerHTML;
   };
 
+  // Render wordbank HTML when question changes
   useEffect(() => {
     const question = test.questions[currentQuestion];
     if (!question) return;
     
-    if (question.type === 'wordbank') {
-      // render initial cloze
-      if (clozeRef.current) {
-        clozeRef.current.innerHTML = buildClozeHtml(question, answers[currentQuestion] || {});
-        // attach change listeners
+    // Render main wordbank question
+    if (question.type === 'wordbank' && clozeRef.current) {
+      try {
+        const builtHtml = buildClozeHtml(question, answers[currentQuestion] || {});
+        clozeRef.current.innerHTML = builtHtml;
+        // Attach fresh change listeners
         const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
         sels.forEach(sel => {
           sel.addEventListener('change', (e) => {
@@ -80,48 +86,79 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
             setAnswers(prev => ({ ...prev, [currentQuestion]: { ...(prev[currentQuestion] || {}), [id]: e.target.value } }));
           });
         });
+      } catch (err) {
+        console.error('Error rendering wordbank:', err);
       }
-    } else if (question.type === 'audio') {
-      // Handle wordbank sub-questions
+    }
+    
+    // Render audio wordbank sub-questions
+    if (question.type === 'audio') {
       (question.subQuestions || []).forEach((subQ, subIndex) => {
         if (subQ.type === 'wordbank') {
           const refKey = `${currentQuestion}_${subIndex}`;
           const ref = subQuestionClozeRefs.current[refKey];
           if (ref) {
-            const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex] || {};
-            ref.innerHTML = buildClozeHtml(subQ, subAnswer);
-            const sels = ref.querySelectorAll('select[data-blank-id]');
-            sels.forEach(sel => {
-              sel.addEventListener('change', (e) => {
-                const id = e.target.getAttribute('data-blank-id');
-                const currentSubAnswer = answers[currentQuestion]?.subAnswers?.[subIndex] || {};
-                const newSubAnswer = { ...currentSubAnswer, [id]: e.target.value };
-                const newSubAnswers = {
-                  ...(answers[currentQuestion]?.subAnswers || {}),
-                  [subIndex]: newSubAnswer
-                };
-                handleAnswerChange({
-                  type: 'audio',
-                  subAnswers: newSubAnswers
+            try {
+              const builtHtml = buildClozeHtml(subQ, answers[currentQuestion]?.subAnswers?.[subIndex] || {});
+              ref.innerHTML = builtHtml;
+              // Attach fresh change listeners
+              const sels = ref.querySelectorAll('select[data-blank-id]');
+              sels.forEach(sel => {
+                sel.addEventListener('change', (e) => {
+                  const id = e.target.getAttribute('data-blank-id');
+                  setAnswers(prev => ({
+                    ...prev,
+                    [currentQuestion]: {
+                      ...(prev[currentQuestion] || {}),
+                      subAnswers: {
+                        ...(prev[currentQuestion]?.subAnswers || {}),
+                        [subIndex]: { ...(prev[currentQuestion]?.subAnswers?.[subIndex] || {}), [id]: e.target.value }
+                      }
+                    }
+                  }));
                 });
               });
-            });
+            } catch (err) {
+              console.error('Error rendering audio wordbank subquestion:', err);
+            }
           }
         }
       });
     }
-  }, [test.questions, currentQuestion, answers]);
+  }, [currentQuestion, test.questions]);
 
+  // Sync select values when answers change (but don't re-render HTML)
   useEffect(() => {
     const question = test.questions[currentQuestion];
-    // whenever answers change for current question, update selects to reflect selection
-    if (!question || question.type !== 'wordbank') return;
-    if (clozeRef.current) {
+    if (!question) return;
+    
+    if (question.type === 'wordbank' && clozeRef.current) {
       const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
+      const studentAns = answers[currentQuestion] || {};
       sels.forEach(sel => {
         const id = sel.getAttribute('data-blank-id');
-        const val = (answers[currentQuestion] || {})[id];
-        sel.value = typeof val !== 'undefined' ? val : '';
+        const val = studentAns[id];
+        if (typeof val !== 'undefined' && val !== null) {
+          sel.value = val;
+        }
+      });
+    } else if (question.type === 'audio') {
+      (question.subQuestions || []).forEach((subQ, subIndex) => {
+        if (subQ.type === 'wordbank') {
+          const refKey = `${currentQuestion}_${subIndex}`;
+          const ref = subQuestionClozeRefs.current[refKey];
+          if (ref) {
+            const sels = ref.querySelectorAll('select[data-blank-id]');
+            const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex] || {};
+            sels.forEach(sel => {
+              const id = sel.getAttribute('data-blank-id');
+              const val = subAnswer[id];
+              if (typeof val !== 'undefined' && val !== null) {
+                sel.value = val;
+              }
+            });
+          }
+        }
       });
     }
   }, [answers, currentQuestion, test.questions]);
@@ -133,7 +170,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Shuffle array
   const shuffle = (arr) => {
     const newArr = [...arr];
     for (let i = newArr.length - 1; i > 0; i--) {
@@ -143,39 +179,29 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     return newArr;
   };
 
-  // Draw lines connecting matched pairs
   const drawMatchingLines = () => {
     if (!svgRef.current) return;
     const svg = svgRef.current;
-    
-    // Clear existing lines
     while (svg.firstChild) {
       svg.removeChild(svg.firstChild);
     }
-
     const question = test.questions[currentQuestion];
     if (question?.type !== 'matching') return;
-
     const state = matchingState[currentQuestion] || {};
     if (!state.matchedPairs || state.matchedPairs.length === 0) return;
-
     const leftItems = document.querySelectorAll('.matching-left-item');
     const rightItems = document.querySelectorAll('.matching-right-item');
-
     state.matchedPairs.forEach(pair => {
       const leftEl = Array.from(leftItems).find(el => el.textContent.trim() === pair.left);
       const rightEl = Array.from(rightItems).find(el => el.textContent.trim() === pair.right);
-
       if (leftEl && rightEl) {
         const leftRect = leftEl.getBoundingClientRect();
         const rightRect = rightEl.getBoundingClientRect();
         const svgRect = svg.getBoundingClientRect();
-
         const x1 = leftRect.right - svgRect.left;
         const y1 = leftRect.top - svgRect.top + leftRect.height / 2;
         const x2 = rightRect.left - svgRect.left;
         const y2 = rightRect.top - svgRect.top + rightRect.height / 2;
-
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', x1);
         line.setAttribute('y1', y1);
@@ -184,13 +210,11 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         line.setAttribute('stroke', pair.correct ? '#4caf50' : '#ef5350');
         line.setAttribute('stroke-width', '3');
         line.setAttribute('stroke-linecap', 'round');
-
         svg.appendChild(line);
       }
     });
   };
 
-  // Redraw lines when state changes
   useEffect(() => {
     const timer = setTimeout(() => {
       drawMatchingLines();
@@ -198,16 +222,13 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     return () => clearTimeout(timer);
   }, [matchingState, currentQuestion]);
 
-  // Initialize matching question shuffled items
   const initializeMatchingQuestion = (questionIndex) => {
     const question = test.questions[questionIndex];
     if (question?.type !== 'matching') return;
-    
     if (!matchingShuffled[questionIndex]) {
       const rightItems = shuffle((question.pairs || []).map(p => p.right));
       setMatchingShuffled(prev => ({ ...prev, [questionIndex]: rightItems }));
     }
-
     if (!matchingState[questionIndex]) {
       setMatchingState(prev => ({
         ...prev,
@@ -222,15 +243,10 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     }
   };
 
-  // Handle matching item click
   const handleMatchingClick = (questionIndex, itemValue, isLeftItem) => {
     const question = test.questions[questionIndex];
     const state = matchingState[questionIndex] || {};
-    
-    // If in error state, don't allow new clicks
     if (state.errorPair) return;
-
-    // If clicking the same item again, deselect it
     if (isLeftItem && state.activeLeft === itemValue) {
       setMatchingState(prev => ({
         ...prev,
@@ -238,7 +254,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
       }));
       return;
     }
-
     if (!isLeftItem && state.activeRight === itemValue) {
       setMatchingState(prev => ({
         ...prev,
@@ -246,8 +261,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
       }));
       return;
     }
-
-    // First selection
     if (isLeftItem && !state.activeLeft) {
       setMatchingState(prev => ({
         ...prev,
@@ -255,7 +268,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
       }));
       return;
     }
-
     if (!isLeftItem && !state.activeRight && !state.activeLeft) {
       setMatchingState(prev => ({
         ...prev,
@@ -263,18 +275,12 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
       }));
       return;
     }
-
-    // Second selection - check if match is correct
     if (!isLeftItem && state.activeLeft) {
       const rightValue = itemValue;
       const leftValue = state.activeLeft;
-
-      // Find the matching pair
       const matchingPair = (question.pairs || []).find(p => p.left === leftValue);
       const isCorrect = matchingPair && matchingPair.right === rightValue;
-
       if (isCorrect) {
-        // Correct match - mark as correct (disabled with green)
         const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: true }];
         setMatchingState(prev => ({
           ...prev,
@@ -286,14 +292,10 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
             correctCount: newMatched.length
           }
         }));
-
-        // Check if all pairs are matched
         if (newMatched.length === (question.pairs || []).length) {
-          // All matched - update answers
           handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length });
         }
       } else {
-        // Incorrect match - mark as incorrect (disabled with red) - cannot retry
         const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: false }];
         setMatchingState(prev => ({
           ...prev,
@@ -316,13 +318,17 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
     }));
   };
 
-  // Initialize matching question when it comes into view
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  };
+
   useEffect(() => {
     const question = test.questions[currentQuestion];
     if (question?.type === 'matching') {
       initializeMatchingQuestion(currentQuestion);
     } else if (question?.type === 'audio') {
-      // Initialize matching for sub-questions
       (question.subQuestions || []).forEach((subQ, subIndex) => {
         if (subQ.type === 'matching') {
           const subAnswerKey = `${currentQuestion}_${subIndex}`;
@@ -360,12 +366,75 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
   };
 
   const handleSubmitTest = async () => {
+    // Check if all questions are properly answered
+    const isAnswerValid = (question, questionIndex) => {
+      const answer = answers[questionIndex];
+      
+      // No answer provided
+      if (answer === undefined || answer === null) {
+        return false;
+      }
+      
+      // Text answer - check if not empty
+      if (question.type === 'text') {
+        return answer.toString().trim() !== '';
+      }
+      
+      // Wordbank - check if not empty
+      if (question.type === 'wordbank') {
+        if (typeof answer !== 'object' || Object.keys(answer).length === 0) {
+          return false;
+        }
+        // Check if all blanks have answers
+        return Object.values(answer).every(val => val && val.toString().trim() !== '');
+      }
+      
+      // Audio - check all sub-questions
+      if (question.type === 'audio') {
+        const subAnswers = answer.subAnswers || {};
+        return (question.subQuestions || []).every((subQ, subIndex) => {
+          const subAnswer = subAnswers[subIndex];
+          
+          if (subAnswer === undefined || subAnswer === null) {
+            return false;
+          }
+          
+          if (subQ.type === 'text') {
+            return subAnswer.toString().trim() !== '';
+          }
+          
+          if (subQ.type === 'wordbank') {
+            if (typeof subAnswer !== 'object' || Object.keys(subAnswer).length === 0) {
+              return false;
+            }
+            return Object.values(subAnswer).every(val => val && val.toString().trim() !== '');
+          }
+          
+          return true;
+        });
+      }
+      
+      // Multiple, truefalse, matching - presence is enough
+      return true;
+    };
+
+    // Get list of unanswered questions
+    const unansweredQuestions = [];
+    test.questions.forEach((question, index) => {
+      if (!isAnswerValid(question, index)) {
+        unansweredQuestions.push(index + 1);
+      }
+    });
+
+    if (unansweredQuestions.length > 0) {
+      const questionsList = unansweredQuestions.join(', ');
+      toast.warning(`${unansweredQuestions.length} ta savolga javob tanlanmagan yoki to'ldirilmagan: ${questionsList}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Calculate score
       const { score: testScore, maxScore } = testService.calculateScore(test.questions, answers);
-      
-      // Save answers
       const result = await testService.saveAnswers({
         studentId: userData.uid,
         studentName: userData.displayName,
@@ -409,10 +478,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
               <p>{t('tests.testCompletedSuccessfully')}</p>
             </div>
           </div>
-          <button 
-            className="btn btn-primary"
-            onClick={onComplete}
-          >
+          <button className="btn btn-primary" onClick={onComplete}>
             {t('common.close')}
           </button>
         </div>
@@ -426,7 +492,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         <div className="start-content">
           <h2>{test.title}</h2>
           <p className="test-description">{test.description}</p>
-          
           <div className="test-info">
             <div className="info-item">
               <span className="label">{t('tests.questionsCount')}:</span>
@@ -443,34 +508,40 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
               <span className="value">{test.questions.reduce((sum, q) => sum + (q.points || 1), 0)}</span>
             </div>
           </div>
-
-          <div className="start-warning">
-            <p>⚠️ {t('tests.startWarning')}</p>
-          </div>
-
-          <div className="start-actions">
-            <button className="btn btn-outline" onClick={onCancel}>
-              {t('common.cancel')}
-            </button>
-            <button 
-              className="btn btn-primary"
-              onClick={() => setTestStarted(true)}
-            >
-              {t('tests.startTest')}
-            </button>
-          </div>
+          {!readOnly && (
+            <>
+              <div className="start-warning">
+                <p>⚠️ {t('tests.startWarning')}</p>
+              </div>
+              <div className="start-actions">
+                <button className="btn btn-outline" onClick={onCancel}>
+                  {t('common.cancel')}
+                </button>
+                <button className="btn btn-primary" onClick={() => setTestStarted(true)}>
+                  {t('tests.startTest')}
+                </button>
+              </div>
+            </>
+          )}
+          {readOnly && (
+            <div className="start-actions">
+              <button className="btn btn-outline" onClick={onCancel}>
+                {t('common.close')}
+              </button>
+              <button className="btn btn-primary" onClick={() => setTestStarted(true)}>
+                {t('student.tests.viewQuestions')}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   const question = test.questions[currentQuestion];
-  const isAnswered = answers[currentQuestion] !== undefined;
-  
 
   return (
     <div className="test-taker">
-      {/* Header */}
       <div className="test-taker-header">
         <div className="test-progress">
           <span>{t('tests.question')} {currentQuestion + 1} / {test.questions.length}</span>
@@ -490,402 +561,413 @@ const StudentTestTaker = ({ test, onComplete, onCancel }) => {
         )}
       </div>
 
-      {/* Question */}
       <div className="test-taker-content">
-        {question.type === 'audio' ? (
-          <>
-            <div className="question-section">
-              {question.text && <h2>{question.text}</h2>}
-              <div className="audio-question-player">
-                <AudioPlayer audioUrl={question.audioUrl} />
-              </div>
-            </div>
-
-            {/* Sub-questions */}
-            <div className="sub-questions-section">
-              <h3>{t('tests.questions')}:</h3>
-              {(question.subQuestions || []).map((subQ, subIndex) => {
-                const subAnswerKey = `${currentQuestion}_${subIndex}`;
-                const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex];
-                
-                return (
-                  <div key={subIndex} className="sub-question-wrapper">
-                    <div className="sub-question-title">
-                      <h4>{t('tests.question')} {subIndex + 1}</h4>
-                    </div>
-                    <div className="sub-question-text">
-                      <p>{subQ.text}</p>
-                    </div>
-
-                    {/* Sub-question answers */}
-                    {subQ.type === 'multiple' && (
-                      <div className="answers-section">
-                        {subQ.options.map((option, optIndex) => (
-                          <label key={optIndex} className="answer-option">
-                            <input
-                              type="radio"
-                              name={`sub-answer-${currentQuestion}-${subIndex}`}
-                              value={optIndex}
-                              checked={subAnswer === optIndex}
-                              onChange={(e) => {
-                                const newSubAnswers = {
-                                  ...(answers[currentQuestion]?.subAnswers || {}),
-                                  [subIndex]: parseInt(e.target.value)
-                                };
-                                handleAnswerChange({
-                                  type: 'audio',
-                                  subAnswers: newSubAnswers
-                                });
-                              }}
-                            />
-                            <span className="option-text">{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-
-                    {subQ.type === 'text' && (
-                      <div className="text-answer-section">
-                        <textarea
-                          value={subAnswer || ''}
-                          onChange={(e) => {
-                            const newSubAnswers = {
-                              ...(answers[currentQuestion]?.subAnswers || {}),
-                              [subIndex]: e.target.value
-                            };
-                            handleAnswerChange({
-                              type: 'audio',
-                              subAnswers: newSubAnswers
-                            });
-                          }}
-                          placeholder={t('tests.writeAnswer')}
-                          className="text-answer"
-                          rows="3"
-                        />
-                      </div>
-                    )}
-
-                    {subQ.type === 'truefalse' && (
-                      <div className="answers-section">
-                        {[
-                          { label: 'True', value: true },
-                          { label: 'False', value: false }
-                        ].map((opt, i) => (
-                          <label
-                            key={i}
-                            className={`answer-option ${subAnswer === opt.value ? 'selected' : ''}`}
-                          >
-                            <input
-                              type="radio"
-                              name={`sub-tf-${currentQuestion}-${subIndex}`}
-                              value={opt.value}
-                              checked={subAnswer === opt.value}
-                              onChange={() => {
-                                const newSubAnswers = {
-                                  ...(answers[currentQuestion]?.subAnswers || {}),
-                                  [subIndex]: opt.value
-                                };
-                                handleAnswerChange({
-                                  type: 'audio',
-                                  subAnswers: newSubAnswers
-                                });
-                              }}
-                            />
-                            <span className="option-text">{opt.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-
-                    {subQ.type === 'wordbank' && (
+        <div className="current-question-display">
+          {question && (
+            <>
+              {question.sectionId && (
+                <div className="question-section-context">
+                  {(() => {
+                    const section = (test.sections || []).find(s => s.id === question.sectionId);
+                    return section ? (
                       <>
-                        <div className="sub-question-instruction">
-                          <p>Bo'shliqlarni mos so'zlar bilan to'ldiring.</p>
-                        </div>
-                        <div className="answers-section">
-                          <div 
-                            ref={(el) => {
-                              if (el) {
-                                subQuestionClozeRefs.current[`${currentQuestion}_${subIndex}`] = el;
-                              }
-                            }}
-                            className="cloze-student"
-                          />
-                        </div>
-                        {/* Word Bank for sub-question */}
-                        {subQ.bank && subQ.bank.length > 0 && (
-                          <div className="word-bank-section">
-                            <h4 className="word-bank-title">Kalit so'zlar</h4>
-                            <div className="word-bank-list">
-                              {subQ.bank.map((word, wordIndex) => (
-                                <span key={wordIndex} className="word-bank-item">{word}</span>
-                              ))}
-                            </div>
+                        {/* <h3 className="context-section-title">{section.title}</h3> */}
+                        {section.passage && (
+                          <div className="context-passage">
+                            <p>{section.passage}</p>
                           </div>
                         )}
                       </>
-                    )}
-
-                    {subQ.type === 'matching' && (
-                      <div className="answers-section matching-answers">
-                        <div className="matching-left-items">
-                          <div className="matching-column-label">So'zlar</div>
-                          {(subQ.pairs || []).map((pair, idx) => {
-                            const state = matchingState[subAnswerKey] || {};
-                            const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
-                            const isMatched = !!matchedPair;
-                            const isCorrect = matchedPair?.correct;
-                            const isActive = state.activeLeft === pair.left && !isMatched;
-                            
-                            return (
-                              <div
-                                key={idx}
-                                className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                onClick={() => !isMatched && handleMatchingClick(subAnswerKey, pair.left, true)}
-                              >
-                                {pair.left}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="matching-connections">
-                          <div className="matching-column-label">Tarjimalar</div>
-                          {(matchingShuffled[subAnswerKey] || []).map((rightItem, idx) => {
-                            const state = matchingState[subAnswerKey] || {};
-                            const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
-                            const isMatched = !!matchedPair;
-                            const isCorrect = matchedPair?.correct;
-                            const isActive = state.activeRight === rightItem && !isMatched;
-                            
-                            return (
-                              <div
-                                key={idx}
-                                className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                onClick={() => !isMatched && state.activeLeft && handleMatchingClick(subAnswerKey, rightItem, false)}
-                              >
-                                {rightItem}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <>
-            {question.type === 'wordbank' ? (
-              <>
-                <div className="question-section">
-                  <h2>Bo'shliqlarni mos so'zlar bilan to'ldiring.</h2>
+                    ) : null;
+                  })()}
                 </div>
+              )}
 
-                {/* Answers */}
-                <div className="answers-section">
-                  <div 
-                    ref={(el) => {
-                      if (el) {
-                        clozeRef.current = el;
-                        // Immediately render cloze content when ref is attached
-                        if (question.type === 'wordbank') {
-                          const builtHtml = buildClozeHtml(question, answers[currentQuestion] || {});
-                          el.innerHTML = builtHtml;
-                          // Attach change listeners
-                          const sels = el.querySelectorAll('select[data-blank-id]');
-                          sels.forEach(sel => {
-                            sel.addEventListener('change', (e) => {
-                              const id = e.target.getAttribute('data-blank-id');
-                              setAnswers(prev => ({ ...prev, [currentQuestion]: { ...(prev[currentQuestion] || {}), [id]: e.target.value } }));
-                            });
-                          });
-                        }
-                      }
-                    }}
-                    className="cloze-student" 
-                  />
-                </div>
-
-                {/* Word Bank */}
-                {question.bank && question.bank.length > 0 && (
-                  <div className="word-bank-section">
-                    <h3 className="word-bank-title">Kalit so'zlar</h3>
-                    <div className="word-bank-list">
-                      {question.bank.map((word, index) => (
-                        <span key={index} className="word-bank-item">{word}</span>
-                      ))}
+              {question.type === 'audio' ? (
+                <>
+                  <div className="question-section">
+                    {question.text && <h2>{question.text}</h2>}
+                    <div className="audio-question-player">
+                      <AudioPlayer audioUrl={question.audioUrl} />
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <>
-        <div className="question-section">
-          <h2>{question.text}</h2>
-        </div>
+                  <div className="sub-questions-section">
+                    <h3>{t('teacher.tests.questions')}:</h3>
+                    {(question.subQuestions || []).map((subQ, subIndex) => {
+                      const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex];
+                      return (
+                        <div key={subIndex} className="sub-question-wrapper">
+                          <div className="sub-question-title">
+                            <h4>{t('tests.question')} {subIndex + 1}</h4>
+                          </div>
+                          <div className="sub-question-text">
+                            <p>{subQ.text}</p>
+                          </div>
 
-        {/* Answers */}
-        {question.type === 'multiple' && (
-          <div className="answers-section">
-            {question.options.map((option, index) => (
-              <label key={index} className="answer-option">
-                <input
-                  type="radio"
-                  name="answer"
-                  value={index}
-                  checked={answers[currentQuestion] === index}
-                  onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
-                />
-                <span className="option-text">{option}</span>
-              </label>
-            ))}
-          </div>
-        )}
+                          {subQ.type === 'multiple' && (
+                            <div className="answers-section">
+                              {subQ.options.map((option, optIndex) => (
+                                <label key={optIndex} className="answer-option">
+                                  <input
+                                    type="radio"
+                                    name={`sub-answer-${currentQuestion}-${subIndex}`}
+                                    value={optIndex}
+                                    checked={subAnswer === optIndex}
+                                    onChange={(e) => {
+                                      const newSubAnswers = {
+                                        ...(answers[currentQuestion]?.subAnswers || {}),
+                                        [subIndex]: parseInt(e.target.value)
+                                      };
+                                      handleAnswerChange({
+                                        type: 'audio',
+                                        subAnswers: newSubAnswers
+                                      });
+                                    }}
+                                  />
+                                  <span className="option-text">{option}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
 
-        {question.type === 'text' && (
-          <div className="text-answer-section">
-            <textarea
-              value={answers[currentQuestion] || ''}
-              onChange={(e) => handleAnswerChange(e.target.value)}
-              placeholder={t('tests.writeAnswer')}
-              className="text-answer"
-              rows="4"
-            />
-          </div>
-        )}
-              </>
-        )}
+                          {subQ.type === 'text' && (
+                            <div className="text-answer-section">
+                              <textarea
+                                value={subAnswer || ''}
+                                onChange={(e) => {
+                                  const newSubAnswers = {
+                                    ...(answers[currentQuestion]?.subAnswers || {}),
+                                    [subIndex]: e.target.value
+                                  };
+                                  handleAnswerChange({
+                                    type: 'audio',
+                                    subAnswers: newSubAnswers
+                                  });
+                                }}
+                                onPaste={handlePaste}
+                                placeholder={t('tests.writeAnswer')}
+                                className="text-answer"
+                                rows="3"
+                              />
+                            </div>
+                          )}
 
-        {question.type === 'truefalse' && (
-          <div className="answers-section">
-            {[
-              { label: t('tests.true'), value: true },
-              { label: t('tests.false'), value: false }
-            ].map((opt, i) => (
-              <label
-                key={i}
-                className={`answer-option ${answers[currentQuestion] === opt.value ? 'selected' : ''}`}
-              >
-                <input
-                  type="radio"
-                  name="answer"
-                  value={opt.value}
-                  checked={answers[currentQuestion] === opt.value}
-                  onChange={() => handleAnswerChange(opt.value)}
-                />
-                <span className="option-text">{opt.label}</span>
-              </label>
-            ))}
-          </div>
-        )}
+                          {subQ.type === 'truefalse' && (
+                            <div className="answers-section truefalse-answers">
+                              {[
+                                { label: 'True', value: true },
+                                { label: 'False', value: false }
+                              ].map((opt, i) => (
+                                <label key={i} className={`tf-option ${subAnswer === opt.value ? 'selected' : ''}`}>
+                                  <input
+                                    type="radio"
+                                    name={`sub-tf-${currentQuestion}-${subIndex}`}
+                                    value={opt.value}
+                                    checked={subAnswer === opt.value}
+                                    onChange={() => {
+                                      const newSubAnswers = {
+                                        ...(answers[currentQuestion]?.subAnswers || {}),
+                                        [subIndex]: opt.value
+                                      };
+                                      handleAnswerChange({
+                                        type: 'audio',
+                                        subAnswers: newSubAnswers
+                                      });
+                                    }}
+                                  />
+                                  <span className="tf-label">{opt.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
 
-        {question.type === 'matching' && (
-          <div className="answers-section matching-answers">
-            <div className="matching-left-items">
-              <div className="matching-column-label">So'zlar</div>
-              {(question.pairs || []).map((pair, idx) => {
-                const state = matchingState[currentQuestion] || {};
-                const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
-                const isMatched = !!matchedPair;
-                const isCorrect = matchedPair?.correct;
-                const isActive = state.activeLeft === pair.left && !isMatched;
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                    onClick={() => !isMatched && handleMatchingClick(currentQuestion, pair.left, true)}
-                  >
-                    {pair.left}
+                          {subQ.type === 'wordbank' && (
+                            <>
+                              <div className="sub-question-instruction">
+                                <p>Bo'shliqlarni mos so'zlar bilan to'ldiring.</p>
+                              </div>
+                              <div className="answers-section">
+                                <div 
+                                  ref={(el) => {
+                                    if (el) subQuestionClozeRefs.current[`${currentQuestion}_${subIndex}`] = el;
+                                  }}
+                                  className="cloze-student"
+                                />
+                              </div>
+                              {subQ.bank && subQ.bank.length > 0 && (
+                                <div className="word-bank-section">
+                                  <h4 className="word-bank-title">{t('tests.keywords')}</h4>
+                                  <div className="word-bank-list">
+                                    {subQ.bank.map((word, wordIndex) => (
+                                      <span key={wordIndex} className="word-bank-item">{word}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {subQ.type === 'matching' && (
+                            <div className="answers-section matching-answers">
+                              <div className="matching-left-items">
+                                <div className="matching-column-label">So'zlar</div>
+                                {(subQ.pairs || []).map((pair, idx) => {
+                                  const state = matchingState[`${currentQuestion}_${subIndex}`] || {};
+                                  const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
+                                  const isMatched = !!matchedPair;
+                                  const isCorrect = matchedPair?.correct;
+                                  const isActive = state.activeLeft === pair.left && !isMatched;
+                                  
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                      onClick={() => !isMatched && handleMatchingClick(`${currentQuestion}_${subIndex}`, pair.left, true)}
+                                    >
+                                      {pair.left}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="matching-connections">
+                                <div className="matching-column-label">Tarjimalar</div>
+                                {(matchingShuffled[`${currentQuestion}_${subIndex}`] || []).map((rightItem, idx) => {
+                                  const state = matchingState[`${currentQuestion}_${subIndex}`] || {};
+                                  const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
+                                  const isMatched = !!matchedPair;
+                                  const isCorrect = matchedPair?.correct;
+                                  const isActive = state.activeRight === rightItem && !isMatched;
+                                  
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                      onClick={() => !isMatched && state.activeLeft && handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
+                                    >
+                                      {rightItem}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            <svg
-              ref={svgRef}
-              className="matching-lines-svg"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                pointerEvents: 'none'
-              }}
-            />
-            <div className="matching-connections">
-              <div className="matching-column-label">Tarjimalar</div>
-              {(matchingShuffled[currentQuestion] || []).map((rightItem, idx) => {
-                const state = matchingState[currentQuestion] || {};
-                const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
-                const isMatched = !!matchedPair;
-                const isCorrect = matchedPair?.correct;
-                const isActive = state.activeRight === rightItem && !isMatched;
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                    onClick={() => !isMatched && state.activeLeft && handleMatchingClick(currentQuestion, rightItem, false)}
-                  >
-                    {rightItem}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-          </>
-        )}
-      </div>
+                </>
+              ) : (
+                <>
+                  {question.type === 'wordbank' ? (
+                    <>
+                      <div className="question-section">
+                        <h2>{t('tests.fillBlanks')}</h2>
+                      </div>
+                      <div className="answers-section">
+                        <div 
+                          ref={(el) => {
+                            if (el) clozeRef.current = el;
+                          }}
+                          className="cloze-student" 
+                        />
+                      </div>
+                      {question.bank && question.bank.length > 0 && (
+                        <div className="word-bank-section">
+                          <h3 className="word-bank-title">{t('tests.keywords')}</h3>
+                          <div className="word-bank-list">
+                            {question.bank.map((word, index) => (
+                              <span key={index} className="word-bank-item">{word}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="question-section">
+                        <h2>{question.text}</h2>
+                      </div>
 
-      {/* Navigation */}
-      <div className="test-taker-footer">
-        <div className="navigation-buttons">
-          <button
-            className="btn btn-outline"
-            onClick={handlePreviousQuestion}
-            disabled={currentQuestion === 0}
-          >
-            {t('common.previous')}
-          </button>
+                      {question.type === 'multiple' && (
+                        <div className="answers-section">
+                          {question.options.map((option, index) => (
+                            <label key={index} className="answer-option" style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
+                              <input
+                                type="radio"
+                                name="answer"
+                                value={index}
+                                checked={answers[currentQuestion] === index}
+                                disabled={readOnly}
+                                onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
+                              />
+                              <span className="option-text">{option}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
 
-          {currentQuestion < test.questions.length - 1 ? (
-            <button
-              className="btn btn-secondary"
-              onClick={handleNextQuestion}
-            >
-              {t('common.next')}
-              <FiChevronRight />
-            </button>
-          ) : (
-            <button
-              className="btn btn-success"
-              onClick={handleSubmitTest}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? t('tests.submitting') : t('tests.submitTest')}
-            </button>
+                      {question.type === 'text' && (
+                        <div className="text-answer-section">
+                          <textarea
+                            value={answers[currentQuestion] || ''}
+                            onChange={(e) => handleAnswerChange(e.target.value)}
+                            onPaste={handlePaste}
+                            placeholder={t('tests.writeAnswer')}
+                            className="text-answer"
+                            rows="4"
+                            disabled={readOnly}
+                            readOnly={readOnly}
+                          />
+                        </div>
+                      )}
+
+                      {question.type === 'truefalse' && (
+                        <div className="answers-section truefalse-answers">
+                          {[
+                            { label: 'True', value: true },
+                            { label: 'False', value: false }
+                          ].map((opt, i) => (
+                            <label key={i} className={`tf-option ${answers[currentQuestion] === opt.value ? 'selected' : ''}`} style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
+                              <input
+                                type="radio"
+                                name="answer"
+                                value={opt.value}
+                                checked={answers[currentQuestion] === opt.value}
+                                disabled={readOnly}
+                                onChange={() => handleAnswerChange(opt.value)}
+                              />
+                              <span className="tf-label">{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {question.type === 'matching' && (
+                        <div className="answers-section matching-answers">
+                          <div className="matching-left-items">
+                            <div className="matching-column-label">So'zlar</div>
+                            {(question.pairs || []).map((pair, idx) => {
+                              const state = matchingState[currentQuestion] || {};
+                              const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
+                              const isMatched = !!matchedPair;
+                              const isCorrect = matchedPair?.correct;
+                              const isActive = state.activeLeft === pair.left && !isMatched;
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => !isMatched && handleMatchingClick(currentQuestion, pair.left, true)}
+                                >
+                                  {pair.left}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <svg
+                            ref={svgRef}
+                            className="matching-lines-svg"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              pointerEvents: 'none'
+                            }}
+                          />
+                          <div className="matching-connections">
+                            <div className="matching-column-label">Tarjimalar</div>
+                            {(matchingShuffled[currentQuestion] || []).map((rightItem, idx) => {
+                              const state = matchingState[currentQuestion] || {};
+                              const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
+                              const isMatched = !!matchedPair;
+                              const isCorrect = matchedPair?.correct;
+                              const isActive = state.activeRight === rightItem && !isMatched;
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => !isMatched && state.activeLeft && handleMatchingClick(currentQuestion, rightItem, false)}
+                                >
+                                  {rightItem}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
-
-        {/* Question Indicators */}
-        <div className="question-indicators">
-          {test.questions.map((_, index) => (
-            <button
-              key={index}
-              className={`indicator ${
-                index === currentQuestion ? 'active' : 
-                answers[index] !== undefined ? 'answered' : ''
-              }`}
-              onClick={() => setCurrentQuestion(index)}
-              title={`Savol ${index + 1}`}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
       </div>
+
+      {!readOnly && (
+        <div className="test-taker-footer">
+          <div className="navigation-buttons">
+            <button
+              className="btn btn-outline"
+              onClick={handlePreviousQuestion}
+              disabled={currentQuestion === 0}
+            >
+              {t('common.previous')}
+            </button>
+
+            {currentQuestion < test.questions.length - 1 ? (
+              <button className="btn btn-secondary" onClick={handleNextQuestion}>
+                {t('common.next')}
+                <FiChevronRight />
+              </button>
+            ) : (
+              <button
+                className="btn btn-success"
+                onClick={handleSubmitTest}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? t('tests.submitting') : t('tests.submitTest')}
+              </button>
+            )}
+          </div>
+
+          <div className="question-indicators">
+            {test.questions.map((_, index) => (
+              <button
+                key={index}
+                className={`indicator ${
+                  index === currentQuestion ? 'active' : 
+                  answers[index] !== undefined ? 'answered' : ''
+                }`}
+                onClick={() => setCurrentQuestion(index)}
+                title={`Savol ${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {readOnly && (
+        <div className="test-taker-footer">
+          <button className="btn btn-outline" onClick={onCancel}>
+            {t('common.close')}
+          </button>
+          <div className="question-indicators">
+            {test.questions.map((_, index) => (
+              <button
+                key={index}
+                className={`indicator ${index === currentQuestion ? 'active' : ''}`}
+                onClick={() => setCurrentQuestion(index)}
+                title={`Savol ${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

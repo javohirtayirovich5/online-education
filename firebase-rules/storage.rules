@@ -129,6 +129,22 @@ service firebase.storage {
     }
 
     // ============================================
+    // COLLECTION FILES (Preview images va ichidagi fayllar)
+    // ============================================
+    match /collections/{teacherId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidImage();
+      allow delete: if isAuthenticated();
+    }
+
+    match /collection_files/{collectionId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                      (isValidImage() || isValidVideo() || isValidDocument() || isValidAudio());
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
     // TEST AUDIO FILES
     // ============================================
     // Validate audio file

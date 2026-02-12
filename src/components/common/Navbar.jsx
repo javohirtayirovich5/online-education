@@ -113,7 +113,7 @@ const Navbar = memo(({ toggleSidebar, isSidebarOpen }) => {
             <div className="brand-icon">
               <img src="/favicon.png" alt="Technical English" className="brand-logo" />
             </div>
-            <span className="brand-text">Technical English</span>
+            <span className="brand-text">Technical English Hub</span>
           </Link>
         </div>
 

@@ -128,7 +128,7 @@
     "groups": "Groups",
     "attendance": "Attendance",
     "grades": "Grades",
-    "courseResources": "Course Resources",
+    "Resources": "Resources",
     "myLessons": "My Lessons",
     "myCourses": "My Courses",
     "liveLessons": "Live Lessons",
@@ -282,7 +282,7 @@
     "changeSearchCriteria": "Change search criteria",
     "views": "Views",
     "comments": "Comments",
-    "createdAt": "Created",
+    "createdAt": "Created at",
     "updatedAt": "Updated",
     "courseTitle": "Course Title",
     "courseTitleExample": "Example: Mathematics Basics",
@@ -430,7 +430,11 @@
     "questionTypeTrueFalse": "True / False",
     "questionTypeWordBank": "Fill in the Blank",
     "questionTypeMatching": "Matching",
-    "questionTypeAudio": "Audio Question"
+    "questionTypeAudio": "Audio Question",
+    "fillBlanks": "Fill in the blanks with suitable words.",
+    "keywords": "Key Words",
+    "notLinked": "Not linked",
+    "correctAnswer": "Correct Answer"
   },
   "courseDetail": {
     "commentAdded": "Comment added",
@@ -515,6 +519,9 @@
     },
     "tests": {
       "title": "Tests",
+      "myTests": "My Tests",
+      "allTests": "All Tests",
+      "allTeachers": "All Teachers",
       "newTest": "New Test",
       "searchTests": "Search Tests",
       "noTests": "No tests created yet",
@@ -533,7 +540,15 @@
       "testError": "Error saving test",
       "questionsFrom": "questions",
       "forAll": "For All",
-      "deleteTestConfirm": "test? This action cannot be undone."
+      "deleteTestConfirm": "test? This action cannot be undone.",
+      "contextTexts": "Context Texts (optional)",
+      "addText": "Add Text",
+      "createContextTexts": "Create context texts and link them to relevant questions.",
+      "sectionName": "Section Name",
+      "sectionNamePlaceholder": "e.g.: First section, reading, information...",
+      "deleteSection": "Delete Section",
+      "contextText": "Text / Passage (optional)",
+      "contextTextPlaceholder": "Text, paragraph or context related to this section..."
     }
   },
   "student": {
@@ -560,7 +575,8 @@
       "lessonType": "Lesson Type",
       "staff": "Staff",
       "files": "Files",
-      "created": "Created"
+      "created": "Created",
+      "collections": "Collections"
     },
     "tests": {
       "title": "Tests",
@@ -568,6 +584,7 @@
       "completedTests": "Completed Tests",
       "noTests": "No tests yet",
       "startTest": "Start Test",
+      "viewQuestions": "View Questions",
       "viewResults": "View Results",
       "score": "Score",
       "completed": "Completed"
@@ -595,6 +612,11 @@
     },
     "analytics": {
       "title": "Analytics"
+    }
+    ,
+    "resources": {
+      "permissionDenied": "Insufficient permissions to read collections. Sign in with an admin account or update Firestore rules.",
+      "permissionDeniedHelp": "If you manage Firestore rules, ensure resourceCollections is readable by admin users. See Firebase console for details."
     }
   },
   "liveSessions": {

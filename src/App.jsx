@@ -39,6 +39,8 @@ const Users = lazy(() => import('./pages/admin/Users'));
 const Analytics = lazy(() => import('./pages/admin/Analytics'));
 const Structure = lazy(() => import('./pages/admin/Structure'));
 const GroupDetail = lazy(() => import('./pages/admin/GroupDetail'));
+const AdminTests = lazy(() => import('./pages/admin/AdminTests'));
+const AdminResources = lazy(() => import('./pages/admin/AdminResources'));
 
 // Teacher Pages (lazy loaded)
 const TeacherAttendance = lazy(() => import('./pages/teacher/TeacherAttendance'));
@@ -108,7 +110,7 @@ function AppLayout() {
 }
 
 // Google OAuth Client ID - Environment variable or default
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1087873877448-vn95loshinp5kggnselsfk1g8chlfiuq.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // Lazy Route Wrapper Component
 const LazyRoute = ({ children }) => (
@@ -179,6 +181,8 @@ function App() {
                     <Route path="/analytics" element={<LazyRoute><Analytics /></LazyRoute>} />
                     <Route path="/structure" element={<LazyRoute><Structure /></LazyRoute>} />
                     <Route path="/structure/groups/:groupId" element={<LazyRoute><GroupDetail /></LazyRoute>} />
+                    <Route path="/admin/tests" element={<LazyRoute><AdminTests /></LazyRoute>} />
+                    <Route path="/admin/resources" element={<LazyRoute><AdminResources /></LazyRoute>} />
                   </Route>
 
                   {/* Teacher Only Routes */}

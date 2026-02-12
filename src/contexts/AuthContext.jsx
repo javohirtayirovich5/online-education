@@ -63,6 +63,15 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  const refreshUserData = async () => {
+    if (!currentUser) return { success: false, error: 'No user logged in' };
+    const result = await authService.getUserData(currentUser.uid);
+    if (result.success) {
+      setUserData(result.data);
+    }
+    return result;
+  };
+
   const value = {
     currentUser,
     userData,
@@ -72,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     resetPassword,
     updateProfile,
+    refreshUserData,
     isAdmin: userData?.role === 'admin',
     isTeacher: userData?.role === 'teacher',
     isStudent: userData?.role === 'student'

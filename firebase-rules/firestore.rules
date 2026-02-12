@@ -389,6 +389,33 @@ service cloud.firestore {
     }
 
     // ============================================
+    // RESOURCE COLLECTIONS
+    // ============================================
+    match /resourceCollections/{collectionId} {
+      // Admins can read all collections; authenticated users can read public
+      // collections or collections for their group
+      allow read: if isAdmin() || (isAuthenticated() && 
+                     (resource.data.isPublic == true || 
+                      (resource.data.groupId == null) ||
+                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                       (request.auth.uid == resource.data.teacherId ||
+                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.groupId == resource.data.groupId))));
+      
+      // Teachers and admins can create collections
+      allow create: if isTeacherOrAdmin() && 
+                       isApproved() &&
+                       hasRequiredFields(['teacherId', 'title', 'files', 'createdAt']);
+      
+      // Only creator or admin can update
+      allow update: if isAdmin() || 
+                       (isTeacher() && isApproved() && resource.data.teacherId == request.auth.uid);
+      
+      // Only creator or admin can delete
+      allow delete: if isAdmin() || 
+                       (isTeacher() && isApproved() && resource.data.teacherId == request.auth.uid);
+    }
+
+    // ============================================
     // DELETED EMAILS COLLECTION
     // ============================================
     match /deletedEmails/{emailId} {

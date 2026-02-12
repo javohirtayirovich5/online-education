@@ -76,14 +76,14 @@ const Landing = () => {
           el: vantaRef.current,
           mouseControls: true,
           touchControls: true,
-          gyroControls: false,
+          gyroControls: true,
           minHeight: 200.00,
           minWidth: 200.00,
           scale: 1.00,
           scaleMobile: 1.00,
           backgroundColor: isDarkMode ? 0x111827 : 0xffffff,
           birdSize: 1.20,
-          quantity: 4.00,
+          quantity: 1.00,
           separation: 40
         });
       }

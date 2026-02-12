@@ -180,7 +180,11 @@
     "submitting": "Jo'natilmoqda...",
     "testCompleted": "Test yakunlandi!",
     "earnedScore": "To'plangan ball",
-    "testCompletedSuccessfully": "Siz testni muvaffaqiyatli yakunladingiz"
+    "testCompletedSuccessfully": "Siz testni muvaffaqiyatli yakunladingiz",
+    "fillBlanks": "Bo'shliqlarni mos so'zlar bilan to'ldiring.",
+    "keywords": "Kalit so'zlar",
+    "notLinked": "Biriktirmagan",
+    "correctAnswer": "To'g'ri javob"
   },
   "sidebar": {
     "dashboard": "Asosiy",
@@ -191,7 +195,7 @@
     "groups": "Guruhlar",
     "attendance": "Davomat",
     "grades": "Baholar",
-    "courseResources": "Fan resurslari",
+    "Resources": "Resurslar",
     "myLessons": "Mening darslarim",
     "myCourses": "Mening kurslarim",
     "liveLessons": "Jonli darslar",
@@ -345,7 +349,7 @@
     "changeSearchCriteria": "Qidiruv shartlarini o'zgartiring",
     "views": "Ko'rishlar",
     "comments": "Izohlar",
-    "createdAt": "Yaratilgan",
+    "createdAt": "Yaratilgan vaqti",
     "updatedAt": "Yangilangan",
     "courseTitle": "Kurs nomi",
     "courseTitleExample": "Masalan: Matematika asoslari",
@@ -515,6 +519,9 @@
     },
     "tests": {
       "title": "Testlar",
+      "myTests": "Mening testlarim",
+      "allTests": "Barcha testlar",
+      "allTeachers": "Barcha o'qituvchilar",
       "newTest": "Yangi test",
       "searchTests": "Test qidirish",
       "noTests": "Hali testlar yaratilmagan",
@@ -533,7 +540,16 @@
       "testError": "Testni saqlashda xatolik",
       "questionsFrom": "savoldan iborat",
       "forAll": "Hamma uchun",
-      "deleteTestConfirm": "testini o'chirmoqchisiz? Bu amalni qaytarib bo'lmaydi."
+      "deleteTestConfirm": "testini o'chirmoqchisiz? Bu amalni qaytarib bo'lmaydi.",
+      "section": "Bo'lim",
+      "contextTexts": "Kontekst Matnlar (ixtiyoriy)",
+      "addText": "Matn qo'shish",
+      "createContextTexts": "Kontekst matnlar yarating va ularni mos savollarga biriktiring.",
+      "sectionName": "Bo'lim nomi",
+      "sectionNamePlaceholder": "Masalan: Birinchi bo'lim, o'qish, ma'lumot...",
+      "deleteSection": "Bo'limni o'chirish",
+      "contextText": "Matn / Passage (ixtiyoriy)",
+      "contextTextPlaceholder": "Bu bo'limga aloqador matn, paragraf yoki kontekst..."
     }
   },
   "student": {
@@ -560,7 +576,8 @@
       "lessonType": "Mashg'ulot",
       "staff": "Xodim",
       "files": "Fayllar",
-      "created": "Yaratilgan"
+      "created": "Yaratilgan",
+      "collections": "To'plamlar"
     },
     "tests": {
       "title": "Testlar",
@@ -568,6 +585,7 @@
       "completedTests": "Bajarilgan testlar",
       "noTests": "Hali testlar yo'q",
       "startTest": "Testni boshlash",
+      "viewQuestions": "Savollarni ko'rish",
       "viewResults": "Natijalarni ko'rish",
       "score": "Ball",
       "completed": "Bajarildi"
@@ -595,6 +613,11 @@
     },
     "analytics": {
       "title": "Statistika"
+    }
+    ,
+    "resources": {
+      "permissionDenied": "To'plamlarni o'qish uchun ruxsat yetarli emas. Admin hisobiga kirish yoki Firestore qoidalarini yangilash kerak.",
+      "permissionDeniedHelp": "Agar Firestore qoidalarini boshqarayotgan bo'lsangiz, resourceCollections hujjatlari admin foydalanuvchilar uchun o'qilishi mumkinligini ta'minlang. Batafsil ma'lumot uchun Firebase konsoliga qarang."
     }
   },
   "liveSessions": {

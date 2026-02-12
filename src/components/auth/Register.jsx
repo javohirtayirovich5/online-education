@@ -482,9 +482,6 @@ const Register = () => {
               </h3>
               
               <div className="form-group">
-                <label className="form-label">
-                  {t('auth.teachingSubjects')} <span className="required">*</span>
-                </label>
                 {subjects.length === 0 ? (
                   <div className="form-hint warning">
                     {t('auth.noSubjectsCreated')}

@@ -26,30 +26,39 @@ export const testService = {
         status: 'active'
       });
 
-      // Send notifications to students in the group
-      if (testData.groupId) {
+      // Send notifications to students in the group(s)
+      const targetGroupIds = Array.isArray(testData.groupIds) && testData.groupIds.length
+        ? testData.groupIds
+        : (testData.groupId ? [testData.groupId] : []);
+
+      if (targetGroupIds.length) {
         try {
           const groupQuery = query(
             collection(db, 'groups'),
-            where('id', '==', testData.groupId)
+            where('id', 'in', targetGroupIds.slice(0, 10))
           );
           const groupSnapshot = await getDocs(groupQuery);
           
-          if (!groupSnapshot.empty) {
-            const groupData = groupSnapshot.docs[0].data();
+          const notifiedStudents = new Set();
+
+          groupSnapshot.forEach(groupDoc => {
+            const groupData = groupDoc.data();
             const studentIds = groupData.students || [];
             
-            // Create notification for each student
-            for (const studentId of studentIds) {
-              await notificationService.createNotification({
-                userId: studentId,
-                type: 'test_created',
-                title: 'Yangi test',
-                message: `"${testData.title}" testini topshirish uchun tayyorlaning`,
-                relatedId: docRef.id,
-                relatedType: 'test'
-              });
-            }
+            studentIds.forEach(studentId => {
+              notifiedStudents.add(studentId);
+            });
+          });
+
+          for (const studentId of notifiedStudents) {
+            await notificationService.createNotification({
+              userId: studentId,
+              type: 'test_created',
+              title: 'Yangi test',
+              message: `"${testData.title}" testini topshirish uchun tayyorlaning`,
+              relatedId: docRef.id,
+              relatedType: 'test'
+            });
           }
         } catch (notifError) {
           console.error('Error sending notifications:', notifError);
@@ -133,8 +142,13 @@ export const testService = {
         if (test.visibleFor === 'all') {
           return true;
         }
-        if (test.visibleFor === 'group' && test.groupId === studentGroupId) {
-          return true;
+        if (test.visibleFor === 'group') {
+          if (test.groupId === studentGroupId) {
+            return true;
+          }
+          if (Array.isArray(test.groupIds) && test.groupIds.includes(studentGroupId)) {
+            return true;
+          }
         }
         return false;
       });

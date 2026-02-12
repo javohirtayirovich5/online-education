@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { groupService } from '../../services/groupService';
 import { resourceService } from '../../services/resourceService';
+import { collectionService } from '../../services/collectionService';
 import { 
   FiFile,
   FiDownload,
@@ -13,6 +14,8 @@ import {
   FiArrowLeft
 } from 'react-icons/fi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import CollectionCard from '../../components/common/CollectionCard';
+import CollectionDetail from '../../components/common/CollectionDetail';
 import './StudentResources.css';
 
 const StudentResources = () => {
@@ -22,7 +25,11 @@ const StudentResources = () => {
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState([]);
   const [resources, setResources] = useState({}); // { [subjectId]: [resources] }
+  const [collections, setCollections] = useState({}); // { [subjectId]: [collections] }
   const [expandedSubjects, setExpandedSubjects] = useState({});
+  const [activeTab, setActiveTab] = useState('resources'); // 'resources' or 'collections'
+  const [selectedCollection, setSelectedCollection] = useState(null);
+  const [showCollectionDetail, setShowCollectionDetail] = useState(false);
 
   useEffect(() => {
     if (userData?.groupId) {
@@ -56,20 +63,32 @@ const StudentResources = () => {
         
         setSubjects(uniqueSubjects);
 
-        // Har bir fan uchun resurslarni yuklash
+        // Har bir fan uchun resurslar va to'plamlarni yuklash
         const resourcesData = {};
+        const collectionsData = {};
         for (const subject of uniqueSubjects) {
-          const result = await resourceService.getResourcesByGroupAndSubject(
+          const resourceResult = await resourceService.getResourcesByGroupAndSubject(
             userData.groupId,
             subject.id
           );
-          if (result.success) {
-            resourcesData[subject.id] = result.data;
+          if (resourceResult.success) {
+            resourcesData[subject.id] = resourceResult.data;
           } else {
             resourcesData[subject.id] = [];
           }
+
+          const collectionResult = await collectionService.getCollectionsByGroupAndSubject(
+            userData.groupId,
+            subject.id
+          );
+          if (collectionResult.success) {
+            collectionsData[subject.id] = collectionResult.data;
+          } else {
+            collectionsData[subject.id] = [];
+          }
         }
         setResources(resourcesData);
+        setCollections(collectionsData);
       }
     } catch (error) {
       console.error('Load data error:', error);
@@ -132,6 +151,25 @@ const StudentResources = () => {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="resources-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'resources' ? 'active' : ''}`}
+          onClick={() => setActiveTab('resources')}
+        >
+          <FiFile size={18} /> Resurslar
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'collections' ? 'active' : ''}`}
+          onClick={() => setActiveTab('collections')}
+        >
+          <FiBookOpen size={18} /> To'plamlar
+        </button>
+      </div>
+
+      {/* Resources Tab */}
+      {activeTab === 'resources' && (
+      <>
       {/* Subjects List */}
       {subjects.length === 0 ? (
         <div className="empty-state">
@@ -224,6 +262,93 @@ const StudentResources = () => {
             );
           })}
         </div>
+      )}
+      </>
+      )}
+
+      {/* Collections Tab */}
+      {activeTab === 'collections' && (
+      <>
+      {subjects.length === 0 ? (
+        <div className="empty-state">
+          <FiBookOpen size={48} />
+          <p>{t('student.subjects.noSubjects')}</p>
+        </div>
+      ) : (
+        <div className="subjects-collections-list">
+          {subjects.map(subject => {
+            const subjectCollections = collections[subject.id] || [];
+            const isExpanded = expandedSubjects[subject.id];
+            const collectionsCount = subjectCollections.length;
+
+            return (
+              <div key={subject.id} className="subject-collection-block">
+                <div 
+                  className="subject-block-header"
+                  onClick={() => toggleSubject(subject.id)}
+                >
+                  <div className="subject-header-left">
+                    {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                    <h3 className="subject-name">{subject.name}</h3>
+                  </div>
+                  <div className="subject-header-right">
+                    <span className="resources-count">To'plamlar: {collectionsCount}</span>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="subject-collections-container">
+                    {collectionsCount === 0 ? (
+                      <div className="empty-resources">
+                        <FiBookOpen size={32} />
+                        <p>To'plamlar yo'q</p>
+                      </div>
+                    ) : (
+                      <div className="collections-grid">
+                        {subjectCollections.map(collection => (
+                          <CollectionCard
+                            key={collection.id}
+                            collection={collection}
+                            onViewDetails={() => {
+                              setSelectedCollection(collection);
+                              setShowCollectionDetail(true);
+                            }}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
+                            isOwner={false}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      </>
+      )}
+
+      {/* Collection Detail Modal */}
+      {selectedCollection && (
+        <CollectionDetail
+          collection={selectedCollection}
+          onClose={() => {
+            setShowCollectionDetail(false);
+            setSelectedCollection(null);
+          }}
+          onAddFile={() => {}}
+          onEditFile={() => {}}
+          onDeleteFile={() => {}}
+          onDownloadFile={(file) => {
+            if (file.url) {
+              window.open(file.url, '_blank');
+            }
+          }}
+          isOwner={false}
+          isLoading={false}
+        />
       )}
     </div>
   );

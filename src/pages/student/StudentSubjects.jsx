@@ -24,6 +24,8 @@ const StudentSubjects = () => {
   const [subjectStats, setSubjectStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [overallAverage, setOverallAverage] = useState(0);
+  const [groupName, setGroupName] = useState('');
+  const [departmentName, setDepartmentName] = useState('');
 
   useEffect(() => {
     const loadSubjects = async () => {
@@ -36,67 +38,73 @@ const StudentSubjects = () => {
         // Guruh ma'lumotlarini olish
         const groupResult = await groupService.getGroupById(userData.groupId);
         
-        if (groupResult.success && groupResult.data.subjectTeachers) {
-          const subjectTeachers = groupResult.data.subjectTeachers;
+        if (groupResult.success) {
+          // Guruh nomi va yo'nalishni state'ga saqlash
+          +setGroupName(groupResult.data.name || '');
+          setDepartmentName(groupResult.data.departmentName || '');
           
-          // subjectTeachers arrayidagi fanlarni subjectService dan to'liq ma'lumot bilan olish
-          const subjectPromises = subjectTeachers.map(async (st) => {
-            const subjectResult = await subjectService.getSubjectById(st.subjectId);
-            if (subjectResult.success) {
+          if (groupResult.data.subjectTeachers) {
+            const subjectTeachers = groupResult.data.subjectTeachers;
+          
+            // subjectTeachers arrayidagi fanlarni subjectService dan to'liq ma'lumot bilan olish
+            const subjectPromises = subjectTeachers.map(async (st) => {
+              const subjectResult = await subjectService.getSubjectById(st.subjectId);
+              if (subjectResult.success) {
+                return {
+                  ...subjectResult.data,
+                  teacherId: st.teacherId,
+                  teacherName: st.teacherName
+                };
+              }
+              // Agar subject topilmasa, subjectTeachers dan olingan ma'lumotlarni ishlatish
               return {
-                ...subjectResult.data,
+                id: st.subjectId,
+                name: st.subjectName,
                 teacherId: st.teacherId,
                 teacherName: st.teacherName
               };
-            }
-            // Agar subject topilmasa, subjectTeachers dan olingan ma'lumotlarni ishlatish
-            return {
-              id: st.subjectId,
-              name: st.subjectName,
-              teacherId: st.teacherId,
-              teacherName: st.teacherName
-            };
-          });
-          
-          const subjectsData = await Promise.all(subjectPromises);
-          const filteredSubjects = subjectsData.filter(s => s); // null qiymatlarni filtrlash
-          
-          // Duplicate fanlarni olib tashlash (bir xil subjectId ga ega bo'lganlar)
-          const uniqueSubjects = [];
-          const seenIds = new Set();
-          for (const subject of filteredSubjects) {
-            if (!seenIds.has(subject.id)) {
-              seenIds.add(subject.id);
-              uniqueSubjects.push(subject);
-            }
-          }
-          
-          setSubjects(uniqueSubjects);
-          
-          // Har bir fan uchun baholar statistikasini olish
-          const stats = {};
-          for (const subject of subjectsData) {
-            if (subject) {
-              const gradesResult = await gradeService.getGradesByStudentAndSubject(
-                currentUser.uid, 
-                subject.id
-              );
-              
-              if (gradesResult.success) {
-                stats[subject.id] = {
-                  average: gradesResult.data.average,
-                  gradesCount: gradesResult.data.grades.length
-                };
+            });
+            
+            const subjectsData = await Promise.all(subjectPromises);
+            const filteredSubjects = subjectsData.filter(s => s); // null qiymatlarni filtrlash
+            
+            // Duplicate fanlarni olib tashlash (bir xil subjectId ga ega bo'lganlar)
+            const uniqueSubjects = [];
+            const seenIds = new Set();
+            for (const subject of filteredSubjects) {
+              if (!seenIds.has(subject.id)) {
+                seenIds.add(subject.id);
+                uniqueSubjects.push(subject);
               }
             }
+            
+            setSubjects(uniqueSubjects);
+            
+            // Har bir fan uchun baholar statistikasini olish
+            const stats = {};
+            for (const subject of subjectsData) {
+              if (subject) {
+                const gradesResult = await gradeService.getGradesByStudentAndSubject(
+                  currentUser.uid, 
+                  subject.id
+                );
+                
+                if (gradesResult.success) {
+                  stats[subject.id] = {
+                    average: gradesResult.data.average,
+                    gradesCount: gradesResult.data.grades.length
+                  };
+                }
+              }
+            }
+            setSubjectStats(stats);
           }
-          setSubjectStats(stats);
-        }
 
-        // Umumiy o'rtacha bahoni olish
-        const avgResult = await gradeService.getStudentOverallAverage(currentUser.uid);
-        if (avgResult.success) {
-          setOverallAverage(avgResult.data);
+          // Umumiy o'rtacha bahoni olish
+          const avgResult = await gradeService.getStudentOverallAverage(currentUser.uid);
+          if (avgResult.success) {
+            setOverallAverage(avgResult.data);
+          }
         }
       } catch (error) {
         console.error('Load subjects error:', error);
@@ -154,7 +162,7 @@ const StudentSubjects = () => {
           <div className="header-left">
             <h1>{t('student.subjects.title')}</h1>
             <p>
-              {userData.groupName || 'Guruh'} · {userData.departmentName || 'Yo\'nalish'}
+              {groupName || 'Guruh'} · {departmentName || 'Yo\'nalish'}
             </p>
           </div>
           <div className="header-stats">

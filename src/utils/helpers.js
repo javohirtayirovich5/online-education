@@ -5,7 +5,11 @@ import { uz } from 'date-fns/locale';
 export const formatDate = (date, formatStr = 'dd MMMM yyyy, HH:mm') => {
   if (!date) return '';
   try {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    const dateObj = typeof date === 'string'
+      ? parseISO(date)
+      : (date?.toDate ? date.toDate() : date);
+
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
     return format(dateObj, formatStr, { locale: uz });
   } catch (error) {
     console.error('Format date error:', error);
@@ -17,7 +21,10 @@ export const formatDate = (date, formatStr = 'dd MMMM yyyy, HH:mm') => {
 export const formatRelativeTime = (date) => {
   if (!date) return '';
   try {
-    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    const dateObj = typeof date === 'string'
+      ? parseISO(date)
+      : (date?.toDate ? date.toDate() : date);
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return '';
     return formatDistanceToNow(dateObj, { addSuffix: true, locale: uz });
   } catch (error) {
     console.error('Format relative time error:', error);
@@ -138,16 +145,30 @@ export const groupBy = (array, key) => {
 // Check if date is past
 export const isPastDate = (date) => {
   if (!date) return false;
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return dateObj < new Date();
+  try {
+    const dateObj = typeof date === 'string'
+      ? parseISO(date)
+      : (date?.toDate ? date.toDate() : date);
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return false;
+    return dateObj < new Date();
+  } catch (e) {
+    return false;
+  }
 };
 
 // Check if date is today
 export const isToday = (date) => {
   if (!date) return false;
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const today = new Date();
-  return dateObj.toDateString() === today.toDateString();
+  try {
+    const dateObj = typeof date === 'string'
+      ? parseISO(date)
+      : (date?.toDate ? date.toDate() : date);
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return false;
+    const today = new Date();
+    return dateObj.toDateString() === today.toDateString();
+  } catch (e) {
+    return false;
+  }
 };
 
 // Get color for grade
@@ -179,7 +200,10 @@ export const getTimeRemaining = (dueDate) => {
   if (!dueDate) return null;
   
   try {
-    const due = typeof dueDate === 'string' ? parseISO(dueDate) : dueDate;
+    const due = typeof dueDate === 'string'
+      ? parseISO(dueDate)
+      : (dueDate?.toDate ? dueDate.toDate() : dueDate);
+    if (!(due instanceof Date) || isNaN(due.getTime())) return null;
     const now = new Date();
     const diff = due - now;
     

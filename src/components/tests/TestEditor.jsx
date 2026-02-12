@@ -7,23 +7,38 @@ import './TestEditor.css';
 
 const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    visibleFor: 'all',
-    groupId: null,
-    questions: initialData?.questions || [
-      {
-        type: 'multiple',
-        text: '',
-        options: ['', '', '', ''],
-        correctAnswer: 0,
-        correctAnswers: []
-      }
-    ],
-    timeLimit: initialData?.timeLimit || null,
-    ...initialData
+  const [formData, setFormData] = useState(() => {
+    const base = {
+      title: '',
+      description: '',
+      visibleFor: initialData?.visibleFor || 'all',
+      groupIds: [],
+      sections: initialData?.sections || [],
+      questions: initialData?.questions || [
+        {
+          type: 'multiple',
+          text: '',
+          sectionId: null,
+          options: ['', '', '', ''],
+          correctAnswer: 0,
+          correctAnswers: []
+        }
+      ],
+      timeLimit: initialData?.timeLimit || null,
+      ...initialData
+    };
+
+    // Backward compatibility: eski testlarda faqat bitta groupId bo'lishi mumkin
+    if (initialData?.groupIds && Array.isArray(initialData.groupIds)) {
+      base.groupIds = initialData.groupIds;
+    } else if (initialData?.groupId) {
+      base.groupIds = [initialData.groupId];
+    }
+
+    return base;
   });
+
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
 
   const questionTextareaRef = useRef(null);
   const clozeEditorRefs = useRef({});
@@ -56,6 +71,72 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     setFormData(prev => ({
       ...prev,
       [name]: name === 'timeLimit' ? (value ? parseInt(value) : null) : value
+    }));
+  };
+
+  const toggleGroupSelection = (groupId) => {
+    setFormData(prev => {
+      const current = prev.groupIds || [];
+      const exists = current.includes(groupId);
+      const next = exists ? current.filter(id => id !== groupId) : [...current, groupId];
+      return {
+        ...prev,
+        groupIds: next
+      };
+    });
+  };
+
+  // Sections handlers
+  const handleAddSection = () => {
+    const newSectionId = `sec_${Date.now()}`;
+    const sectionNumber = (formData.sections || []).length + 1;
+    setFormData(prev => ({
+      ...prev,
+      sections: [
+        ...(prev.sections || []),
+        {
+          id: newSectionId,
+          title: `Text ${sectionNumber}`,
+          passage: ''
+        }
+      ]
+    }));
+    toast.success('Yangi bo\'lim qo\'shildi');
+  };
+
+  const handleUpdateSection = (sectionId, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      sections: (prev.sections || []).map(sec =>
+        sec.id === sectionId
+          ? { ...sec, [field]: value }
+          : sec
+      )
+    }));
+  };
+
+  const handleDeleteSection = (sectionId) => {
+    // Remove section from all questions that reference it
+    setFormData(prev => ({
+      ...prev,
+      sections: (prev.sections || []).filter(sec => sec.id !== sectionId),
+      questions: prev.questions.map(q =>
+        q.sectionId === sectionId
+          ? { ...q, sectionId: null }
+          : q
+      )
+    }));
+    toast.success('Bo\'lim o\'chirildi');
+  };
+
+  const handleSetQuestionSection = (questionIndex, sectionId) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) =>
+        i === questionIndex
+          ? { ...q, sectionId: sectionId || null }
+          : q
+      )
     }));
   };
 
@@ -428,13 +509,22 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     const selects = editor.querySelectorAll('select[data-blank-id]');
     selects.forEach(sel => {
       const blankId = sel.getAttribute('data-blank-id');
+      const savedAnswer = (q.correctAnswers || {})[blankId]; // Get saved correct answer
       const cur = sel.value;
       // remove all options
       while (sel.firstChild) sel.removeChild(sel.firstChild);
       const emptyOpt = document.createElement('option'); emptyOpt.value = ''; emptyOpt.textContent = '—'; sel.appendChild(emptyOpt);
       bank.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
-      // restore selected value if still present
-      if ([...sel.options].some(o => o.value === cur)) sel.value = cur; else sel.value = bank && bank[0] ? bank[0] : '';
+      // restore selected value: first try saved answer, then current, then first bank word
+      let valueToSet = '';
+      if (savedAnswer && [...sel.options].some(o => o.value === savedAnswer)) {
+        valueToSet = savedAnswer; // Use saved correct answer
+      } else if ([...sel.options].some(o => o.value === cur)) {
+        valueToSet = cur; // Use current value if still present
+      } else {
+        valueToSet = bank && bank[0] ? bank[0] : ''; // Default to first bank word
+      }
+      sel.value = valueToSet;
     });
     if (editorElement) {
       // For sub-questions, update the sub-question text
@@ -456,13 +546,22 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     const selects = editor.querySelectorAll('select[data-blank-id]');
     selects.forEach(sel => {
       const blankId = sel.getAttribute('data-blank-id');
+      const savedAnswer = (subQ.correctAnswers || {})[blankId]; // Get saved correct answer
       const cur = sel.value;
       // remove all options
       while (sel.firstChild) sel.removeChild(sel.firstChild);
       const emptyOpt = document.createElement('option'); emptyOpt.value = ''; emptyOpt.textContent = '—'; sel.appendChild(emptyOpt);
       bank.forEach(w => { const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o); });
-      // restore selected value if still present
-      if ([...sel.options].some(o => o.value === cur)) sel.value = cur; else sel.value = bank && bank[0] ? bank[0] : '';
+      // restore selected value: first try saved answer, then current, then first bank word
+      let valueToSet = '';
+      if (savedAnswer && [...sel.options].some(o => o.value === savedAnswer)) {
+        valueToSet = savedAnswer; // Use saved correct answer
+      } else if ([...sel.options].some(o => o.value === cur)) {
+        valueToSet = cur; // Use current value if still present
+      } else {
+        valueToSet = bank && bank[0] ? bank[0] : ''; // Default to first bank word
+      }
+      sel.value = valueToSet;
     });
     handleSubQuestionChange(questionIndex, subQuestionIndex, 'text', editor.innerHTML);
   };
@@ -649,8 +748,8 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       }
     }
 
-    if (formData.visibleFor === 'group' && !formData.groupId) {
-      toast.error('Guruh tanlanishi kerak');
+    if (formData.visibleFor === 'group' && (!formData.groupIds || formData.groupIds.length === 0)) {
+      toast.error('Kamida bitta guruh tanlanishi kerak');
       return;
     }
 
@@ -662,7 +761,20 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       delete clean.nextBlankId;
       return clean;
     });
-    onSave({ ...formData, questions: questionsClean });
+
+    const payload = { ...formData, questions: questionsClean };
+
+    // visibleFor = all bo'lsa guruhlar tozalanadi
+    if (payload.visibleFor === 'all') {
+      payload.groupIds = [];
+      payload.groupId = null;
+    } else if (payload.visibleFor === 'group') {
+      // Backward compatibility: birinchi guruhni groupId sifatida saqlab qo'yamiz
+      const ids = payload.groupIds || [];
+      payload.groupId = ids.length > 0 ? ids[0] : null;
+    }
+
+    onSave(payload);
   };
 
   return (
@@ -712,25 +824,40 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
             {formData.visibleFor === 'group' && (
               <div className="form-group">
-                <label>{t('teacher.attendance.group')} {t('common.select')} *</label>
-                <select
-                  name="groupId"
-                  value={formData.groupId || ''}
-                  onChange={handleFormChange}
-                  className="form-select"
-                >
-                  <option value="">{t('teacher.attendance.group')} {t('common.select')}</option>
-                  {groups.map(group => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
+                <label>{t('auth.selectGroup')} *</label>
+                <div className="multi-select">
+                  <button
+                    type="button"
+                    className="multi-select-toggle"
+                    onClick={() => setIsGroupDropdownOpen(prev => !prev)}
+                  >
+                    <span>
+                      {formData.groupIds && formData.groupIds.length > 0
+                        ? `${formData.groupIds.length} ta guruh tanlandi`
+                        : t('teacher.tests.selectGroups')}
+                    </span>
+                    <FiChevronDown className={`chevron ${isGroupDropdownOpen ? 'open' : ''}`} />
+                  </button>
+                  {isGroupDropdownOpen && (
+                    <div className="multi-select-dropdown">
+                      {groups.map(group => (
+                        <label key={group.id} className="multi-select-option">
+                          <input
+                            type="checkbox"
+                            checked={formData.groupIds?.includes(group.id)}
+                            onChange={() => toggleGroupSelection(group.id)}
+                          />
+                          <span>{group.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             <div className="form-group">
-              <label>Vaqt <small>(ixtiyoriy)</small></label>
+              <label>{t('tests.timeLimit')} <small>({t('common.optional')})</small></label>
               <input
                 type="number"
                 name="timeLimit"
@@ -744,9 +871,81 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           </div>
         </div>
 
+        {/* Sections Management */}
+        <div className="editor-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h3 style={{margin: 0}}>{t('teacher.tests.contextTexts')}</h3>
+            <button
+              type="button"
+              onClick={handleAddSection}
+              className="btn btn-sm btn-secondary"
+            >
+              <FiPlus />{t('teacher.tests.addText')}
+            </button>
+          </div>
+
+          <div className="sections-list">
+            {(!formData.sections || formData.sections.length === 0) ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                {t('teacher.tests.createContextTexts')}
+              </p>
+            ) : (
+              formData.sections.map((section, index) => (
+                <div
+                  key={section.id}
+                  style={{
+                    padding: '16px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    backgroundColor: 'var(--bg-primary)'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
+                        {t('teacher.tests.sectionName')}
+                      </label>
+                      <input
+                        type="text"
+                        value={section.title || ''}
+                        onChange={(e) => handleUpdateSection(section.id, 'title', e.target.value)}
+                        placeholder={t('teacher.tests.sectionNamePlaceholder')}
+                        className="form-input"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSection(section.id)}
+                      className="btn btn-sm btn-danger"
+                      style={{ marginTop: '24px' }}
+                      title={t('teacher.tests.deleteSection')}
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
+                      {t('teacher.tests.contextText')}
+                    </label>
+                    <textarea
+                      value={section.passage || ''}
+                      onChange={(e) => handleUpdateSection(section.id, 'passage', e.target.value)}
+                      placeholder={t('teacher.tests.contextTextPlaceholder')}
+                      className="form-textarea"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Questions Section */}
         <div className="editor-section">
-          <h3>{t('tests.questions')} ({formData.questions.length})</h3>
+          <h3>{t('teacher.tests.questions')} ({formData.questions.length})</h3>
 
           {/* Questions List with inline editing */}
           <div className="questions-list">
@@ -781,6 +980,22 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     </div>
 
                     <div className="form-group">
+                      <label>{t('teacher.tests.addText')} <small>({t('common.optional')})</small></label>
+                      <select
+                        value={question.sectionId || ''}
+                        onChange={(e) => handleSetQuestionSection(index, e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="">—{t("tests.notLinked")}—</option>
+                        {(formData.sections || []).map(section => (
+                          <option key={section.id} value={section.id}>
+                            {section.title || `Matn ${section.id.substring(4, 8)}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
                       <label>{t('tests.questionText')} *</label>
                       {question.type === 'audio' ? (
                         <textarea
@@ -802,6 +1017,8 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                               // Initialize content only if empty
                               if (el && !el.innerHTML.trim() && question.text) {
                                 el.innerHTML = question.text;
+                                // Restore select values from correctAnswers after HTML is set
+                                setTimeout(() => updateEditorSelects(index, null, el), 0);
                               } else if (el && !el.innerHTML.trim() && !question.text) {
                                 el.innerHTML = '<p></p>';
                               }
@@ -931,7 +1148,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                 {question.type === 'text' && (
                   <div className="form-group">
-                    <label>To'g'ri javob *</label>
+                    <label>{t('tests.correctAnswer')} *</label>
                     <input
                       type="text"
                       value={question.correctAnswer || ''}
@@ -944,7 +1161,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                 {question.type === 'truefalse' && (
                   <div className="form-group">
-                    <label>To'g'ri javob *</label>
+                    <label>{t('tests.correctAnswer')} *</label>
                     <div className="truefalse-options">
                       <label className={`tf-option ${question.correctAnswer === true ? 'selected' : ''}`}>
                         <input
@@ -953,7 +1170,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === true}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', true)}
                         />
-                        {t('tests.true')}
+                        True
                       </label>
                       <label className={`tf-option ${question.correctAnswer === false ? 'selected' : ''}`}>
                         <input
@@ -962,7 +1179,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === false}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', false)}
                         />
-                        {t('tests.false')}
+                        False
                       </label>
                     </div>
                   </div>
@@ -1085,6 +1302,8 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                           // Initialize content only if empty
                                           if (!el.innerHTML.trim() && subQ.text) {
                                             el.innerHTML = subQ.text;
+                                            // Restore select values from correctAnswers after HTML is set
+                                            setTimeout(() => updateSubQuestionEditorSelects(index, subIndex), 0);
                                           } else if (!el.innerHTML.trim() && !subQ.text) {
                                             el.innerHTML = '<p></p>';
                                           }
@@ -1199,7 +1418,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                               {subQ.type === 'text' && (
                                 <div className="form-group">
-                                  <label>To'g'ri javob *</label>
+                                  <label>{t('tests.correctAnswer')} *</label>
                                   <input
                                     type="text"
                                     value={subQ.correctAnswer || ''}
@@ -1212,7 +1431,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
                               {subQ.type === 'truefalse' && (
                                 <div className="form-group">
-                                  <label>To'g'ri javob *</label>
+                                  <label>{t('tests.correctAnswer')} *</label>
                                   <div className="truefalse-options">
                                     <label className={`tf-option ${subQ.correctAnswer === true ? 'selected' : ''}`}>
                                       <input
@@ -1317,7 +1536,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
         {/* Submit Buttons */}
         <div className="editor-actions">
           <button type="button" onClick={onCancel} className="btn btn-outline">
-            Bekor qilish
+            {t('common.cancel')}
           </button>
           <button type="submit" className="btn btn-primary">
             {initialData ? t('common.save') : t('tests.createTest')}

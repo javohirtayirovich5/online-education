@@ -17,18 +17,41 @@ const COLLECTION_NAME = 'resources';
 
 export const resourceService = {
   // Guruh va fan bo'yicha resurslarni olish
+  // Talaba o'z guruhiga tegishli va global (isGlobal: true) resurslarni ko'rishi uchun
   async getResourcesByGroupAndSubject(groupId, subjectId) {
     try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
+      const baseCollection = collection(db, COLLECTION_NAME);
+
+      const groupQuery = query(
+        baseCollection,
         where('groupId', '==', groupId),
         where('subjectId', '==', subjectId)
       );
-      const snapshot = await getDocs(q);
-      const resources = snapshot.docs
-        .map(doc => ({ 
-          id: doc.id, 
-          ...doc.data() 
+
+      const globalQuery = query(
+        baseCollection,
+        where('subjectId', '==', subjectId),
+        where('isGlobal', '==', true)
+      );
+
+      const [groupSnap, globalSnap] = await Promise.all([
+        getDocs(groupQuery),
+        getDocs(globalQuery)
+      ]);
+
+      const allDocs = [...groupSnap.docs, ...globalSnap.docs];
+
+      // Dublikatlarni oldini olish uchun id bo'yicha unik qilish
+      const seen = new Set();
+      const resources = allDocs
+        .filter(docItem => {
+          if (seen.has(docItem.id)) return false;
+          seen.add(docItem.id);
+          return true;
+        })
+        .map(docItem => ({ 
+          id: docItem.id, 
+          ...docItem.data() 
         }))
         .sort((a, b) => {
           // Client-side sorting by createdAt (ascending) - oldest first
@@ -36,6 +59,7 @@ export const resourceService = {
           const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
           return aTime - bTime;
         });
+
       return { success: true, data: resources };
     } catch (error) {
       console.error('Get resources error:', error);
@@ -119,7 +143,10 @@ export const resourceService = {
       // Fayl yuklash
       if (file) {
         const fileName = file.name;
-        const filePath = `resources/${resourceData.groupId}/${resourceData.subjectId}/${Date.now()}_${fileName}`;
+        const basePath = resourceData.isGlobal
+          ? `resources/global/${resourceData.subjectId}`
+          : `resources/${resourceData.groupId}/${resourceData.subjectId}`;
+        const filePath = `${basePath}/${Date.now()}_${fileName}`;
         const uploadResult = await storageService.uploadFile(file, filePath, onProgress);
         
         if (!uploadResult.success) {
@@ -130,14 +157,15 @@ export const resourceService = {
       }
 
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-        groupId: resourceData.groupId,
-        groupName: resourceData.groupName || '',
+        groupId: resourceData.isGlobal ? null : resourceData.groupId,
+        groupName: resourceData.isGlobal ? '' : (resourceData.groupName || ''),
         subjectId: resourceData.subjectId,
         subjectName: resourceData.subjectName || '',
         teacherId: resourceData.teacherId,
         teacherName: resourceData.teacherName || '',
         title: resourceData.title,
         lessonType: resourceData.lessonType || 'ma\'ruza',
+        isGlobal: !!resourceData.isGlobal,
         fileUrl: fileUrl,
         fileName: file ? file.name : '',
         fileSize: file ? file.size : 0,
@@ -163,7 +191,10 @@ export const resourceService = {
         const resource = await this.getResourceById(resourceId);
         
         if (resource.success) {
-          const filePath = `resources/${resource.data.groupId}/${resource.data.subjectId}/${Date.now()}_${fileName}`;
+          const basePath = resource.data.isGlobal
+            ? `resources/global/${resource.data.subjectId}`
+            : `resources/${resource.data.groupId}/${resource.data.subjectId}`;
+          const filePath = `${basePath}/${Date.now()}_${fileName}`;
           const uploadResult = await storageService.uploadFile(file, filePath, onProgress);
           
           if (!uploadResult.success) {
@@ -186,6 +217,28 @@ export const resourceService = {
   },
 
   // Resursni o'chirish
+  // Barcha resurslarni olish (admin uchun)
+  async getAllResources() {
+    try {
+      const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+      const resources = snapshot.docs
+        .map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        }))
+        .sort((a, b) => {
+          // Client-side sorting by createdAt (descending) - newest first
+          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return bTime - aTime;
+        });
+      return { success: true, data: resources };
+    } catch (error) {
+      console.error('Get all resources error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   async deleteResource(resourceId) {
     try {
       await deleteDoc(doc(db, COLLECTION_NAME, resourceId));

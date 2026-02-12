@@ -4,13 +4,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyDIwJPSEULiqg2PB64tPv8esAHCHPBlHmQ",
-  authDomain: "education-pro1.firebaseapp.com",
-  projectId: "education-pro1",
-  storageBucket: "education-pro1.firebasestorage.app",
-  messagingSenderId: "1087873877448",
-  appId: "1:1087873877448:web:d4955231340208905b6cfd"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
