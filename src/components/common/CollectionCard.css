@@ -9,6 +9,7 @@
   flex-direction: column;
   height: 100%;
   border: 1px solid var(--border);
+  width: 100%;
 }
 
 .collection-card:hover {
@@ -20,7 +21,7 @@
 .collection-card-image-container {
   position: relative;
   width: 100%;
-  padding-bottom: 75%; /* 4:3 aspect ratio */
+  padding-bottom: 66%; /* Reduced from 75% */
   overflow: hidden;
   background: var(--bg-secondary);
 }
@@ -74,14 +75,14 @@
   background: var(--primary);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: background 0.3s ease;
 }
 
@@ -90,7 +91,7 @@
 }
 
 .collection-card-content {
-  padding: 16px;
+  padding: 12px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -98,8 +99,8 @@
 }
 
 .collection-card-title {
-  margin: 0 0 8px 0;
-  font-size: 16px;
+  margin: 0 0 6px 0;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
@@ -107,12 +108,13 @@
 }
 
 .collection-card-description {
-  margin: 0 0 12px 0;
-  font-size: 13px;
+  margin: 0 0 8px 0;
+  font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -123,44 +125,45 @@
   align-items: center;
   font-size: 12px;
   color: var(--text-tertiary);
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .collection-file-count {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: rgba(79, 70, 229, 0.1);
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 4px;
   color: var(--primary);
   font-weight: 600;
+  font-size: 11px;
 }
 
 .collection-teacher-name {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .collection-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 7px;
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border);
 }
 
 .collection-edit-btn,
 .collection-delete-btn {
   flex: 1;
-  padding: 8px;
+  padding: 7px;
   border: 1px solid var(--border);
   background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;

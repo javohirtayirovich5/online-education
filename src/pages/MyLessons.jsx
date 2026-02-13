@@ -158,8 +158,8 @@ const MyLessons = () => {
     setLoading(true);
     try {
       if (isTeacher) {
-        // O'qituvchi uchun: faqat o'z kurslari
-        const result = await courseService.getCoursesByInstructor(userData.uid);
+        // O'qituvchi uchun: barcha kurslar (boshqa o'qituvchilarnikini ham ko'radi)
+        const result = await courseService.getAllCourses();
         if (result.success) {
           setCourses(result.data || []);
         }

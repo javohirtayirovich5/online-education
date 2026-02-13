@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { courseService } from '../services/courseService';
-import { FiPlus, FiBook, FiUsers, FiClock, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiBook, FiUsers, FiClock, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -32,12 +32,8 @@ const MyCourses = () => {
   const loadCourses = async () => {
     setLoading(true);
     try {
-      if (isTeacher) {
-        const result = await courseService.getCoursesByInstructor(userData.uid);
-        if (result.success) {
-          setCourses(result.data);
-        }
-      } else if (isStudent) {
+      if (isTeacher || isStudent) {
+        // Barcha kurslarni yuklash (talabalar kabi o'qituvchilar uchun ham)
         const result = await courseService.getAllCourses();
         if (result.success) {
           setCourses(result.data);
@@ -109,7 +105,7 @@ const MyCourses = () => {
       <div className="page-header">
         <div>
           <h1>Mening kurslarim</h1>
-          <p>{isTeacher ? 'Sizning yaratgan kurslaringiz' : 'Siz yozilgan kurslar'}</p>
+          <p>{isTeacher ? 'Barcha kurslar' : 'Siz yozilgan kurslar'}</p>
         </div>
         {isTeacher && (
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
@@ -121,7 +117,7 @@ const MyCourses = () => {
       {courses.length === 0 ? (
         <div className="empty-state-large">
           <FiBook size={64} />
-          <h2>{isTeacher ? 'Hozircha kurslar yo\'q' : 'Hech qanday kursga yozilmagansiz'}</h2>
+          <h2>{isTeacher ? 'Hech qanday kurs yo\'q' : 'Hech qanday kursga yozilmagansiz'}</h2>
           <p>
             {isTeacher ? 
               'Yangi kurs yaratish uchun yuqoridagi tugmani bosing' :
@@ -148,17 +144,10 @@ const MyCourses = () => {
                 <p className="course-description">{course.description}</p>
                 
                 <div className="course-meta">
-                  {isTeacher ? (
-                    <div className="meta-item">
-                      <FiEye />
-                      <span>{course.views || 0} ko'rish</span>
-                    </div>
-                  ) : (
-                    <div className="meta-item">
-                      <FiUsers />
-                      <span>{course.instructorName}</span>
-                    </div>
-                  )}
+                  <div className="meta-item">
+                    <FiUsers />
+                    <span>{course.instructorName}</span>
+                  </div>
                   <div className="meta-item">
                     <FiClock />
                     <span>{course.modules?.length || 0} modul</span>
@@ -170,7 +159,7 @@ const MyCourses = () => {
                 <Link to={`/course/${course.id}`} className="btn btn-primary btn-sm">
                   Ochish
                 </Link>
-                {isTeacher && (
+                {isTeacher && course.instructorId === userData.uid && (
                   <div className="course-actions">
                     <button className="btn-icon" title="Tahrirlash">
                       <FiEdit />

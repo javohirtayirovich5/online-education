@@ -144,6 +144,43 @@
   background: var(--bg-secondary);
 }
 
+/* Teacher Header Row */
+.teacher-header-row {
+  background: var(--primary) !important;
+}
+
+.teacher-header-row:hover {
+  background: var(--primary) !important;
+}
+
+.teacher-header-cell {
+  color: white !important;
+  font-weight: 700;
+  padding: 1.25rem 1.5rem !important;
+  font-size: 1rem;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.teacher-header-cell:hover {
+  opacity: 0.9;
+}
+
+.collapse-icon {
+  transition: transform 0.3s ease;
+  color: white;
+}
+
+.collapse-icon.expanded {
+  transform: rotate(0deg);
+}
+
+.collapse-icon:not(.expanded) {
+  transform: rotate(-90deg);
+}
+
 .resource-title-link {
   color: var(--primary);
   text-decoration: none;
@@ -154,6 +191,69 @@
 .resource-title-link:hover {
   text-decoration: underline;
   color: var(--primary-dark, #6366f1);
+}
+
+/* Collections Table */
+.collections-table-container {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px var(--shadow);
+  overflow: hidden;
+}
+
+.collections-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.collections-table thead {
+  background: var(--bg-secondary);
+}
+
+.collections-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.collections-table tbody {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.collections-table tbody tr:hover {
+  background: transparent;
+}
+
+.collections-table .teacher-header-row {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  margin-bottom: 0.5rem;
+}
+
+.collections-table .teacher-header-row td {
+  border: none !important;
+  padding: 10px !important;
+}
+
+.collections-table .collection-row {
+  background: transparent;
+  border: none !important;
+  display: contents;
+}
+
+.collections-table .collection-cell {
+  padding: 0 !important;
+  border: none !important;
 }
 
 .lesson-type-badge {

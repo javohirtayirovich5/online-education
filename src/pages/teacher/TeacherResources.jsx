@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { groupService } from '../../services/groupService';
 import { resourceService } from '../../services/resourceService';
 import { collectionService } from '../../services/collectionService';
+
 import { storageService } from '../../services/storageService';
 import { toast } from 'react-toastify';
 import { 
@@ -13,6 +14,7 @@ import {
   FiFile,
   FiX,
   FiDownload,
+  FiChevronDown,
   FiUsers,
   FiBookOpen,
   FiArrowLeft,
@@ -61,6 +63,8 @@ const TeacherResources = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [deleteResourceId, setDeleteResourceId] = useState(null);
+  const [editingResource, setEditingResource] = useState(null);
+  const [showResourceMenu, setShowResourceMenu] = useState(null);
   
   // Collection modal states
   const [showAddCollectionModal, setShowAddCollectionModal] = useState(false);
@@ -78,21 +82,29 @@ const TeacherResources = () => {
     file: null
   });
   const [editingFileIndex, setEditingFileIndex] = useState(null);
+  const [expandedTeachers, setExpandedTeachers] = useState({});
+  
+  // Modal form selection states (separate from main page)
+  const [modalSelectedGroup, setModalSelectedGroup] = useState(null);
+  const [modalSelectedSubject, setModalSelectedSubject] = useState(null);
+  const [modalSubjects, setModalSubjects] = useState([]);
+  
+  // Collection modal form subjects
+  const [collectionModalSubjects, setCollectionModalSubjects] = useState([]);
 
   useEffect(() => {
     loadGroups();
   }, [userData]);
 
   useEffect(() => {
-    if (selectedGroup) {
-      loadSubjects();
-      if (activeTab === 'resources') {
-        loadResources();
-      } else {
-        loadCollections();
-      }
+    if (activeTab === 'resources') {
+      // Resources tab'da - barcha resurslarni yuklash (guruh/fan filterlashsiz)
+      loadResources();
+    } else if (activeTab === 'collections') {
+      // Collections tab'da - barcha o'qituvchilarning to'plamlarini yuklash
+      loadCollections();
     }
-  }, [selectedGroup, selectedSubject, activeTab]);
+  }, [activeTab]);
 
   const loadGroups = async () => {
     setLoading(true);
@@ -157,35 +169,16 @@ const TeacherResources = () => {
   };
 
   const loadResources = async () => {
-    if (!selectedSubject) {
-      setResources([]);
-      return;
-    }
-
     setLoadingResources(true);
     try {
-      // Agar "Barcha guruhlar" varianti tanlangan bo'lsa,
-      // o'qituvchining shu fan bo'yicha global resurslarini ko'rsatamiz
-      if (selectedGroup && selectedGroup.id === 'global') {
-        const result = await resourceService.getResourcesByTeacher(currentUser.uid);
-        if (result.success) {
-          const filtered = result.data.filter(
-            (res) => res.subjectId === selectedSubject.id && res.isGlobal
-          );
-          setResources(filtered);
-        } else {
-          setResources([]);
-        }
-      } else if (selectedGroup) {
-        const result = await resourceService.getResourcesByGroupAndSubject(
-          selectedGroup.id,
-          selectedSubject.id
-        );
-        if (result.success) {
-          setResources(result.data);
-        } else {
-          setResources([]);
-        }
+      const result = await resourceService.getAllResources();
+      if (result.success) {
+        const sorted = result.data.sort((a, b) => {
+          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return aTime - bTime;
+        });
+        setResources(sorted);
       } else {
         setResources([]);
       }
@@ -236,20 +229,14 @@ const TeacherResources = () => {
       return;
     }
 
-    if (!formData.file) {
+    // Tahrirlash uchun fayl ixtiyoriy, yangi resurs uchun zarur
+    if (!editingResource && !formData.file) {
       toast.error('Fayl tanlang');
       return;
     }
 
-    const isGlobal = selectedGroup && selectedGroup.id === 'global';
-
-    if (!isGlobal && (!selectedGroup || !selectedSubject)) {
+    if (!modalSelectedGroup || !modalSelectedSubject) {
       toast.error('Guruh va fanni tanlang');
-      return;
-    }
-
-    if (isGlobal && !selectedSubject) {
-      toast.error('Fanni tanlang');
       return;
     }
 
@@ -257,33 +244,71 @@ const TeacherResources = () => {
     setUploadProgress(0);
 
     try {
-      const result = await resourceService.addResource(
-        {
-          groupId: isGlobal ? null : selectedGroup.id,
-          groupName: isGlobal ? '' : selectedGroup.name,
-          subjectId: selectedSubject.id,
-          subjectName: selectedSubject.name,
-          teacherId: currentUser.uid,
-          teacherName: userData.displayName || '',
+      if (editingResource) {
+        // Tahrirlash
+        const updates = {
           title: formData.title,
           lessonType: formData.lessonType,
-          isGlobal
-        },
-        formData.file,
-        (progress) => setUploadProgress(progress)
-      );
+          groupId: modalSelectedGroup?.id === 'global' ? null : modalSelectedGroup?.id,
+          groupName: modalSelectedGroup?.id === 'global' ? '' : modalSelectedGroup?.name,
+          subjectId: modalSelectedSubject.id,
+          subjectName: modalSelectedSubject.name,
+          isGlobal: modalSelectedGroup?.id === 'global'
+        };
 
-      if (result.success) {
-        toast.success('Resurs qo\'shildi');
-        setShowAddModal(false);
-        setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
-        setUploadProgress(0);
-        loadResources();
+        const result = await resourceService.updateResource(
+          editingResource.id,
+          updates,
+          formData.file || null,
+          (progress) => setUploadProgress(progress)
+        );
+
+        if (result.success) {
+          toast.success('Resurs yangilandi');
+          setShowAddModal(false);
+          setEditingResource(null);
+          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+          setUploadProgress(0);
+          setModalSelectedGroup(null);
+          setModalSelectedSubject(null);
+          setModalSubjects([]);
+          loadResources();
+        } else {
+          toast.error(result.error || 'Resurs yangilashda xatolik');
+        }
       } else {
-        toast.error(result.error || 'Resurs qo\'shishda xatolik');
+        // Yangi resurs qo'shish
+        const result = await resourceService.addResource(
+          {
+            groupId: modalSelectedGroup?.id === 'global' ? null : modalSelectedGroup?.id,
+            groupName: modalSelectedGroup?.id === 'global' ? '' : modalSelectedGroup?.name,
+            subjectId: modalSelectedSubject.id,
+            subjectName: modalSelectedSubject.name,
+            teacherId: currentUser.uid,
+            teacherName: userData.displayName || '',
+            title: formData.title,
+            lessonType: formData.lessonType,
+            isGlobal: modalSelectedGroup?.id === 'global'
+          },
+          formData.file,
+          (progress) => setUploadProgress(progress)
+        );
+
+        if (result.success) {
+          toast.success('Resurs qo\'shildi');
+          setShowAddModal(false);
+          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+          setUploadProgress(0);
+          setModalSelectedGroup(null);
+          setModalSelectedSubject(null);
+          setModalSubjects([]);
+          loadResources();
+        } else {
+          toast.error(result.error || 'Resurs qo\'shishda xatolik');
+        }
       }
     } catch (error) {
-      console.error('Add resource error:', error);
+      console.error('Add/Update resource error:', error);
       toast.error('Xatolik yuz berdi');
     }
     setUploading(false);
@@ -308,13 +333,49 @@ const TeacherResources = () => {
     setShowConfirmModal(true);
   };
 
+  const handleEditResource = (resource) => {
+    setEditingResource(resource);
+    setShowResourceMenu(null);
+    
+    // Tahrirlash uchun modal'ni ochish
+    setFormData({
+      title: resource.title,
+      lessonType: resource.lessonType,
+      file: null
+    });
+    
+    // Guruh va fanni auto-select qilish
+    const currentGroup = groups.find(g => g.id === resource.groupId || (resource.isGlobal && g.id === 'global'));
+    if (currentGroup || resource.isGlobal) {
+      const group = resource.isGlobal ? { id: 'global', name: 'Barcha guruhlar' } : currentGroup;
+      setModalSelectedGroup(group);
+      
+      // Fanni topish
+      if (group?.subjectTeachers) {
+        const subject = group.subjectTeachers.find(st => st.subjectId === resource.subjectId);
+        if (subject) {
+          setModalSelectedSubject({ id: subject.subjectId, name: subject.subjectName });
+        }
+      }
+    }
+    
+    setShowAddModal(true);
+  };
+
   // Collection methods
   const loadCollections = async () => {
     setLoadingCollections(true);
     try {
-      const result = await collectionService.getCollectionsByTeacher(currentUser.uid);
+      // Barcha o'qituvchilarning to'plamlarini yuklash (filtersi yo'q)
+      const result = await collectionService.getAllCollections();
       if (result.success) {
-        setCollections(result.data);
+        // Eng eski bo'yicha (o'suvchi tartib)
+        const sorted = result.data.sort((a, b) => {
+          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+          return aTime - bTime;
+        });
+        setCollections(sorted);
       } else {
         setCollections([]);
       }
@@ -536,15 +597,173 @@ const TeacherResources = () => {
     const year = date.getFullYear();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
   };
 
   const formatFileSize = (bytes) => {
-    if (!bytes) return '-';
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getCollectionsByTeacher = () => {
+    const grouped = {};
+    collections.forEach(collection => {
+      const teacherName = collection.teacherName || 'Noma\'lum o\'qituvchi';
+      if (!grouped[teacherName]) {
+        grouped[teacherName] = [];
+      }
+      grouped[teacherName].push(collection);
+    });
+    
+    // O'z to'plamlarini birinchi, keyin qolganlarni alifbo tartibida
+    const entries = Object.entries(grouped);
+    return entries.sort((a, b) => {
+      const aIsCurrentUser = collections.some(c => c.teacherName === a[0] && c.teacherId === currentUser.uid);
+      const bIsCurrentUser = collections.some(c => c.teacherName === b[0] && c.teacherId === currentUser.uid);
+      
+      if (aIsCurrentUser && !bIsCurrentUser) return -1;
+      if (!aIsCurrentUser && bIsCurrentUser) return 1;
+      return a[0].localeCompare(b[0]);
+    });
+  };
+
+  const getResourcesByTeacher = () => {
+    const grouped = {};
+    resources.forEach(resource => {
+      const teacherName = resource.teacherName || 'Noma\'lum o\'qituvchi';
+      if (!grouped[teacherName]) {
+        grouped[teacherName] = [];
+      }
+      grouped[teacherName].push(resource);
+    });
+    
+    // O'z resurslarini birinchi, keyin qolganlarni alifbo tartibida
+    const entries = Object.entries(grouped);
+    return entries.sort((a, b) => {
+      const aIsCurrentUser = resources.some(r => r.teacherName === a[0] && r.teacherId === currentUser.uid);
+      const bIsCurrentUser = resources.some(r => r.teacherName === b[0] && r.teacherId === currentUser.uid);
+      
+      if (aIsCurrentUser && !bIsCurrentUser) return -1;
+      if (!aIsCurrentUser && bIsCurrentUser) return 1;
+      return a[0].localeCompare(b[0]);
+    });
+  };
+
+  const toggleTeacherExpand = (teacherName) => {
+    setExpandedTeachers(prev => ({
+      ...prev,
+      [teacherName]: !prev[teacherName]
+    }));
+  };
+
+  const loadModalSubjects = (groupId) => {
+    if (!userData?.subjectIds) {
+      setModalSubjects([]);
+      return [];
+    }
+
+    const teacherSubjectIds = userData.subjectIds || [];
+    const uniqueSubjects = [];
+    const seenSubjects = new Set();
+
+    // Tanlangan gruruddagi fanlarni olish
+    const sourceGroups =
+      groupId === 'global'
+        ? groups
+        : groups.filter(g => g.id === groupId);
+
+    sourceGroups.forEach(group => {
+      if (!group?.subjectTeachers) return;
+
+      group.subjectTeachers.forEach(st => {
+        if (!seenSubjects.has(st.subjectId) && teacherSubjectIds.includes(st.subjectId)) {
+          seenSubjects.add(st.subjectId);
+          uniqueSubjects.push({
+            id: st.subjectId,
+            name: st.subjectName
+          });
+        }
+      });
+    });
+
+    setModalSubjects(uniqueSubjects);
+    return uniqueSubjects;
+  };
+
+  const handleModalGroupChange = (groupId) => {
+    if (groupId) {
+      const group = groupId === 'global' 
+        ? { id: 'global', name: 'Barcha guruhlar' }
+        : groups.find(g => g.id === groupId);
+      setModalSelectedGroup(group || null);
+      setModalSelectedSubject(null);
+      
+      // Fanlarni yuklash
+      const subjects = loadModalSubjects(groupId);
+      
+      // Agar bitta fan bo'lsa avtomatik tanlash
+      if (subjects.length === 1) {
+        setModalSelectedSubject(subjects[0]);
+      }
+    }
+  };
+
+  const loadCollectionModalSubjects = (groupId) => {
+    if (!userData?.subjectIds) {
+      setCollectionModalSubjects([]);
+      return [];
+    }
+
+    const teacherSubjectIds = userData.subjectIds || [];
+    const uniqueSubjects = [];
+    const seenSubjects = new Set();
+
+    // Tanlangan gruruddagi fanlarni olish
+    const sourceGroups =
+      groupId === 'global'
+        ? groups
+        : groups.filter(g => g.id === groupId);
+
+    sourceGroups.forEach(group => {
+      if (!group?.subjectTeachers) return;
+
+      group.subjectTeachers.forEach(st => {
+        if (!seenSubjects.has(st.subjectId) && teacherSubjectIds.includes(st.subjectId)) {
+          seenSubjects.add(st.subjectId);
+          uniqueSubjects.push({
+            id: st.subjectId,
+            name: st.subjectName
+          });
+        }
+      });
+    });
+
+    setCollectionModalSubjects(uniqueSubjects);
+    return uniqueSubjects;
+  };
+
+  const handleCollectionModalGroupChange = (groupId) => {
+    if (groupId) {
+      const subjectsForGroup = loadCollectionModalSubjects(groupId);
+      
+      // Agar bitta fan bo'lsa avtomatik tanlash
+      if (subjectsForGroup.length === 1) {
+        setCollectionFormData(prev => ({
+          ...prev,
+          selectedGroupId: groupId,
+          selectedSubjectId: subjectsForGroup[0].id
+        }));
+      } else {
+        setCollectionFormData(prev => ({
+          ...prev,
+          selectedGroupId: groupId,
+          selectedSubjectId: null
+        }));
+      }
+    }
   };
 
   if (loading) {
@@ -596,149 +815,298 @@ const TeacherResources = () => {
       {/* Resources Tab */}
       {activeTab === 'resources' && (
         <>
-          {/* Filters */}
-          <div className="resources-filters">
-        <div className="filter-group">
-          <label>{t('teacher.attendance.group')}</label>
-          <select
-            className="filter-select"
-            value={selectedGroup?.id || ''}
-            onChange={(e) => handleGroupChange(e.target.value)}
-          >
-            <option value="global">{t('tests.forAll')}</option>
-            {groups.map(group => (
-              <option key={group.id} value={group.id}>
-                {group.name} ({group.year}-kurs)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label>{t('grades.subject')}</label>
-          <select
-            className="filter-select"
-            value={selectedSubject?.id || ''}
-            onChange={(e) => {
-              const subject = subjects.find(s => s.id === e.target.value);
-              setSelectedSubject(subject);
-            }}
-            disabled={!selectedGroup}
-          >
-            <option value="">{t('grades.selectSubject')}</option>
-            {subjects.map(subject => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedGroup && selectedSubject && (
+          {/* Barcha resurslar - filtersiz */}
           <button
             className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setEditingResource(null);
+              setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+              setModalSelectedGroup(null);
+              setModalSelectedSubject(null);
+              setModalSubjects([]);
+              setShowAddModal(true);
+            }}
+            style={{ marginBottom: '20px' }}
           >
             <FiPlus /> {t('teacher.resources.newResource')}
           </button>
-        )}
-      </div>
 
-      {/* Resources Table */}
-      {selectedGroup && selectedSubject ? (
-        <div className="resources-table-container">
-          {loadingResources ? (
-            <LoadingSpinner />
-          ) : resources.length === 0 ? (
-            <div className="empty-state">
-              <FiFile size={48} />
-              <p>{t('teacher.resources.noResources')}</p>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowAddModal(true)}
-              >
-                <FiPlus /> {t('teacher.resources.newResource')}
-              </button>
-            </div>
-          ) : (
-            <table className="resources-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>{t('teacher.resources.title')}</th>
-                  <th>{t('teacher.resources.lessonType')}</th>
-                  <th>{t('teacher.resources.staff')}</th>
-                  <th>{t('teacher.resources.files')}</th>
-                  <th>{t('lessons.createdAt')}</th>
-                  <th>{t('common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resources.map((resource, index) => (
-                  <tr key={resource.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      <a
-                        href={resource.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="resource-title-link"
-                        download
-                      >
-                        {resource.title}
-                      </a>
-                    </td>
-                    <td>
-                      <span className="lesson-type-badge">
-                        {resource.lessonType === 'ma\'ruza' ? 'Ma\'ruza' : 
-                         resource.lessonType === 'amaliyot' ? 'Amaliy' : 
-                         resource.lessonType === 'laboratoriya' ? 'Laboratoriya' : resource.lessonType}
-                      </span>
-                    </td>
-                    <td>{resource.teacherName}</td>
-                    <td>
-                      {resource.fileUrl ? (
-                        <span className="file-count-badge">1</span>
-                      ) : (
-                        <span className="no-file">-</span>
-                      )}
-                    </td>
-                    <td>{formatDate(resource.createdAt)}</td>
-                    <td>
-                      <button
-                        className="action-btn delete"
-                        onClick={() => handleDeleteResource(resource.id)}
-                        title={t('teacher.resources.delete')}
-                      >
-                        <FiX />
-                      </button>
-                    </td>
+          <div className="resources-table-container">
+            {loadingResources ? (
+              <LoadingSpinner />
+            ) : resources.length === 0 ? (
+              <div className="empty-state">
+                <FiFile size={48} />
+                <p>{t('teacher.resources.noResources')}</p>
+              </div>
+            ) : (
+              <table className="resources-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>{t('teacher.resources.title')}</th>
+                    <th>{t('teacher.resources.lessonType')}</th>
+                    <th>{t('teacher.resources.staff')}</th>
+                    <th>{t('grades.subject')}</th>
+                    <th>{t('teacher.attendance.group')}</th>
+                    <th>{t('lessons.createdAt')}</th>
+                    <th style={{ width: '50px', textAlign: 'center' }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      ) : (
-        <div className="empty-state">
-          {/* <FiBookOpen size={48} /> */}
-          <p>{t('common.noData')}</p>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {getResourcesByTeacher().map(([teacherName, teacherResources]) => {
+                    const isExpanded = expandedTeachers[teacherName] !== false; // Default true
+                    return (
+                    <React.Fragment key={teacherName}>
+                      {/* O'qituvchi sarlavhasi */}
+                      <tr 
+                        className="teacher-header-row" 
+                        onClick={() => toggleTeacherExpand(teacherName)}
+                      >
+                        <td colSpan="9" className="teacher-header-cell">
+                          <FiChevronDown 
+                            size={20}
+                            className={`collapse-icon ${isExpanded ? 'expanded' : ''}`}
+                            style={{ marginRight: '10px', display: 'inline' }}
+                          />
+                          <strong>{teacherName}</strong> ({teacherResources.length})
+                        </td>
+                      </tr>
+                      {/* O'qituvchining resurslari - Collapsable */}
+                      {isExpanded && teacherResources.map((resource, index) => (
+                        <tr key={resource.id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <a
+                              href={resource.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="resource-title-link"
+                              download
+                            >
+                              {resource.title}
+                            </a>
+                          </td>
+                          <td>
+                            <span className="lesson-type-badge">
+                              {resource.lessonType === 'ma\'ruza' ? 'Ma\'ruza' : 
+                               resource.lessonType === 'amaliyot' ? 'Amaliy' : 
+                               resource.lessonType === 'laboratoriya' ? 'Laboratoriya' : resource.lessonType}
+                            </span>
+                          </td>
+                          <td>{resource.teacherName}</td>
+                          <td>{resource.subjectName || '-'}</td>
+                          <td>{resource.groupName || 'Global'}</td>
+                          <td>{formatDate(resource.createdAt)}</td>
+                          <td style={{ textAlign: 'center', position: 'relative' }}>
+                            {resource.teacherId === currentUser.uid && (
+                              <>
+                                <button
+                                  className="btn-menu"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowResourceMenu(showResourceMenu === resource.id ? null : resource.id);
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '18px',
+                                    color: '#666',
+                                    padding: '4px 8px'
+                                  }}
+                                >
+                                  <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                                </button>
+                                {showResourceMenu === resource.id && (
+                                  <div className="resource-menu" style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    backgroundColor: 'white',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                    zIndex: 1000,
+                                    minWidth: '120px'
+                                  }}>
+                                    <button
+                                      onClick={() => handleEditResource(resource)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        width: '100%',
+                                        padding: '10px 12px',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontSize: '14px',
+                                        color: '#333',
+                                        borderBottom: '1px solid #eee'
+                                      }}
+                                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                                    >
+                                      <FiEdit2 size={16} /> Tahrirlash
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteResource(resource.id);
+                                        setShowResourceMenu(null);
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        width: '100%',
+                                        padding: '10px 12px',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        fontSize: '14px',
+                                        color: '#d9534f'
+                                      }}
+                                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                                    >
+                                      <FiTrash2 size={16} /> O'chirish
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </>
       )}
 
       {/* Collections Tab */}
       {activeTab === 'collections' && (
         <>
-        <div className="resources-filters">
-          <div className="filter-group">
-            <label>{t('teacher.attendance.group')}</label>
+          {/* Yangi to'plam tugmasi */}
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setEditingCollection(null);
+              setCollectionFormData({
+                title: '',
+                description: '',
+                previewImage: null,
+                selectedGroupId: null,
+                selectedSubjectId: null
+              });
+              setShowAddCollectionModal(true);
+            }}
+            style={{ marginBottom: '20px' }}
+          >
+            <FiPlus /> Yangi to'plam yaratish
+          </button>
+
+          {loadingCollections ? (
+            <LoadingSpinner />
+          ) : collections.length === 0 ? (
+            <div className="empty-state">
+              <FiBookOpen size={48} />
+              <p>To'plamlari yo'q</p>
+            </div>
+          ) : (
+            <div className="collections-table-container">
+              <table className="collections-table">
+                <thead>
+                  <tr>
+                    <th colSpan="6">To'plamlar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getCollectionsByTeacher().map(([teacherName, teacherCollections]) => {
+                    const isExpanded = expandedTeachers[teacherName] !== false; // Default true
+                    return (
+                    <React.Fragment key={teacherName}>
+                      {/* O'qituvchi sarlavhasi */}
+                      <tr 
+                        className="teacher-header-row" 
+                        onClick={() => toggleTeacherExpand(teacherName)}
+                      >
+                        <td colSpan="6" className="teacher-header-cell">
+                          <FiChevronDown 
+                            size={20}
+                            className={`collapse-icon ${isExpanded ? 'expanded' : ''}`}
+                            style={{ marginRight: '10px', display: 'inline' }}
+                          />
+                          <strong>{teacherName}</strong> ({teacherCollections.length})
+                        </td>
+                      </tr>
+                      {/* O'qituvchining to'plamlari - Collapsable */}
+                      {isExpanded && teacherCollections.map((collection) => (
+                        <tr key={collection.id} className="collection-row">
+                          <td colSpan="6" className="collection-cell">
+                            <CollectionCard
+                              collection={collection}
+                              onViewDetails={() => {
+                                setSelectedCollection(collection);
+                                setShowCollectionDetail(true);
+                              }}
+                              onEdit={() => {
+                                setEditingCollection(collection);
+                                setCollectionFormData({
+                                  title: collection.title || '',
+                                  description: collection.description || '',
+                                  previewImage: null,
+                                  selectedGroupId: collection.groupId || 'global',
+                                  selectedSubjectId: collection.subjectId || null
+                                });
+                                setShowAddCollectionModal(true);
+                              }}
+                              onDelete={() => handleDeleteCollection(collection.id)}
+                              isOwner={collection.teacherId === currentUser.uid}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Add Resource Modal */}
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingResource(null);
+          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+          setUploadProgress(0);
+          setModalSelectedGroup(null);
+          setModalSelectedSubject(null);
+          setModalSubjects([]);
+        }}
+        title={editingResource ? "Resursni tahrirlash" : "Yangi resurs qo'shish"}
+      >
+        <div className="modal-form">
+          <div className="form-group">
+            <label className="form-label">{t('teacher.attendance.group')} <span className="required">*</span></label>
             <select
-              className="filter-select"
-              value={selectedGroup?.id || ''}
-              onChange={(e) => handleGroupChange(e.target.value)}
+              className="form-input"
+              value={modalSelectedGroup?.id || ''}
+              onChange={(e) => handleModalGroupChange(e.target.value)}
             >
+              <option value="">Guruh tanlang</option>
               <option value="global">{t('tests.forAll')}</option>
               {groups.map(group => (
                 <option key={group.id} value={group.id}>
@@ -748,19 +1116,19 @@ const TeacherResources = () => {
             </select>
           </div>
 
-          <div className="filter-group">
-            <label>{t('grades.subject')}</label>
+          <div className="form-group">
+            <label className="form-label">{t('grades.subject')} <span className="required">*</span></label>
             <select
-              className="filter-select"
-              value={selectedSubject?.id || ''}
+              className="form-input"
+              value={modalSelectedSubject?.id || ''}
               onChange={(e) => {
-                const subject = subjects.find(s => s.id === e.target.value);
-                setSelectedSubject(subject);
+                const subject = modalSubjects.find(s => s.id === e.target.value);
+                setModalSelectedSubject(subject);
               }}
-              disabled={!selectedGroup}
+              disabled={!modalSelectedGroup}
             >
-              <option value="">{t('grades.selectSubject')}</option>
-              {subjects.map(subject => (
+              <option value="">Fan tanlang</option>
+              {modalSubjects.map(subject => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
                 </option>
@@ -768,90 +1136,6 @@ const TeacherResources = () => {
             </select>
           </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setEditingCollection(null);
-              setCollectionFormData({
-                title: '',
-                description: '',
-                previewImage: null,
-                selectedGroupId: selectedGroup?.id || null,
-                selectedSubjectId: selectedSubject?.id || null
-              });
-              setShowAddCollectionModal(true);
-            }}
-            disabled={!selectedSubject}
-          >
-            <FiPlus /> Yangi to'plam
-          </button>
-        </div>
-
-        {loadingCollections ? (
-          <LoadingSpinner />
-        ) : collections.length === 0 ? (
-          <div className="empty-state">
-            <FiBookOpen size={48} />
-            <p>To'plamlari yo'q</p>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-              setEditingCollection(null);
-              setCollectionFormData({
-                title: '',
-                description: '',
-                previewImage: null,
-                selectedGroupId: selectedGroup?.id || null,
-                selectedSubjectId: selectedSubject?.id || null
-              });
-              setShowAddCollectionModal(true);
-            }}
-              disabled={!selectedSubject}
-            >
-              <FiPlus /> Yangi to'plam yaratish
-            </button>
-          </div>
-        ) : (
-          <div className="collections-grid">
-            {collections.map((collection) => (
-              <CollectionCard
-                key={collection.id}
-                collection={collection}
-                onViewDetails={() => {
-                  setSelectedCollection(collection);
-                  setShowCollectionDetail(true);
-                }}
-                onEdit={() => {
-                  setEditingCollection(collection);
-                  setCollectionFormData({
-                    title: collection.title || '',
-                    description: collection.description || '',
-                    previewImage: null,
-                    selectedGroupId: collection.groupId || 'global',
-                    selectedSubjectId: collection.subjectId || null
-                  });
-                  setShowAddCollectionModal(true);
-                }}
-                onDelete={() => handleDeleteCollection(collection.id)}
-                isOwner={true}
-              />
-            ))}
-          </div>
-        )}
-        </>
-      )}
-
-      {/* Add Resource Modal */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => {
-          setShowAddModal(false);
-          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
-          setUploadProgress(0);
-        }}
-        title="Resurs qo'shish"
-      >
-        <div className="modal-form">
           <div className="form-group">
             <label className="form-label">Sarlavha <span className="required">*</span></label>
             <input
@@ -877,7 +1161,8 @@ const TeacherResources = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Fayl <span className="required">*</span></label>
+            <label className="form-label">Fayl {!editingResource && <span className="required">*</span>}</label>
+            {editingResource && <small style={{ color: '#666' }}>(Ixtiyoriy - yangi fayl yuklash uchun)</small>}
             <div className="file-upload-area">
               <input
                 type="file"
@@ -929,9 +1214,11 @@ const TeacherResources = () => {
             <button
               className="btn btn-primary"
               onClick={handleAddResource}
-              disabled={uploading || !formData.title.trim() || !formData.file}
+              disabled={uploading || !formData.title.trim() || (!editingResource && !formData.file) || !modalSelectedGroup || !modalSelectedSubject}
             >
-              {uploading ? 'Yuklanmoqda...' : 'Qo\'shish'}
+              {uploading 
+                ? (editingResource ? 'Yangilash jarayonida...' : 'Yuklanmoqda...')
+                : (editingResource ? 'Saqlash' : 'Qo\'shish')}
             </button>
           </div>
         </div>
@@ -979,13 +1266,7 @@ const TeacherResources = () => {
             <select
               className="form-input"
               value={collectionFormData.selectedGroupId || ''}
-              onChange={(e) => {
-                setCollectionFormData({
-                  ...collectionFormData,
-                  selectedGroupId: e.target.value,
-                  selectedSubjectId: null
-                });
-              }}
+              onChange={(e) => handleCollectionModalGroupChange(e.target.value)}
             >
               <option value="">Guruh tanlang</option>
               <option value="global">Barcha guruhlar</option>
@@ -1011,7 +1292,7 @@ const TeacherResources = () => {
               disabled={!collectionFormData.selectedGroupId}
             >
               <option value="">Fan tanlang</option>
-              {subjects.map(subject => (
+              {collectionModalSubjects.map(subject => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
                 </option>

@@ -10,8 +10,7 @@ import {
   FiVideo,
   FiMusic,
   FiFileText,
-  FiChevronDown,
-  FiChevronUp
+  FiMoreVertical
 } from 'react-icons/fi';
 import './CollectionDetail.css';
 
@@ -44,22 +43,12 @@ const CollectionDetail = ({
   isOwner = false,
   isLoading = false
 }) => {
-  const [expandedFiles, setExpandedFiles] = useState(new Set());
-
-  const toggleFileExpand = (fileId) => {
-    const newExpanded = new Set(expandedFiles);
-    if (newExpanded.has(fileId)) {
-      newExpanded.delete(fileId);
-    } else {
-      newExpanded.add(fileId);
-    }
-    setExpandedFiles(newExpanded);
-  };
+  const [expandedMenu, setExpandedMenu] = useState(null);
 
   const files = collection.files || [];
 
   return (
-    <div className="collection-detail-overlay" onClick={onClose}>
+    <div className="collection-detail-overlay" onClick={() => setExpandedMenu(null)}>
       <div className="collection-detail-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="collection-detail-header">
@@ -74,7 +63,10 @@ const CollectionDetail = ({
               </p>
             )}
           </div>
-          <button className="collection-detail-close" onClick={onClose}>
+          <button className="collection-detail-close" onClick={() => {
+            setExpandedMenu(null);
+            onClose();
+          }}>
             <FiX size={24} />
           </button>
         </div>
@@ -135,53 +127,54 @@ const CollectionDetail = ({
                       )}
                     </div>
 
-                    {/* Expand button */}
-                    <button
-                      className="collection-file-toggle"
-                      onClick={() => toggleFileExpand(file.id || index)}
-                    >
-                      {expandedFiles.has(file.id || index) ? (
-                        <FiChevronUp />
-                      ) : (
-                        <FiChevronDown />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Expanded actions */}
-                  {expandedFiles.has(file.id || index) && (
-                    <div className="collection-file-actions">
+                    {/* Action buttons */}
+                    <div className="collection-file-actions-inline">
                       <button
-                        className="collection-file-download"
+                        className="collection-file-download-btn"
                         onClick={() => onDownloadFile(file)}
                         title="Yuklab olish"
                       >
                         <FiDownload size={18} />
-                        <span>Yuklab olish</span>
                       </button>
 
                       {isOwner && (
-                        <>
+                        <div className="collection-file-menu-wrapper">
                           <button
-                            className="collection-file-edit"
-                            onClick={() => onEditFile(file, index)}
-                            title="Tahrirlash"
+                            className="collection-file-menu-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedMenu(expandedMenu === (file.id || index) ? null : (file.id || index));
+                            }}
+                            title="Harakatlar"
                           >
-                            <FiEdit2 size={18} />
-                            <span>Tahrirlash</span>
+                            <FiMoreVertical size={18} />
                           </button>
-                          <button
-                            className="collection-file-delete"
-                            onClick={() => onDeleteFile(file, index)}
-                            title="O'chirish"
-                          >
-                            <FiTrash2 size={18} />
-                            <span>O'chirish</span>
-                          </button>
-                        </>
+                          {expandedMenu === (file.id || index) && (
+                            <div className="collection-file-menu" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="collection-file-menu-item collection-file-edit"
+                                onClick={() => {
+                                  onEditFile(file, index);
+                                  setExpandedMenu(null);
+                                }}
+                              >
+                                <FiEdit2 size={16} /> Tahrirlash
+                              </button>
+                              <button
+                                className="collection-file-menu-item collection-file-delete"
+                                onClick={() => {
+                                  onDeleteFile(file, index);
+                                  setExpandedMenu(null);
+                                }}
+                              >
+                                <FiTrash2 size={16} /> O'chirish
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
