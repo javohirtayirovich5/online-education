@@ -31,7 +31,7 @@ import './Lessons.css';
 
 const MyLessons = () => {
   const navigate = useNavigate();
-  const { userData, isTeacher } = useAuth();
+  const { userData, isTeacher, isAdmin } = useAuth();
   const { t } = useTranslation();
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -575,11 +575,20 @@ const MyLessons = () => {
   const handleDeleteCourse = (courseId) => {
     setConfirmData(courseId);
     setConfirmAction(() => async () => {
+      // Optimistic delete - remove from UI immediately
+      const deletedCourse = courses.find(c => c.id === courseId);
+      setCourses(courses.filter(c => c.id !== courseId));
+      setShowConfirmModal(false);
+
       const result = await courseService.deleteCourse(courseId);
       if (result.success) {
         toast.success(t('lessons.courseDeleted'));
-        loadCourses();
       } else {
+        // Restore if failed
+        if (deletedCourse) {
+          setCourses([deletedCourse, ...courses]);
+        }
+        loadCourses();
         toast.error('Kurs o\'chirishda xatolik');
       }
     });
@@ -970,7 +979,7 @@ const MyLessons = () => {
                 >
                   <FiPlay /> {t('common.view')}
                 </button>
-                {isTeacher && course.instructorId === userData.uid && (
+                {((isTeacher && course.instructorId === userData.uid) || isAdmin) && (
                   <>
                     <button 
                       className="btn btn-secondary btn-sm"

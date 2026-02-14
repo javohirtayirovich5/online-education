@@ -6,7 +6,8 @@ import {
   addDoc, 
   updateDoc, 
   doc, 
-  getDoc 
+  getDoc,
+  deleteDoc 
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { notificationService } from './notificationService';
@@ -124,6 +125,18 @@ export const assignmentService = {
       return { success: true };
     } catch (error) {
       console.error('Update assignment error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Delete assignment
+  async deleteAssignment(assignmentId) {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, assignmentId);
+      await deleteDoc(docRef);
+      return { success: true };
+    } catch (error) {
+      console.error('Delete assignment error:', error);
       return { success: false, error: error.message };
     }
   },

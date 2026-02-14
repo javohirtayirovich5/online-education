@@ -294,7 +294,7 @@
 .lesson-card {
   background: var(--bg-primary);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  /* overflow: hidden; */
   border: 1px solid var(--border);
   transition: var(--transition);
   cursor: pointer;

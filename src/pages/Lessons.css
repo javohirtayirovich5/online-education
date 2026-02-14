@@ -114,15 +114,15 @@
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
   box-shadow: 0 1px 3px var(--shadow);
   transition: var(--transition);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .lesson-card:hover {
-  transform: translateY(-4px);
+  /* transform: translateY(-4px); */
   box-shadow: 0 4px 12px var(--shadow);
   border-color: var(--primary);
 }
@@ -135,6 +135,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .video-preview {
@@ -190,6 +192,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .lesson-body h3 {
@@ -259,6 +262,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  position: relative;
+  z-index: 10;
 }
 
 .lesson-actions {
@@ -268,6 +273,7 @@
 
 .lesson-actions-menu {
   position: relative;
+  z-index: 20;
 }
 
 .btn-icon {
@@ -307,9 +313,9 @@
 
 .lesson-menu-dropdown {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   right: 0;
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);

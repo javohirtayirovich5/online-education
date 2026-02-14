@@ -245,7 +245,7 @@ const TeacherResources = () => {
 
     try {
       if (editingResource) {
-        // Tahrirlash
+        // Tahrirlash - optimistic update
         const updates = {
           title: formData.title,
           lessonType: formData.lessonType,
@@ -256,6 +256,12 @@ const TeacherResources = () => {
           isGlobal: modalSelectedGroup?.id === 'global'
         };
 
+        // Optimistic update UI
+        const updatedResources = resources.map(r =>
+          r.id === editingResource.id ? { ...r, ...updates } : r
+        );
+        setResources(updatedResources);
+
         const result = await resourceService.updateResource(
           editingResource.id,
           updates,
@@ -265,51 +271,63 @@ const TeacherResources = () => {
 
         if (result.success) {
           toast.success('Resurs yangilandi');
-          setShowAddModal(false);
-          setEditingResource(null);
-          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
-          setUploadProgress(0);
-          setModalSelectedGroup(null);
-          setModalSelectedSubject(null);
-          setModalSubjects([]);
-          loadResources();
         } else {
+          // Restore if failed
+          loadResources();
           toast.error(result.error || 'Resurs yangilashda xatolik');
         }
+
+        setShowAddModal(false);
+        setEditingResource(null);
+        setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+        setUploadProgress(0);
+        setModalSelectedGroup(null);
+        setModalSelectedSubject(null);
+        setModalSubjects([]);
       } else {
-        // Yangi resurs qo'shish
+        // Yangi resurs qo'shish - optimistic add
+        const newResource = {
+          id: 'temp_' + Date.now(),
+          groupId: modalSelectedGroup?.id === 'global' ? null : modalSelectedGroup?.id,
+          groupName: modalSelectedGroup?.id === 'global' ? '' : modalSelectedGroup?.name,
+          subjectId: modalSelectedSubject.id,
+          subjectName: modalSelectedSubject.name,
+          teacherId: currentUser.uid,
+          teacherName: userData.displayName || '',
+          title: formData.title,
+          lessonType: formData.lessonType,
+          isGlobal: modalSelectedGroup?.id === 'global',
+          createdAt: new Date()
+        };
+
+        // Add to UI immediately
+        setResources([newResource, ...resources]);
+
         const result = await resourceService.addResource(
-          {
-            groupId: modalSelectedGroup?.id === 'global' ? null : modalSelectedGroup?.id,
-            groupName: modalSelectedGroup?.id === 'global' ? '' : modalSelectedGroup?.name,
-            subjectId: modalSelectedSubject.id,
-            subjectName: modalSelectedSubject.name,
-            teacherId: currentUser.uid,
-            teacherName: userData.displayName || '',
-            title: formData.title,
-            lessonType: formData.lessonType,
-            isGlobal: modalSelectedGroup?.id === 'global'
-          },
+          newResource,
           formData.file,
           (progress) => setUploadProgress(progress)
         );
 
         if (result.success) {
           toast.success('Resurs qo\'shildi');
-          setShowAddModal(false);
-          setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
-          setUploadProgress(0);
-          setModalSelectedGroup(null);
-          setModalSelectedSubject(null);
-          setModalSubjects([]);
-          loadResources();
         } else {
+          // Remove if failed
+          setResources(resources);
           toast.error(result.error || 'Resurs qo\'shishda xatolik');
         }
+
+        setShowAddModal(false);
+        setFormData({ title: '', lessonType: 'ma\'ruza', file: null });
+        setUploadProgress(0);
+        setModalSelectedGroup(null);
+        setModalSelectedSubject(null);
+        setModalSubjects([]);
       }
     } catch (error) {
       console.error('Add/Update resource error:', error);
       toast.error('Xatolik yuz berdi');
+      loadResources();
     }
     setUploading(false);
   };
@@ -318,16 +336,24 @@ const TeacherResources = () => {
     setDeleteResourceId(resourceId);
     setConfirmAction(() => async () => {
       try {
+        // Optimistic delete
+        const deletedResource = resources.find(r => r.id === resourceId);
+        setResources(resources.filter(r => r.id !== resourceId));
+
         const result = await resourceService.deleteResource(resourceId);
         if (result.success) {
           toast.success('O\'chirildi');
-          loadResources();
         } else {
+          // Restore if failed
+          if (deletedResource) {
+            setResources([deletedResource, ...resources]);
+          }
           toast.error(result.error || 'O\'chirishda xatolik');
         }
       } catch (error) {
         console.error('Delete resource error:', error);
         toast.error('Xatolik yuz berdi');
+        loadResources();
       }
     });
     setShowConfirmModal(true);
@@ -401,7 +427,7 @@ const TeacherResources = () => {
     setUploading(true);
     try {
       if (editingCollection) {
-        // Mavjud to'plamni tahrirlash
+        // Mavjud to'plamni tahrirlash - optimistic update
         const selectedGroupForUpdate = groups.find(g => g.id === collectionFormData.selectedGroupId);
         const selectedSubjectForUpdate = subjects.find(s => s.id === collectionFormData.selectedSubjectId);
         
@@ -414,6 +440,12 @@ const TeacherResources = () => {
           subjectName: selectedSubjectForUpdate?.name || ''
         };
 
+        // Optimistic update in UI
+        const updatedCollections = collections.map(c =>
+          c.id === editingCollection.id ? { ...c, ...updates } : c
+        );
+        setCollections(updatedCollections);
+
         const result = await collectionService.updateCollection(
           editingCollection.id,
           updates,
@@ -422,56 +454,69 @@ const TeacherResources = () => {
 
         if (result.success) {
           toast.success('To\'plam yangilandi');
-          setShowAddCollectionModal(false);
-          setEditingCollection(null);
-          setCollectionFormData({
-            title: '',
-            description: '',
-            previewImage: null,
-            selectedGroupId: null,
-            selectedSubjectId: null
-          });
-          loadCollections();
         } else {
+          // Restore if failed
+          loadCollections();
           toast.error(result.error || 'To\'plamni yangilashda xatolik');
         }
+
+        setShowAddCollectionModal(false);
+        setEditingCollection(null);
+        setCollectionFormData({
+          title: '',
+          description: '',
+          previewImage: null,
+          selectedGroupId: null,
+          selectedSubjectId: null
+        });
       } else {
-        // Yangi to'plam yaratish
+        // Yangi to'plam yaratish - optimistic add
         const selectedGroupForCreate = groups.find(g => g.id === collectionFormData.selectedGroupId);
         const selectedSubjectForCreate = subjects.find(s => s.id === collectionFormData.selectedSubjectId);
         
+        const newCollection = {
+          id: 'temp_' + Date.now(),
+          teacherId: currentUser.uid,
+          teacherName: userData.displayName || '',
+          title: collectionFormData.title,
+          description: collectionFormData.description,
+          groupId: collectionFormData.selectedGroupId === 'global' ? null : collectionFormData.selectedGroupId,
+          groupName: collectionFormData.selectedGroupId === 'global' ? '' : selectedGroupForCreate?.name,
+          subjectId: collectionFormData.selectedSubjectId,
+          subjectName: selectedSubjectForCreate?.name,
+          files: [],
+          createdAt: new Date()
+        };
+
+        // Add to UI immediately
+        setCollections([newCollection, ...collections]);
+
         const result = await collectionService.createCollection(
-          {
-            teacherId: currentUser.uid,
-            teacherName: userData.displayName || '',
-            title: collectionFormData.title,
-            description: collectionFormData.description,
-            groupId: collectionFormData.selectedGroupId === 'global' ? null : collectionFormData.selectedGroupId,
-            groupName: collectionFormData.selectedGroupId === 'global' ? '' : selectedGroupForCreate?.name,
-            subjectId: collectionFormData.selectedSubjectId,
-            subjectName: selectedSubjectForCreate?.name
-          },
+          newCollection,
           collectionFormData.previewImage
         );
 
         if (result.success) {
           toast.success('To\'plam yaratildi');
-          setShowAddCollectionModal(false);
-          setCollectionFormData({
-            title: '',
-            description: '',
-            previewImage: null,
-            selectedGroupId: null,
-            selectedSubjectId: null
-          });
-          loadCollections();
         } else {
+          // Remove if failed
+          setCollections(collections);
           toast.error(result.error || 'To\'plam yaratishda xatolik');
         }
+
+        setShowAddCollectionModal(false);
+        setCollectionFormData({
+          title: '',
+          description: '',
+          previewImage: null,
+          selectedGroupId: null,
+          selectedSubjectId: null
+        });
       }
     } catch (error) {
       console.error('Save collection error:', error);
       toast.error('Xatolik yuz berdi');
+      loadCollections();
     }
     setUploading(false);
   };
@@ -504,40 +549,74 @@ const TeacherResources = () => {
       };
 
       if (editingFileIndex !== null) {
-        // Faylni yangilash
+        // Faylni yangilash - optimistic update
         const updatedFiles = [...selectedCollection.files];
         updatedFiles[editingFileIndex] = newFile;
+        
+        // Update UI immediately
+        const updatedSelectedCollection = { ...selectedCollection, files: updatedFiles };
+        setSelectedCollection(updatedSelectedCollection);
+        
+        const updatedCollectionsList = collections.map(c =>
+          c.id === selectedCollection.id ? updatedSelectedCollection : c
+        );
+        setCollections(updatedCollectionsList);
+
         const result = await collectionService.updateCollection(
           selectedCollection.id,
           { files: updatedFiles }
         );
+        
         if (result.success) {
           toast.success('Fayl yangilandi');
           setEditingFileIndex(null);
+        } else {
+          // Restore if failed
+          const originalResult = await collectionService.getCollectionById(selectedCollection.id);
+          if (originalResult.success) {
+            setSelectedCollection(originalResult.data);
+            setCollections(collections =>
+              collections.map(c => c.id === selectedCollection.id ? originalResult.data : c)
+            );
+          }
+          loadCollections();
+          toast.error(result.error || 'Faylni yangilashda xatolik');
         }
       } else {
-        // Yangi fayl qo'shish
+        // Yangi fayl qo'shish - optimistic update
+        const updatedFiles = [...selectedCollection.files, newFile];
+        
+        // Update UI immediately
+        const updatedSelectedCollection = { ...selectedCollection, files: updatedFiles };
+        setSelectedCollection(updatedSelectedCollection);
+        
+        const updatedCollectionsList = collections.map(c =>
+          c.id === selectedCollection.id ? updatedSelectedCollection : c
+        );
+        setCollections(updatedCollectionsList);
+
         const result = await collectionService.addFileToCollection(
           selectedCollection.id,
           newFile
         );
+        
         if (result.success) {
           toast.success('Fayl qo\'shildi');
+        } else {
+          // Restore if failed
+          setSelectedCollection(selectedCollection);
+          setCollections(collections);
+          loadCollections();
+          toast.error(result.error || 'Fayl qo\'shishda xatolik');
         }
       }
 
       setShowAddFileToCollectionModal(false);
       setFileToAddData({ name: '', description: '', file: null });
-      
-      // Updated collection ni yuklash
-      const updatedResult = await collectionService.getCollectionById(selectedCollection.id);
-      if (updatedResult.success) {
-        setSelectedCollection(updatedResult.data);
-      }
-      loadCollections();
     } catch (error) {
       console.error('Add file to collection error:', error);
       toast.error('Xatolik yuz berdi');
+      loadCollections();
     }
     setUploading(false);
   };
@@ -545,6 +624,19 @@ const TeacherResources = () => {
   const handleDeleteFileFromCollection = async (file, index) => {
     setConfirmAction(() => async () => {
       try {
+        // Optimistic delete - remove file from UI immediately
+        const originalFiles = selectedCollection.files;
+        const updatedFiles = selectedCollection.files.filter((_, i) => i !== index);
+        
+        // Update UI immediately
+        const updatedSelectedCollection = { ...selectedCollection, files: updatedFiles };
+        setSelectedCollection(updatedSelectedCollection);
+        
+        const updatedCollectionsList = collections.map(c =>
+          c.id === selectedCollection.id ? updatedSelectedCollection : c
+        );
+        setCollections(updatedCollectionsList);
+
         const result = await collectionService.removeFileFromCollection(
           selectedCollection.id,
           file
@@ -552,17 +644,27 @@ const TeacherResources = () => {
 
         if (result.success) {
           toast.success('Fayl o\'chirildi');
-          const updatedResult = await collectionService.getCollectionById(selectedCollection.id);
-          if (updatedResult.success) {
-            setSelectedCollection(updatedResult.data);
-          }
-          loadCollections();
         } else {
+          // Restore if failed
+          const restoredCollection = { ...selectedCollection, files: originalFiles };
+          setSelectedCollection(restoredCollection);
+          setCollections(collections =>
+            collections.map(c => c.id === selectedCollection.id ? restoredCollection : c)
+          );
+          loadCollections();
           toast.error(result.error || 'Faylni o\'chirishda xatolik');
         }
       } catch (error) {
         console.error('Delete file error:', error);
         toast.error('Xatolik yuz berdi');
+        // Reload on error
+        const updatedResult = await collectionService.getCollectionById(selectedCollection.id);
+        if (updatedResult.success) {
+          setSelectedCollection(updatedResult.data);
+          setCollections(collections =>
+            collections.map(c => c.id === selectedCollection.id ? updatedResult.data : c)
+          );
+        }
       }
     });
     setShowConfirmModal(true);
@@ -572,18 +674,26 @@ const TeacherResources = () => {
     setDeleteResourceId(collectionId);
     setConfirmAction(() => async () => {
       try {
+        // Optimistic delete
+        const deletedCollection = collections.find(c => c.id === collectionId);
+        setCollections(collections.filter(c => c.id !== collectionId));
+        setShowCollectionDetail(false);
+        setSelectedCollection(null);
+
         const result = await collectionService.deleteCollection(collectionId);
         if (result.success) {
           toast.success('To\'plam o\'chirildi');
-          setShowCollectionDetail(false);
-          setSelectedCollection(null);
-          loadCollections();
         } else {
+          // Restore if failed
+          if (deletedCollection) {
+            setCollections([deletedCollection, ...collections]);
+          }
           toast.error(result.error || 'O\'chirishda xatolik');
         }
       } catch (error) {
         console.error('Delete collection error:', error);
         toast.error('Xatolik yuz berdi');
+        loadCollections();
       }
     });
     setShowConfirmModal(true);

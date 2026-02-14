@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import { assignmentService } from '../services/assignmentService';
 import { storageService } from '../services/storageService';
-import { FiFileText, FiPlus, FiClock, FiCheckCircle, FiXCircle, FiArrowLeft, FiUpload, FiFile, FiDownload, FiUser, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiFileText, FiPlus, FiClock, FiCheckCircle, FiXCircle, FiArrowLeft, FiUpload, FiFile, FiDownload, FiUser, FiEdit, FiTrash2, FiEye, FiMoreVertical } from 'react-icons/fi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -40,8 +40,12 @@ const Assignments = () => {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [grading, setGrading] = useState({});
+  const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+  const [deleteAssignmentId, setDeleteAssignmentId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const fileInputRef = useRef(null);
   const submissionFileInputRef = useRef(null);
+  const menuRefs = useRef({});
 
   useEffect(() => {
     loadAssignments();
@@ -142,6 +146,17 @@ const Assignments = () => {
         });
       }
 
+      // Optimistic add to UI
+      const newAssignment = {
+        id: assignmentId,
+        ...formData,
+        createdBy: userData.uid,
+        createdByName: userData.displayName,
+        attachedFiles: attachedFilesURLs,
+        createdAt: new Date().toISOString()
+      };
+      setAssignments([newAssignment, ...assignments]);
+
       toast.success('Topshiriq yaratildi!');
       setShowCreateModal(false);
       setFormData({ title: '', description: '', dueDate: '', maxScore: 100 });
@@ -149,10 +164,10 @@ const Assignments = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      loadAssignments();
     } catch (error) {
       console.error('Create assignment error:', error);
       toast.error(error.message || 'Topshiriq yaratishda xatolik');
+      loadAssignments();
     }
     setUploading(false);
   };
@@ -236,6 +251,21 @@ const Assignments = () => {
         throw new Error(result.error || 'Topshiriqni yangilashda xatolik');
       }
 
+      // Optimistic update in UI
+      const updatedAssignments = assignments.map(a => 
+        a.id === assignmentId 
+          ? {
+              ...a,
+              title: formData.title,
+              description: formData.description,
+              dueDate: formData.dueDate,
+              maxScore: formData.maxScore,
+              attachedFiles: allAttachedFiles
+            }
+          : a
+      );
+      setAssignments(updatedAssignments);
+
       toast.success('Topshiriq yangilandi!');
       setShowEditModal(false);
       setEditingAssignment(null);
@@ -244,10 +274,10 @@ const Assignments = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      loadAssignments();
     } catch (error) {
       console.error('Update assignment error:', error);
       toast.error(error.message || 'Topshiriqni yangilashda xatolik');
+      loadAssignments();
     }
     setUploading(false);
   };
@@ -327,6 +357,38 @@ const Assignments = () => {
     return { total, graded, ungraded };
   };
 
+  const handleDeleteAssignment = (assignmentId) => {
+    setDeleteAssignmentId(assignmentId);
+    setOpenMenuId(null);
+    setShowConfirmDeleteModal(true);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!deleteAssignmentId) return;
+    
+    try {
+      // Optimistic delete - remove from UI immediately
+      setAssignments(assignments.filter(a => a.id !== deleteAssignmentId));
+      
+      const result = await assignmentService.deleteAssignment(deleteAssignmentId);
+      if (result.success) {
+        toast.success('Topshiriq o\'chirildi');
+      } else {
+        // Restore if delete failed
+        loadAssignments();
+        toast.error(result.error || 'Topshiriqni o\'chirishda xatolik');
+      }
+    } catch (error) {
+      console.error('Delete assignment error:', error);
+      // Restore if delete failed
+      loadAssignments();
+      toast.error('Topshiriqni o\'chirishda xatolik');
+    } finally {
+      setShowConfirmDeleteModal(false);
+      setDeleteAssignmentId(null);
+    }
+  };
+
   const handleSubmitAssignment = async () => {
     if (!submissionFile) {
       toast.error('Fayl tanlang');
@@ -359,13 +421,7 @@ const Assignments = () => {
         });
 
         if (result.success) {
-          toast.success('Topshiriq muvaffaqiyatli jo\'natildi!');
-          setShowDetailModal(false);
-          setSubmissionFile(null);
-          if (submissionFileInputRef.current) {
-            submissionFileInputRef.current.value = '';
-          }
-          // Update student submissions state
+          // Update student submissions state optimistically
           const newSubmission = {
             id: result.submissionId,
             assignmentId: selectedAssignment.id,
@@ -384,6 +440,13 @@ const Assignments = () => {
             ...studentSubmissions,
             [selectedAssignment.id]: newSubmission
           });
+
+          toast.success('Topshiriq muvaffaqiyatli jo\'natildi!');
+          setShowDetailModal(false);
+          setSubmissionFile(null);
+          if (submissionFileInputRef.current) {
+            submissionFileInputRef.current.value = '';
+          }
         } else {
           throw new Error(result.error || 'Topshiriqni jo\'natishda xatolik');
         }
@@ -412,20 +475,24 @@ const Assignments = () => {
       });
 
       if (result.success) {
+        // Optimistic update - update submission in the list
+        const updatedSubmissions = submissions.map(s =>
+          s.id === submissionId
+            ? { ...s, grade: parseFloat(grade), gradedBy: userData.uid, gradedByName: userData.displayName }
+            : s
+        );
+        setSubmissions(updatedSubmissions);
+
+        // Update ungraded count
+        const ungraded = updatedSubmissions.filter(
+          s => s.grade === null || s.grade === undefined
+        ).length;
+        setUngradedCounts({
+          ...ungradedCounts,
+          [selectedAssignment.id]: ungraded
+        });
+
         toast.success('Baholandi!');
-        // Reload submissions
-        const submissionsResult = await assignmentService.getSubmissionsByAssignment(selectedAssignment.id);
-        if (submissionsResult.success) {
-          setSubmissions(submissionsResult.data);
-          // Update ungraded count
-          const ungraded = submissionsResult.data.filter(
-            s => s.grade === null || s.grade === undefined
-          ).length;
-          setUngradedCounts({
-            ...ungradedCounts,
-            [selectedAssignment.id]: ungraded
-          });
-        }
       } else {
         throw new Error(result.error || 'Baholashda xatolik');
       }
@@ -606,17 +673,39 @@ const Assignments = () => {
                   {isTeacher ? (
                     <div className="assignment-actions">
                       <button 
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleEdit(assignment)}
-                      >
-                        <FiEdit /> {t('assignments.editAssignment')}
-                      </button>
-                      <button 
                         className="btn btn-primary btn-sm"
                         onClick={() => handleViewSubmissions(assignment)}
                       >
                         <FiEye /> {t('assignments.viewAssignments')}
                       </button>
+                      <div className="action-menu-wrapper" ref={el => menuRefs.current[assignment.id] = el}>
+                        <button 
+                          className="btn-icon-menu" 
+                          onClick={() => setOpenMenuId(openMenuId === assignment.id ? null : assignment.id)}
+                          aria-label="More actions"
+                        >
+                          <FiMoreVertical />
+                        </button>
+                        {openMenuId === assignment.id && (
+                          <div className="assignment-menu-dropdown">
+                            <button 
+                              className="assignment-menu-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleEdit(assignment);
+                              }}
+                            >
+                              <FiEdit /> {t('assignments.editAssignment')}
+                            </button>
+                            <button 
+                              className="assignment-menu-item assignment-menu-item-danger"
+                              onClick={() => handleDeleteAssignment(assignment.id)}
+                            >
+                              <FiTrash2 /> {t('common.delete')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <button 
@@ -890,6 +979,18 @@ const Assignments = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmDeleteModal}
+        onClose={() => setShowConfirmDeleteModal(false)}
+        onConfirm={confirmDeleteAssignment}
+        title="Tasdiqlash"
+        message="Rostdan ham o'chirmoqchimisiz?"
+        confirmText="Ha, o'chirish"
+        cancelText="Bekor qilish"
+        type="danger"
+      />
 
       {/* Assignment Detail Modal (for students) */}
       <Modal

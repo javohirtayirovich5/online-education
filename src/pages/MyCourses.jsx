@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { courseService } from '../services/courseService';
-import { FiPlus, FiBook, FiUsers, FiClock, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiPlus, FiBook, FiUsers, FiClock, FiEdit, FiTrash2, FiEye, FiMoreVertical } from 'react-icons/fi';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -14,6 +14,7 @@ const MyCourses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -54,19 +55,26 @@ const MyCourses = () => {
       return;
     }
 
-    const result = await courseService.createCourse({
+    // Optimistic create - add temp course to UI
+    const newCourse = {
+      id: 'temp_' + Date.now(),
       ...formData,
       instructorId: userData.uid,
       instructorName: userData.displayName,
-      thumbnailURL: '/default-course.jpg'
-    });
+      thumbnailURL: '/default-course.jpg',
+      modules: []
+    };
+    setCourses([newCourse, ...courses]);
+    setShowCreateModal(false);
+    setFormData({ title: '', description: '', category: 'Informatika', startDate: '', endDate: '' });
+
+    const result = await courseService.createCourse(newCourse);
 
     if (result.success) {
       toast.success('Kurs muvaffaqiyatli yaratildi!');
-      setShowCreateModal(false);
-      setFormData({ title: '', description: '', category: 'Informatika', startDate: '', endDate: '' });
-      loadCourses();
     } else {
+      // Remove temp course if failed
+      setCourses(courses);
       toast.error('Kurs yaratishda xatolik');
     }
   };
@@ -74,11 +82,20 @@ const MyCourses = () => {
   const handleDelete = (courseId) => {
     setDeleteCourseId(courseId);
     setConfirmAction(() => async () => {
+      // Optimistic delete - remove from UI immediately
+      const deletedCourse = courses.find(c => c.id === courseId);
+      setCourses(courses.filter(c => c.id !== courseId));
+      setShowConfirmModal(false);
+
       const result = await courseService.deleteCourse(courseId);
       if (result.success) {
         toast.success('Kurs o\'chirildi');
-        loadCourses();
       } else {
+        // Restore if failed
+        if (deletedCourse) {
+          setCourses([deletedCourse, ...courses]);
+        }
+        loadCourses();
         toast.error('Kurs o\'chirishda xatolik');
       }
     });
@@ -160,17 +177,30 @@ const MyCourses = () => {
                   Ochish
                 </Link>
                 {isTeacher && course.instructorId === userData.uid && (
-                  <div className="course-actions">
-                    <button className="btn-icon" title="Tahrirlash">
-                      <FiEdit />
-                    </button>
+                  <div className="action-menu-wrapper">
                     <button 
-                      className="btn-icon btn-danger" 
-                      onClick={() => handleDelete(course.id)}
-                      title="O'chirish"
+                      className="btn-icon-menu"
+                      onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)}
+                      title="Menyoni ochish"
                     >
-                      <FiTrash2 />
+                      <FiMoreVertical />
                     </button>
+                    {openMenuId === course.id && (
+                      <div className="course-menu-dropdown">
+                        <button className="course-menu-item">
+                          <FiEdit /> Tahrirlash
+                        </button>
+                        <button 
+                          className="course-menu-item course-menu-item-danger"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            handleDelete(course.id);
+                          }}
+                        >
+                          <FiTrash2 /> O'chirish
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
