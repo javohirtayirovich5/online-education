@@ -20,26 +20,15 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
 import './TeacherAttendance.css';
 
-// Hafta kunlari
-const WEEK_DAYS = [
-  { id: 1, name: 'Dushanba', short: 'Du' },
-  { id: 2, name: 'Seshanba', short: 'Se' },
-  { id: 3, name: 'Chorshanba', short: 'Ch' },
-  { id: 4, name: 'Payshanba', short: 'Pa' },
-  { id: 5, name: 'Juma', short: 'Ju' },
-  { id: 6, name: 'Shanba', short: 'Sh' },
-  { id: 0, name: 'Yakshanba', short: 'Ya' }
-];
 
-// Oy nomlari
-const MONTH_NAMES = [
-  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
-];
 
 const TeacherAttendance = () => {
   const { currentUser, userData } = useAuth();
   const { t } = useTranslation();
+
+  // translated weekdays and months
+  const WEEK_DAYS = useMemo(() => t('teacher.attendance.weekDays') || [], [t]);
+  const MONTH_NAMES = useMemo(() => t('teacher.attendance.months') || [], [t]);
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [students, setStudents] = useState([]);
@@ -81,13 +70,13 @@ const TeacherAttendance = () => {
   // Dars kunlari nomlarini olish
   const scheduleDaysNames = useMemo(() => {
     if (!subjectInfo?.scheduleDays || subjectInfo.scheduleDays.length === 0) {
-      return 'Belgilanmagan';
+      return t('common.notSet');
     }
     return subjectInfo.scheduleDays
       .map(dayId => WEEK_DAYS.find(d => d.id === dayId)?.name || '')
       .filter(Boolean)
       .join(', ');
-  }, [subjectInfo]);
+  }, [subjectInfo, WEEK_DAYS, t]);
 
   // Tanlangan oy ichidagi dars kunlarini generatsiya qilish
   const scheduledDates = useMemo(() => {
@@ -520,8 +509,8 @@ const TeacherAttendance = () => {
       <div className="teacher-attendance-page">
         <div className="empty-state-full">
           <FiUsers size={64} />
-          <h2>Sizga biriktirilgan guruhlar yo'q</h2>
-          <p>Administrator sizni guruhlarga biriktirishi kerak</p>
+          <h2>{t('teacher.attendance.noGroupsAssigned')}</h2>
+          <p>{t('adminMustAddToGroup')}</p>
         </div>
       </div>
     );
@@ -531,9 +520,9 @@ const TeacherAttendance = () => {
     <div className="teacher-attendance-page hemis-style">
       {/* Breadcrumb */}
       <div className="page-breadcrumb">
-        <span>Asosiy</span>
+        <span>{t('common.dashboard')}</span>
         <span className="separator">/</span>
-        <span>Guruhlar</span>
+        <span>{t('groups')}</span>
         <span className="separator">/</span>
         <span className="current">{t('teacher.attendance.title')}</span>
       </div>
@@ -541,7 +530,7 @@ const TeacherAttendance = () => {
       {/* Info Banner */}
       <div className="info-banner">
         <FiInfo />
-        <span>Mavzuning soatiga qarab qatnashmagan talabaga 1 yoki 2 soat kiritilishi mumkin</span>
+        <span>{t('teacher.attendance.infoBanner')}</span>
       </div>
 
       {/* Month Selector */}

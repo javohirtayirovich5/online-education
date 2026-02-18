@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { testService } from '../../services/testService';
-import { FiClock, FiCheckCircle, FiChevronRight } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiChevronRight, FiMaximize2, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import AudioPlayer from './AudioPlayer';
 import './StudentTestTaker.css';
@@ -19,6 +19,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
   const [score, setScore] = useState(null);
   const [matchingState, setMatchingState] = useState({});
   const [matchingShuffled, setMatchingShuffled] = useState({});
+  const [fullscreenImage, setFullscreenImage] = useState(null);
   const svgRef = useRef(null);
   const clozeRef = useRef(null);
   const subQuestionClozeRefs = useRef({});
@@ -207,7 +208,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
         line.setAttribute('y1', y1);
         line.setAttribute('x2', x2);
         line.setAttribute('y2', y2);
-        line.setAttribute('stroke', pair.correct ? '#4caf50' : '#ef5350');
+        // Use neutral color for matched lines (do not reveal correctness)
+        line.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#1976d2');
         line.setAttribute('stroke-width', '3');
         line.setAttribute('stroke-linecap', 'round');
         svg.appendChild(line);
@@ -244,44 +246,48 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
   };
 
   const handleMatchingClick = (questionIndex, itemValue, isLeftItem) => {
-    const question = test.questions[questionIndex];
-    const state = matchingState[questionIndex] || {};
-    if (state.errorPair) return;
-    if (isLeftItem && state.activeLeft === itemValue) {
+    // support keys for sub-questions like "{qIndex}_{subIndex}"
+    let question;
+    if (typeof questionIndex === 'string' && questionIndex.includes('_')) {
+      const [qIdx, subIdx] = questionIndex.split('_').map(n => parseInt(n, 10));
+      question = test.questions[qIdx]?.subQuestions?.[subIdx];
+    } else {
+      question = test.questions[questionIndex];
+    }
+    const state = matchingState[questionIndex] || { matchedPairs: [] };
+
+    // If clicked item is already part of a matched pair, remove that pair (allow changing answer)
+    const existingPairIndex = state.matchedPairs.findIndex(p => (p.left === itemValue || p.right === itemValue));
+    if (existingPairIndex !== -1) {
+      const removed = state.matchedPairs[existingPairIndex];
+      const newMatched = state.matchedPairs.filter((_, i) => i !== existingPairIndex);
       setMatchingState(prev => ({
         ...prev,
-        [questionIndex]: { ...state, activeLeft: null }
+        [questionIndex]: { ...state, matchedPairs: newMatched }
       }));
+      // Update answer stored
+      handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length });
       return;
     }
-    if (!isLeftItem && state.activeRight === itemValue) {
-      setMatchingState(prev => ({
-        ...prev,
-        [questionIndex]: { ...state, activeRight: null }
-      }));
-      return;
-    }
-    if (isLeftItem && !state.activeLeft) {
-      setMatchingState(prev => ({
-        ...prev,
-        [questionIndex]: { ...state, activeLeft: itemValue }
-      }));
-      return;
-    }
-    if (!isLeftItem && !state.activeRight && !state.activeLeft) {
-      setMatchingState(prev => ({
-        ...prev,
-        [questionIndex]: { ...state, activeRight: itemValue }
-      }));
-      return;
-    }
-    if (!isLeftItem && state.activeLeft) {
-      const rightValue = itemValue;
-      const leftValue = state.activeLeft;
-      const matchingPair = (question.pairs || []).find(p => p.left === leftValue);
-      const isCorrect = matchingPair && matchingPair.right === rightValue;
-      if (isCorrect) {
-        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: true }];
+
+    // If clicking an already-matched item -> remove that pair
+    // (handled above by existingPairIndex)
+
+    // Clicking an item toggles it as active; clicking a different item on the same side
+    // should move the active state to that item immediately.
+    if (isLeftItem) {
+      if (state.activeLeft === itemValue) {
+        setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeLeft: null } }));
+        return;
+      }
+
+      // If there's an active right selection, create pair immediately
+      if (state.activeRight) {
+        const leftValue = itemValue;
+        const rightValue = state.activeRight;
+        const matchingPair = (question?.pairs || []).find(p => p.left === leftValue);
+        const isCorrect = matchingPair && matchingPair.right === rightValue;
+        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: !!isCorrect }];
         setMatchingState(prev => ({
           ...prev,
           [questionIndex]: {
@@ -292,11 +298,29 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
             correctCount: newMatched.length
           }
         }));
-        if (newMatched.length === (question.pairs || []).length) {
-          handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length });
-        }
-      } else {
-        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: false }];
+        handleAnswerChange({ matchedCount: newMatched.length, total: (question?.pairs || []).length });
+        return;
+      }
+
+      // Otherwise set activeLeft to the newly clicked left item (moves if another was active)
+      setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeLeft: itemValue } }));
+      return;
+    }
+
+    // Right side click
+    if (!isLeftItem) {
+      if (state.activeRight === itemValue) {
+        setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeRight: null } }));
+        return;
+      }
+
+      // If there's an active left selection, create pair immediately
+      if (state.activeLeft) {
+        const leftValue = state.activeLeft;
+        const rightValue = itemValue;
+        const matchingPair = (question?.pairs || []).find(p => p.left === leftValue);
+        const isCorrect = matchingPair && matchingPair.right === rightValue;
+        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: !!isCorrect }];
         setMatchingState(prev => ({
           ...prev,
           [questionIndex]: {
@@ -304,10 +328,16 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
             matchedPairs: newMatched,
             activeLeft: null,
             activeRight: null,
-            errorPair: null
+            correctCount: newMatched.length
           }
         }));
+        handleAnswerChange({ matchedCount: newMatched.length, total: (question?.pairs || []).length });
+        return;
       }
+
+      // Otherwise set activeRight to the newly clicked right item
+      setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeRight: itemValue } }));
+      return;
     }
   };
 
@@ -571,7 +601,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                     const section = (test.sections || []).find(s => s.id === question.sectionId);
                     return section ? (
                       <>
-                        {/* <h3 className="context-section-title">{section.title}</h3> */}
                         {section.passage && (
                           <div className="context-passage">
                             <p>{section.passage}</p>
@@ -582,10 +611,21 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                   })()}
                 </div>
               )}
-
               {question.type === 'audio' ? (
                 <>
                   <div className="question-section">
+                    {question.imageUrl && (
+                      <div className="question-image-container">
+                        <img src={question.imageUrl} alt="Question" />
+                        <button 
+                          className="fullscreen-btn"
+                          onClick={() => setFullscreenImage(question.imageUrl)}
+                          title={t('tests.fullscreen') || 'Fullscreen'}
+                        >
+                          <FiMaximize2 />
+                        </button>
+                      </div>
+                    )}
                     {question.text && <h2>{question.text}</h2>}
                     <div className="audio-question-player">
                       <AudioPlayer audioUrl={question.audioUrl} />
@@ -684,7 +724,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                           {subQ.type === 'wordbank' && (
                             <>
                               <div className="sub-question-instruction">
-                                <p>Bo'shliqlarni mos so'zlar bilan to'ldiring.</p>
+                                <p>{t(tests.fillBlanks)}</p>
                               </div>
                               <div className="answers-section">
                                 <div 
@@ -710,7 +750,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                           {subQ.type === 'matching' && (
                             <div className="answers-section matching-answers">
                               <div className="matching-left-items">
-                                <div className="matching-column-label">So'zlar</div>
+                                {/* <div className="matching-column-label">So'zlar</div> */}
                                 {(subQ.pairs || []).map((pair, idx) => {
                                   const state = matchingState[`${currentQuestion}_${subIndex}`] || {};
                                   const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
@@ -721,8 +761,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   return (
                                     <div
                                       key={idx}
-                                      className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                      onClick={() => !isMatched && handleMatchingClick(`${currentQuestion}_${subIndex}`, pair.left, true)}
+                                      className={`matching-left-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
+                                      onClick={() => handleMatchingClick(`${currentQuestion}_${subIndex}`, pair.left, true)}
                                     >
                                       {pair.left}
                                     </div>
@@ -730,7 +770,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                 })}
                               </div>
                               <div className="matching-connections">
-                                <div className="matching-column-label">Tarjimalar</div>
                                 {(matchingShuffled[`${currentQuestion}_${subIndex}`] || []).map((rightItem, idx) => {
                                   const state = matchingState[`${currentQuestion}_${subIndex}`] || {};
                                   const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
@@ -741,8 +780,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   return (
                                     <div
                                       key={idx}
-                                      className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                      onClick={() => !isMatched && state.activeLeft && handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
+                                      className={`matching-right-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
+                                      onClick={() => handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
                                     >
                                       {rightItem}
                                     </div>
@@ -785,24 +824,40 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                   ) : (
                     <>
                       <div className="question-section">
+                        {question.imageUrl && (
+                          <div className="question-image-container">
+                            <img src={question.imageUrl} alt="Question" />
+                            <button 
+                              className="fullscreen-btn"
+                              onClick={() => setFullscreenImage(question.imageUrl)}
+                              title={t('tests.fullscreen') || 'Fullscreen'}
+                            >
+                              <FiMaximize2 />
+                            </button>
+                          </div>
+                        )}
                         <h2>{question.text}</h2>
                       </div>
 
                       {question.type === 'multiple' && (
                         <div className="answers-section">
-                          {question.options.map((option, index) => (
-                            <label key={index} className="answer-option" style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
-                              <input
-                                type="radio"
-                                name="answer"
-                                value={index}
-                                checked={answers[currentQuestion] === index}
-                                disabled={readOnly}
-                                onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
-                              />
-                              <span className="option-text">{option}</span>
-                            </label>
-                          ))}
+                          {question.options.map((option, index) => {
+                            const letter = String.fromCharCode(65 + index); // 65 = 'A'
+                            return (
+                              <label key={index} className={`answer-option ${answers[currentQuestion] === index ? 'selected' : ''}`} style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
+                                <input
+                                  type="radio"
+                                  name={`answer-${currentQuestion}`}
+                                  value={index}
+                                  checked={answers[currentQuestion] === index}
+                                  disabled={readOnly}
+                                  onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
+                                />
+                                <span className="option-letter">{letter})</span>
+                                <span className="option-text">{option}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -845,7 +900,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                       {question.type === 'matching' && (
                         <div className="answers-section matching-answers">
                           <div className="matching-left-items">
-                            <div className="matching-column-label">So'zlar</div>
+                            {/* <div className="matching-column-label">So'zlar</div> */}
                             {(question.pairs || []).map((pair, idx) => {
                               const state = matchingState[currentQuestion] || {};
                               const matchedPair = state.matchedPairs?.find(m => m.left === pair.left);
@@ -856,8 +911,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                               return (
                                 <div
                                   key={idx}
-                                  className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                  onClick={() => !isMatched && handleMatchingClick(currentQuestion, pair.left, true)}
+                                  className={`matching-left-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => handleMatchingClick(currentQuestion, pair.left, true)}
                                 >
                                   {pair.left}
                                 </div>
@@ -875,7 +930,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                             }}
                           />
                           <div className="matching-connections">
-                            <div className="matching-column-label">Tarjimalar</div>
                             {(matchingShuffled[currentQuestion] || []).map((rightItem, idx) => {
                               const state = matchingState[currentQuestion] || {};
                               const matchedPair = state.matchedPairs?.find(m => m.right === rightItem);
@@ -886,8 +940,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                               return (
                                 <div
                                   key={idx}
-                                  className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
-                                  onClick={() => !isMatched && state.activeLeft && handleMatchingClick(currentQuestion, rightItem, false)}
+                                  className={`matching-right-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => handleMatchingClick(currentQuestion, rightItem, false)}
                                 >
                                   {rightItem}
                                 </div>
@@ -965,6 +1019,21 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                 {index + 1}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div className="fullscreen-modal-overlay" onClick={() => setFullscreenImage(null)}>
+          <div className="fullscreen-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="fullscreen-close-btn"
+              onClick={() => setFullscreenImage(null)}
+            >
+              <FiX />
+            </button>
+            <img src={fullscreenImage} alt="Fullscreen" className="fullscreen-image" />
           </div>
         </div>
       )}

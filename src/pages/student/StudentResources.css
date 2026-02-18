@@ -169,7 +169,7 @@
 }
 
 .resources-table td {
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
 }

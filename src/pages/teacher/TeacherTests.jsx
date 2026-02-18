@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
 import { groupService } from '../../services/groupService';
+import { imageService } from '../../services/imageService';
 import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart2, FiMoreVertical } from 'react-icons/fi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
@@ -62,11 +63,12 @@ const TeacherTests = () => {
     setLoading(false);
   };
 
-  const handleCreateTest = async (testData) => {
+  const handleCreateTest = async (testData, imageFilesToUpload = [], removedImageFileNames = []) => {
     try {
       const groupIds = Array.isArray(testData.groupIds) ? testData.groupIds : [];
       const primaryGroupId = groupIds[0] || testData.groupId || null;
 
+      // Step 1: Create test in Firestore
       const result = await testService.createTest({
         ...testData,
         createdBy: userData.uid,
@@ -76,6 +78,33 @@ const TeacherTests = () => {
       });
 
       if (result.success) {
+        const testId = result.data.id;
+        let updatedTestData = { ...testData };
+
+        // Step 2: Upload images for questions that have them
+        if (imageFilesToUpload && imageFilesToUpload.length > 0) {
+          const uploadPromises = imageFilesToUpload.map(imageData =>
+            imageService.uploadTestImage(testId, imageData.file)
+          );
+
+          const uploadResults = await Promise.all(uploadPromises);
+
+          // Step 3: Update test data with image URLs
+          uploadResults.forEach((uploadResult, index) => {
+            if (uploadResult && uploadResult.success) {
+              const questionIndex = imageFilesToUpload[index].questionIndex;
+              updatedTestData.questions[questionIndex] = {
+                ...updatedTestData.questions[questionIndex],
+                imageUrl: uploadResult.url,
+                imageFileName: uploadResult.fileName
+              };
+            }
+          });
+
+          // Step 4: Update test in Firestore with image URLs
+          await testService.updateTest(testId, updatedTestData);
+        }
+
         toast.success('Test muvaffaqiyatli yaratildi');
         setShowCreateModal(false);
         loadData();
@@ -86,9 +115,60 @@ const TeacherTests = () => {
     }
   };
 
-  const handleEditTest = async (testData) => {
+  const handleEditTest = async (testData, imageFilesToUpload = [], removedImageFileNames = []) => {
     try {
-      const result = await testService.updateTest(editingTest.id, testData);
+      const testId = editingTest.id;
+      let finalTestData = { ...testData };
+
+      // Step 1: Upload images first (if any) to get URLs
+      if (imageFilesToUpload && imageFilesToUpload.length > 0) {
+        const uploadPromises = imageFilesToUpload.map(imageData =>
+          imageService.uploadTestImage(testId, imageData.file)
+        );
+
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // Update test data with new image URLs
+        uploadResults.forEach((uploadResult, index) => {
+          if (uploadResult && uploadResult.success) {
+            const questionIndex = imageFilesToUpload[index].questionIndex;
+            finalTestData.questions[questionIndex] = {
+              ...finalTestData.questions[questionIndex],
+              imageUrl: uploadResult.url,
+              imageFileName: uploadResult.fileName
+            };
+          }
+        });
+      }
+
+      // Step 2: Delete removed images and replaced images
+      const deletePromises = [];
+      
+      // Delete explicitly removed images (remove button clicked)
+      if (removedImageFileNames && removedImageFileNames.length > 0) {
+        removedImageFileNames.forEach(fileName => {
+          deletePromises.push(imageService.deleteTestImage(testId, fileName));
+        });
+      }
+      
+      // Also delete old images if they were replaced
+      editingTest.questions.forEach((oldQuestion, index) => {
+        const newQuestion = finalTestData.questions[index];
+        
+        // If old question had an image and new one doesn't, or image changed
+        if (oldQuestion.imageFileName && 
+            (!newQuestion.imageFileName || oldQuestion.imageFileName !== newQuestion.imageFileName) &&
+            !removedImageFileNames.includes(oldQuestion.imageFileName)) {
+          deletePromises.push(imageService.deleteTestImage(testId, oldQuestion.imageFileName));
+        }
+      });
+
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+      }
+
+      // Step 3: Update test in Firestore with all data (including new image URLs)
+      const result = await testService.updateTest(testId, finalTestData);
 
       if (result.success) {
         toast.success('Test muvaffaqiyatli o\'zgartirildi');
@@ -164,7 +244,10 @@ const TeacherTests = () => {
   return (
     <div className="tests-container">
       <div className="tests-header">
-        <h1>{t('teacher.tests.title')}</h1>
+        <h1>
+          {t('tests.pageHeaderLine1')}<br />
+          {t('tests.pageHeaderLine2')}
+        </h1>
         {activeTab === 'myTests' && (
           <button 
             className="btn btn-primary"

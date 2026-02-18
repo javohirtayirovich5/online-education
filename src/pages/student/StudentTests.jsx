@@ -103,7 +103,10 @@ const StudentTests = () => {
   return (
     <div className="student-tests-container">
       <div className="tests-header">
-        <h1>{t('student.tests.title')}</h1>
+        <h1>
+          {t('tests.pageHeaderLine1')}<br />
+          {t('tests.pageHeaderLine2')}
+        </h1>
       </div>
 
       <div className="tests-tabs">

@@ -117,8 +117,7 @@ const StudentResources = () => {
     const year = date.getFullYear();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
   };
 
   if (loading) {
@@ -213,7 +212,6 @@ const StudentResources = () => {
                             <th>{t('student.resources.title')}</th>
                             <th>{t('student.resources.lessonType')}</th>
                             <th>{t('student.resources.staff')}</th>
-                            <th>{t('student.resources.files')}</th>
                             <th>{t('student.resources.created')}</th>
                           </tr>
                         </thead>
@@ -243,13 +241,6 @@ const StudentResources = () => {
                                 </span>
                               </td>
                               <td>{resource.teacherName}</td>
-                              <td>
-                                {resource.fileUrl ? (
-                                  <span className="file-count-badge">1</span>
-                                ) : (
-                                  <span className="no-file">-</span>
-                                )}
-                              </td>
                               <td>{formatDate(resource.createdAt)}</td>
                             </tr>
                           ))}

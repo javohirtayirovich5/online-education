@@ -29,6 +29,12 @@ service firebase.storage {
              request.resource.size < 500 * 1024 * 1024;
     }
     
+    // Validate audio file
+    function isValidAudio() {
+      return request.resource.contentType.matches('audio/.*') &&
+             request.resource.size < 10 * 1024 * 1024; // 10MB
+    }
+    
     // Validate document file
     function isValidDocument() {
       return (request.resource.contentType.matches('application/pdf') ||
@@ -147,15 +153,18 @@ service firebase.storage {
     // ============================================
     // TEST AUDIO FILES
     // ============================================
-    // Validate audio file
-    function isValidAudio() {
-      return (request.resource.contentType.matches('audio/.*')) &&
-             request.resource.size < 10 * 1024 * 1024; // 10MB
-    }
-
     match /tests/{testId}/audio/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidAudio();
+      allow delete: if isAuthenticated();
+    }
+
+    // ============================================
+    // TEST QUESTION IMAGES
+    // ============================================
+    match /tests/{testId}/questions/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidImage();
       allow delete: if isAuthenticated();
     }
   }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
 import { groupService } from '../../services/groupService';
+import { imageService } from '../../services/imageService';
 import { FiEdit, FiTrash2, FiBarChart2, FiMoreVertical } from 'react-icons/fi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
@@ -51,9 +52,60 @@ const AdminTests = () => {
     setLoading(false);
   };
 
-  const handleEditTest = async (testData) => {
+  const handleEditTest = async (testData, imageFilesToUpload = [], removedImageFileNames = []) => {
     try {
-      const result = await testService.updateTest(editingTest.id, testData);
+      const testId = editingTest.id;
+      let finalTestData = { ...testData };
+
+      // Step 1: Upload images first (if any) to get URLs
+      if (imageFilesToUpload && imageFilesToUpload.length > 0) {
+        const uploadPromises = imageFilesToUpload.map(imageData =>
+          imageService.uploadTestImage(testId, imageData.file)
+        );
+
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // Update test data with new image URLs
+        uploadResults.forEach((uploadResult, index) => {
+          if (uploadResult && uploadResult.success) {
+            const questionIndex = imageFilesToUpload[index].questionIndex;
+            finalTestData.questions[questionIndex] = {
+              ...finalTestData.questions[questionIndex],
+              imageUrl: uploadResult.url,
+              imageFileName: uploadResult.fileName
+            };
+          }
+        });
+      }
+
+      // Step 2: Delete removed images and replaced images
+      const deletePromises = [];
+      
+      // Delete explicitly removed images (remove button clicked)
+      if (removedImageFileNames && removedImageFileNames.length > 0) {
+        removedImageFileNames.forEach(fileName => {
+          deletePromises.push(imageService.deleteTestImage(testId, fileName));
+        });
+      }
+      
+      // Also delete old images if they were replaced
+      editingTest.questions.forEach((oldQuestion, index) => {
+        const newQuestion = finalTestData.questions[index];
+        
+        // If old question had an image and new one doesn't, or image changed
+        if (oldQuestion.imageFileName && 
+            (!newQuestion.imageFileName || oldQuestion.imageFileName !== newQuestion.imageFileName) &&
+            !removedImageFileNames.includes(oldQuestion.imageFileName)) {
+          deletePromises.push(imageService.deleteTestImage(testId, oldQuestion.imageFileName));
+        }
+      });
+
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+      }
+
+      // Step 3: Update test in Firestore with all data (including new image URLs)
+      const result = await testService.updateTest(testId, finalTestData);
 
       if (result.success) {
         toast.success('Test muvaffaqiyatli o\'zgartirildi');
@@ -129,7 +181,10 @@ const AdminTests = () => {
   return (
     <div className="tests-container">
       <div className="tests-header">
-        <h1>{t('teacher.tests.title')}</h1>
+        <h1>
+          {t('tests.pageHeaderLine1')}<br />
+          {t('tests.pageHeaderLine2')}
+        </h1>
       </div>
 
       <div className="tests-search">

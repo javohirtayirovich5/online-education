@@ -3,6 +3,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { FiX, FiPlus, FiTrash2, FiChevronDown } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import AudioUploader from './AudioUploader';
+import ImageUploader from './ImageUploader';
+import { imageService } from '../../services/imageService';
 import './TestEditor.css';
 
 const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
@@ -21,7 +23,9 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           sectionId: null,
           options: ['', '', '', ''],
           correctAnswer: 0,
-          correctAnswers: []
+          correctAnswers: [],
+          imageUrl: null,
+          imageFileName: null
         }
       ],
       timeLimit: initialData?.timeLimit || null,
@@ -38,6 +42,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     return base;
   });
 
+  const [removedImageFileNames, setRemovedImageFileNames] = useState([]);
   const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
 
   const questionTextareaRef = useRef(null);
@@ -184,6 +189,41 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }));
   };
 
+  const handleQuestionImageChange = (index, imageData) => {
+    setFormData(prev => ({
+      ...prev,
+      questions: prev.questions.map((q, i) =>
+        i === index
+          ? { 
+              ...q, 
+              imageUrl: imageData.url || imageData.file ? URL.createObjectURL(imageData.file) : null,
+              imageFileName: imageData.fileName,
+              imageFile: imageData.file || null, // Store file for later upload
+              isImageLocal: imageData.isLocal || false // Mark if image is local (not yet uploaded)
+            }
+          : q
+      )
+    }));
+  };
+
+  const handleQuestionImageRemove = (index) => {
+    setFormData(prev => {
+      const q = prev.questions[index];
+      // Track removed image fileName (don't delete immediately - delete after test save)
+      if (q && q.imageFileName && !q.imageFileName.startsWith('blob:')) {
+        setRemovedImageFileNames(removed => [...removed, q.imageFileName]);
+      }
+      return {
+        ...prev,
+        questions: prev.questions.map((q, i) =>
+          i === index
+            ? { ...q, imageUrl: null, imageFileName: null }
+            : q
+        )
+      };
+    });
+  };
+
   const handleChangeQuestionType = (index, newType) => {
     setFormData(prev => ({
       ...prev,
@@ -191,6 +231,10 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
         if (i === index) {
           // Agar yangi tur wordbank emas bo'lsa, text maydonini bo'sh qilish
           const normalized = normalizeQuestionForType(newType);
+          // Preserve image URL when changing type
+          normalized.imageUrl = q.imageUrl;
+          normalized.imageFileName = q.imageFileName;
+          
           if (newType !== 'wordbank') {
             normalized.text = '';
           } else {
@@ -589,7 +633,9 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           text: '',
           options: ['', '', '', ''],
           correctAnswer: 0,
-          correctAnswers: []
+          correctAnswers: [],
+          imageUrl: null,
+          imageFileName: null
         }
       ]
     }));
@@ -611,7 +657,30 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     toast.success('Savol o\'chirildi');
   };
 
-  const handleSubmit = (e) => {
+  const uploadPendingImages = async (testId) => {
+    const pendingImages = [];
+    
+    // Find all questions with local image files
+    formData.questions.forEach((question, index) => {
+      // Check if imageUrl is a blob URL (local preview)
+      if (question.imageUrl && question.imageUrl.startsWith('blob:')) {
+        // This means we have a file object stored, but we need to get it from the component state
+        // Actually, we need to pass the file through onImageChange callback data
+        pendingImages.push({ questionIndex: index, question });
+      }
+    });
+
+    if (pendingImages.length === 0) {
+      return; // No images to upload
+    }
+
+    // Note: Since ImageUploader gives us the File object in onImageChange,
+    // we could store it in formData for this purpose
+    // For now, we'll handle images that are already uploaded (have Firebase URLs)
+    // and skip blob URLs (they'll be handled after test creation with returned testId)
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.title.trim()) {
@@ -754,11 +823,25 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }
 
     toast.success('Barcha savollar to\'liq va to\'g\'ri!');
-    // Clean internal-only fields before saving
+    
+    // Clean internal-only fields and local image data before saving
     const questionsClean = formData.questions.map(q => {
       const clean = { ...q };
       delete clean._newBankWord;
       delete clean.nextBlankId;
+      delete clean.isImageLocal; // Don't send local flag
+      
+      // If image is still a blob URL (local preview), clear it
+      // The imageFile will be sent to parent component for uploading later
+      if (clean.imageUrl && clean.imageUrl.startsWith('blob:')) {
+        clean.imageUrl = null;
+      }
+      
+      // If there's no actual file, clear imageFileName
+      if (!clean.imageFile) {
+        clean.imageFileName = null;
+      }
+      
       return clean;
     });
 
@@ -774,7 +857,33 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       payload.groupId = ids.length > 0 ? ids[0] : null;
     }
 
-    onSave(payload);
+    // Extract image files before sending to Firestore
+    // Parent component will handle uploading these files separately
+    const imageFilesToUpload = [];
+    
+    const questionsForDB = payload.questions.map((q, index) => {
+      const qForDB = { ...q };
+      
+      // If there's an imageFile (new image selected), save it for uploading
+      if (q.imageFile) {
+        imageFilesToUpload.push({
+          questionIndex: index,
+          file: q.imageFile,
+          fileName: q.imageFileName
+        });
+      }
+      
+      // Don't save File object to Firestore
+      delete qForDB.imageFile;
+      
+      return qForDB;
+    });
+
+    payload.questions = questionsForDB;
+
+    // Pass test data, new files to upload, and removed image file names to parent
+    // Parent will delete removed images after test is saved
+    onSave(payload, imageFilesToUpload, removedImageFileNames);
   };
 
   return (
@@ -834,7 +943,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     <span>
                       {formData.groupIds && formData.groupIds.length > 0
                         ? `${formData.groupIds.length} ta guruh tanlandi`
-                        : t('teacher.tests.selectGroups')}
+                        : t('auth.selectGroup')}
                     </span>
                     <FiChevronDown className={`chevron ${isGroupDropdownOpen ? 'open' : ''}`} />
                   </button>
@@ -1170,7 +1279,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === true}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', true)}
                         />
-                        True
+                        {t('tests.true')}
                       </label>
                       <label className={`tf-option ${question.correctAnswer === false ? 'selected' : ''}`}>
                         <input
@@ -1179,15 +1288,26 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                           checked={question.correctAnswer === false}
                           onChange={() => handleQuestionChange(index, 'correctAnswer', false)}
                         />
-                        False
+                        {t('tests.false')}
                       </label>
                     </div>
                   </div>
                 )}
 
+                {/* Image upload for question */}
+                <div className="form-group">
+                  <label>{t('lessons.uploadImage')} <small>({t('common.optional')})</small></label>
+                  <ImageUploader
+                    initialImageUrl={question.imageUrl}
+                    initialFileName={question.imageFileName}
+                    onImageChange={(data) => handleQuestionImageChange(index, data)}
+                    onRemove={() => handleQuestionImageRemove(index)}
+                  />
+                </div>
+
                 {question.type === 'matching' && (
                   <div className="form-group">
-                    <label>Moslashtirish juftlari * (chap tomon va o'ng tomon)</label>
+                    <label>{t('tests.questionTypeMatching')} *</label>
                     <div className="matching-pairs">
                       {(question.pairs || []).map((pair, pairIndex) => (
                         <div key={pair.id} className="matching-pair-row">
@@ -1195,7 +1315,6 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                             type="text"
                             value={pair.left}
                             onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'left', e.target.value)}
-                            placeholder="Chap tomon (masalan: apple)"
                             className="form-input"
                           />
                           <span className="matching-arrow">↔</span>
@@ -1203,7 +1322,6 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                             type="text"
                             value={pair.right}
                             onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'right', e.target.value)}
-                            placeholder="O'ng tomon (masalan: olma)"
                             className="form-input"
                           />
                           {(question.pairs || []).length > 1 && (
@@ -1225,7 +1343,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                       className="btn btn-sm btn-success"
                       style={{ marginTop: '10px' }}
                     >
-                      <FiPlus /> Yangi juft qo'shish
+                      <FiPlus /> {t('tests.addNewPair')}
                     </button>
                   </div>
                 )}
@@ -1508,7 +1626,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                     className="btn btn-sm btn-success"
                                     style={{ marginTop: '10px' }}
                                   >
-                                    <FiPlus /> Yangi juft qo'shish
+                                    <FiPlus /> {t('tests.addNewPair')}
                                   </button>
                                 </div>
                               )}

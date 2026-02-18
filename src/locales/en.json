@@ -385,6 +385,8 @@
   },
   "tests": {
     "title": "Tests",
+    "pageHeaderLine1": "• COMPREHENSION QUESTIONS TO ENGLISH  FOR TECHNICAL PURPOSES.",
+    "pageHeaderLine2": "• COMPREHENSION QUESTIONS TO ENGLISH FOR ESP STUDENTS",
     "newTest": "New Test",
     "searchTests": "Search Tests",
     "noTests": "No tests created yet",
@@ -434,7 +436,9 @@
     "fillBlanks": "Fill in the blanks with suitable words.",
     "keywords": "Key Words",
     "notLinked": "Not linked",
-    "correctAnswer": "Correct Answer"
+    "correctAnswer": "Correct Answer",
+    "fullscreen": "Fullscreen",
+    "addNewPair": "Add new pair"
   },
   "courseDetail": {
     "commentAdded": "Comment added",
@@ -469,7 +473,22 @@
       "selectedDate": "SELECTED DATE",
       "lessonDaysLabel": "LESSON DAYS",
       "noStudents": "No students found",
-      "noAttendanceData": "No attendance data found"
+      "noAttendanceData": "No attendance data found",
+      "noGroupsAssigned": "You are not assigned to any groups",
+      "infoBanner": "Depending on the lesson hours, 1 or 2 hours may be entered for a student who missed class",
+      "weekDays": [
+        { "id": 1, "name": "Monday", "short": "Mo" },
+        { "id": 2, "name": "Tuesday", "short": "Tu" },
+        { "id": 3, "name": "Wednesday", "short": "We" },
+        { "id": 4, "name": "Thursday", "short": "Th" },
+        { "id": 5, "name": "Friday", "short": "Fr" },
+        { "id": 6, "name": "Saturday", "short": "Sa" },
+        { "id": 0, "name": "Sunday", "short": "Su" }
+      ],
+      "months": [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ]
     },
     "grades": {
       "title": "Grades",

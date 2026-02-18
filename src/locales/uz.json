@@ -135,6 +135,8 @@
     "videoNotSupported": "Brauzeringiz video tegini qo'llab-quvvatlamaydi."
   },
   "tests": {
+    "pageHeaderLine1": "• Texnik maqsadlar uchun Ingliz tiliga oid mustahkamlovchi mashqlar.",
+    "pageHeaderLine2": "• ESP talabalari uchun Ingliz tiliga oid mustahkamlovchi mashqlar.",
     "writeAnswer": "Javobingizni yozing...",
     "true": "To'g'ri",
     "false": "Noto'g'ri",
@@ -184,7 +186,9 @@
     "fillBlanks": "Bo'shliqlarni mos so'zlar bilan to'ldiring.",
     "keywords": "Kalit so'zlar",
     "notLinked": "Biriktirmagan",
-    "correctAnswer": "To'g'ri javob"
+    "correctAnswer": "To'g'ri javob",
+    "fullscreen": "Fullscreen rejimi",
+    "addNewPair": "Yangi juftlik qo'shish"
   },
   "sidebar": {
     "dashboard": "Asosiy",
@@ -469,7 +473,22 @@
       "selectedDate": "TANLANGAN SANA",
       "lessonDaysLabel": "DARS KUNLARI",
       "noStudents": "Talabalar topilmadi",
-      "noAttendanceData": "Davomat ma'lumotlari topilmadi"
+      "noAttendanceData": "Davomat ma'lumotlari topilmadi",
+      "noGroupsAssigned": "Sizga biriktirilgan guruhlar yo'q",
+      "infoBanner": "Mavzuning soatiga qarab qatnashmagan talabaga 1 yoki 2 soat kiritilishi mumkin",
+      "weekDays": [
+        { "id": 1, "name": "Dushanba", "short": "Du" },
+        { "id": 2, "name": "Seshanba", "short": "Se" },
+        { "id": 3, "name": "Chorshanba", "short": "Ch" },
+        { "id": 4, "name": "Payshanba", "short": "Pa" },
+        { "id": 5, "name": "Juma", "short": "Ju" },
+        { "id": 6, "name": "Shanba", "short": "Sh" },
+        { "id": 0, "name": "Yakshanba", "short": "Ya" }
+      ],
+      "months": [
+        "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+        "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"
+      ]
     },
     "grades": {
       "title": "Baholar",
