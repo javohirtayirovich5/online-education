@@ -66,7 +66,7 @@ export const testService = {
         }
       }
 
-      return { success: true, testId: docRef.id };
+      return { success: true, data: { id: docRef.id } };
     } catch (error) {
       console.error('Create test error:', error);
       return { success: false, error: error.message };
