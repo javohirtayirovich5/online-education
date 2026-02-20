@@ -167,13 +167,13 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       case 'matching':
         return { type: 'matching', text: '', pairs: [{ id: '1', left: '', right: '' }] };
       case 'audio':
-        return { 
-          type: 'audio', 
-          text: '', 
-          audioUrl: null, 
-          audioFileName: null, 
+        return {
+          type: 'audio',
+          text: '',
+          audioUrl: null,
+          audioFileName: null,
           audioDuration: 0,
-          subQuestions: [] 
+          subQuestions: []
         };
       default:
         return { type: 'text', text: '', correctAnswer: '' };
@@ -194,13 +194,13 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       ...prev,
       questions: prev.questions.map((q, i) =>
         i === index
-          ? { 
-              ...q, 
-              imageUrl: imageData.url || imageData.file ? URL.createObjectURL(imageData.file) : null,
-              imageFileName: imageData.fileName,
-              imageFile: imageData.file || null, // Store file for later upload
-              isImageLocal: imageData.isLocal || false // Mark if image is local (not yet uploaded)
-            }
+          ? {
+            ...q,
+            imageUrl: imageData.url || imageData.file ? URL.createObjectURL(imageData.file) : null,
+            imageFileName: imageData.fileName,
+            imageFile: imageData.file || null, // Store file for later upload
+            isImageLocal: imageData.isLocal || false // Mark if image is local (not yet uploaded)
+          }
           : q
       )
     }));
@@ -234,7 +234,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           // Preserve image URL when changing type
           normalized.imageUrl = q.imageUrl;
           normalized.imageFileName = q.imageFileName;
-          
+
           if (newType !== 'wordbank') {
             normalized.text = '';
           } else {
@@ -303,11 +303,11 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              audioUrl: audioData.url,
-              audioFileName: audioData.fileName,
-              audioDuration: audioData.duration
-            }
+            ...q,
+            audioUrl: audioData.url,
+            audioFileName: audioData.fileName,
+            audioDuration: audioData.duration
+          }
           : q
       )
     }));
@@ -319,11 +319,11 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              audioUrl: null,
-              audioFileName: null,
-              audioDuration: 0
-            }
+            ...q,
+            audioUrl: null,
+            audioFileName: null,
+            audioDuration: 0
+          }
           : q
       )
     }));
@@ -336,18 +336,18 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              subQuestions: [
-                ...(q.subQuestions || []),
-                {
-                  type: 'multiple',
-                  text: '',
-                  options: ['', '', '', ''],
-                  correctAnswer: 0,
-                  correctAnswers: []
-                }
-              ]
-            }
+            ...q,
+            subQuestions: [
+              ...(q.subQuestions || []),
+              {
+                type: 'multiple',
+                text: '',
+                options: ['', '', '', ''],
+                correctAnswer: 0,
+                correctAnswers: []
+              }
+            ]
+          }
           : q
       )
     }));
@@ -360,9 +360,9 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              subQuestions: (q.subQuestions || []).filter((_, sqi) => sqi !== subQuestionIndex)
-            }
+            ...q,
+            subQuestions: (q.subQuestions || []).filter((_, sqi) => sqi !== subQuestionIndex)
+          }
           : q
       )
     }));
@@ -375,11 +375,11 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              subQuestions: (q.subQuestions || []).map((sq, sqi) =>
-                sqi === subQuestionIndex ? { ...sq, [field]: value } : sq
-              )
-            }
+            ...q,
+            subQuestions: (q.subQuestions || []).map((sq, sqi) =>
+              sqi === subQuestionIndex ? { ...sq, [field]: value } : sq
+            )
+          }
           : q
       )
     }));
@@ -391,23 +391,23 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              subQuestions: (q.subQuestions || []).map((sq, sqi) => {
-                if (sqi === subQuestionIndex) {
-                  // Agar yangi tur wordbank emas bo'lsa, text maydonini bo'sh qilish
-                  const normalized = normalizeQuestionForType(newType);
-                  if (newType !== 'wordbank') {
-                    normalized.text = '';
-                  } else {
-                    // Agar wordbank ga o'tilayotgan bo'lsa, text ni saqlash (lekin <p></p> bo'lsa bo'sh qilish)
-                    const oldText = sq.text || '';
-                    normalized.text = (oldText === '<p></p>' || oldText.trim() === '') ? '' : oldText;
-                  }
-                  return normalized;
+            ...q,
+            subQuestions: (q.subQuestions || []).map((sq, sqi) => {
+              if (sqi === subQuestionIndex) {
+                // Agar yangi tur wordbank emas bo'lsa, text maydonini bo'sh qilish
+                const normalized = normalizeQuestionForType(newType);
+                if (newType !== 'wordbank') {
+                  normalized.text = '';
+                } else {
+                  // Agar wordbank ga o'tilayotgan bo'lsa, text ni saqlash (lekin <p></p> bo'lsa bo'sh qilish)
+                  const oldText = sq.text || '';
+                  normalized.text = (oldText === '<p></p>' || oldText.trim() === '') ? '' : oldText;
                 }
-                return sq;
-              })
-            }
+                return normalized;
+              }
+              return sq;
+            })
+          }
           : q
       )
     }));
@@ -419,34 +419,55 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       questions: prev.questions.map((q, i) =>
         i === questionIndex
           ? {
-              ...q,
-              subQuestions: (q.subQuestions || []).map((sq, sqi) =>
-                sqi === subQuestionIndex
-                  ? {
-                      ...sq,
-                      options: sq.options.map((opt, oi) => oi === optionIndex ? value : opt)
-                    }
-                  : sq
-              )
-            }
+            ...q,
+            subQuestions: (q.subQuestions || []).map((sq, sqi) =>
+              sqi === subQuestionIndex
+                ? {
+                  ...sq,
+                  options: sq.options.map((opt, oi) => oi === optionIndex ? value : opt)
+                }
+                : sq
+            )
+          }
           : q
       )
     }));
   };
   // Insert a <select> blank at current caret in the contenteditable editor for a given question
   const insertBlankAtCursor = (questionIndex) => {
-    const editor = questionTextareaRef.current;
-    if (!editor) return;
+    // Check if this is a subquestion (format: "0_1")
+    const isSubQuestion = typeof questionIndex === 'string' && questionIndex.includes('_');
+    let editor = null;
+    let q = null;
+    let questionIdx = null;
+    let subQuestionIdx = null;
+
+    if (isSubQuestion) {
+      [questionIdx, subQuestionIdx] = questionIndex.split('_').map(Number);
+      const refKey = `sq${questionIdx}_${subQuestionIdx}`;
+      editor = clozeEditorRefs.current[refKey];
+      q = formData.questions[questionIdx]?.subQuestions?.[subQuestionIdx];
+    } else {
+      editor = questionTextareaRef.current;
+      q = formData.questions[questionIndex];
+      questionIdx = questionIndex;
+    }
+
+    if (!editor || !q) return;
 
     // Ensure editor has focus
     editor.focus();
 
-    const q = formData.questions[questionIndex];
     const blankId = `${Date.now()}-${(q.nextBlankId || 1)}`;
 
     // Update nextBlankId and correctAnswers in state
-    handleQuestionChange(questionIndex, 'nextBlankId', (q.nextBlankId || 1) + 1);
-    handleQuestionChange(questionIndex, 'correctAnswers', { ...(q.correctAnswers || {}), [blankId]: '' });
+    if (isSubQuestion) {
+      handleSubQuestionChange(questionIdx, subQuestionIdx, 'nextBlankId', (q.nextBlankId || 1) + 1);
+      handleSubQuestionChange(questionIdx, subQuestionIdx, 'correctAnswers', { ...(q.correctAnswers || {}), [blankId]: '' });
+    } else {
+      handleQuestionChange(questionIdx, 'nextBlankId', (q.nextBlankId || 1) + 1);
+      handleQuestionChange(questionIdx, 'correctAnswers', { ...(q.correctAnswers || {}), [blankId]: '' });
+    }
 
     // Create select element with options from bank
     const sel = document.createElement('select');
@@ -460,7 +481,10 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     sel.appendChild(emptyOpt);
 
     (q.bank || []).forEach(w => {
-      const o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o);
+      const o = document.createElement('option');
+      o.value = w;
+      o.textContent = w;
+      sel.appendChild(o);
     });
 
     // Always select the empty option by default
@@ -468,7 +492,17 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
     // Attach change listener to update state when instructor selects the correct answer
     sel.addEventListener('change', (e) => {
-      handleQuestionChange(questionIndex, 'correctAnswers', { ...(formData.questions[questionIndex].correctAnswers || {}), [blankId]: e.target.value });
+      if (isSubQuestion) {
+        handleSubQuestionChange(questionIdx, subQuestionIdx, 'correctAnswers', {
+          ...(formData.questions[questionIdx].subQuestions[subQuestionIdx].correctAnswers || {}),
+          [blankId]: e.target.value
+        });
+      } else {
+        handleQuestionChange(questionIdx, 'correctAnswers', {
+          ...(formData.questions[questionIdx].correctAnswers || {}),
+          [blankId]: e.target.value
+        });
+      }
     });
 
     // Get current selection and cursor position
@@ -478,17 +512,17 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
     if (selection.rangeCount > 0) {
       range = selection.getRangeAt(0);
-      
+
       // Insert select element at cursor position
       range.deleteContents();
       range.insertNode(sel);
-      
+
       // Create a space text node after the select for user-friendly spacing
       const spaceNode = document.createTextNode(' ');
       range.setStartAfter(sel);
       range.setEndAfter(sel);
       range.insertNode(spaceNode);
-      
+
       // Create a text node after the space to maintain cursor position
       const textNode = document.createTextNode('\u200B'); // Zero-width space
       range.setStartAfter(spaceNode);
@@ -639,7 +673,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
         }
       ]
     }));
-    
+
     toast.success('Yangi savol qo\'shildi');
   };
 
@@ -648,18 +682,18 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       toast.error('Kamida bitta savol bo\'lishi kerak');
       return;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       questions: prev.questions.filter((_, i) => i !== index)
     }));
-    
+
     toast.success('Savol o\'chirildi');
   };
 
   const uploadPendingImages = async (testId) => {
     const pendingImages = [];
-    
+
     // Find all questions with local image files
     formData.questions.forEach((question, index) => {
       // Check if imageUrl is a blob URL (local preview)
@@ -696,7 +730,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     // Barcha savollarni tekshirish
     for (let i = 0; i < formData.questions.length; i++) {
       const q = formData.questions[i];
-      
+
       if (q.type !== 'audio' && !q.text.trim()) {
         toast.error(`Savol ${i + 1}: Savol matni bo'sh bo'lishi mumkin emas`);
         return;
@@ -823,25 +857,25 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }
 
     toast.success('Barcha savollar to\'liq va to\'g\'ri!');
-    
+
     // Clean internal-only fields and local image data before saving
     const questionsClean = formData.questions.map(q => {
       const clean = { ...q };
       delete clean._newBankWord;
       delete clean.nextBlankId;
       delete clean.isImageLocal; // Don't send local flag
-      
+
       // If image is still a blob URL (local preview), clear it
       // The imageFile will be sent to parent component for uploading later
       if (clean.imageUrl && clean.imageUrl.startsWith('blob:')) {
         clean.imageUrl = null;
       }
-      
+
       // If there's no actual file, clear imageFileName
       if (!clean.imageFile) {
         clean.imageFileName = null;
       }
-      
+
       return clean;
     });
 
@@ -860,10 +894,10 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     // Extract image files before sending to Firestore
     // Parent component will handle uploading these files separately
     const imageFilesToUpload = [];
-    
+
     const questionsForDB = payload.questions.map((q, index) => {
       const qForDB = { ...q };
-      
+
       // If there's an imageFile (new image selected), save it for uploading
       if (q.imageFile) {
         imageFilesToUpload.push({
@@ -872,10 +906,10 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           fileName: q.imageFileName
         });
       }
-      
+
       // Don't save File object to Firestore
       delete qForDB.imageFile;
-      
+
       return qForDB;
     });
 
@@ -982,8 +1016,8 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
         {/* Sections Management */}
         <div className="editor-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-            <h3 style={{margin: 0}}>{t('teacher.tests.contextTexts')}</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0 }}>{t('teacher.tests.contextTexts')}</h3>
             <button
               type="button"
               onClick={handleAddSection}
@@ -1074,36 +1108,46 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                         </button>
                       )}
                     </div>
+                    <div className="form-group-container">
+                      <div className="form-group">
+                        <label>{t('tests.questionType')}</label>
+                        <select
+                          value={question.type}
+                          onChange={(e) => handleChangeQuestionType(index, e.target.value)}
+                          className="form-select"
+                        >
+                          {QUESTION_TYPES.map(t => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="form-group">
-                      <label>{t('tests.questionType')}</label>
-                      <select
-                        value={question.type}
-                        onChange={(e) => handleChangeQuestionType(index, e.target.value)}
-                        className="form-select"
-                      >
-                        {QUESTION_TYPES.map(t => (
-                          <option key={t.value} value={t.value}>{t.label}</option>
-                        ))}
-                      </select>
+                      <div className="form-group">
+                        <label>{t('teacher.tests.addText')} <small>({t('common.optional')})</small></label>
+                        <select
+                          value={question.sectionId || ''}
+                          onChange={(e) => handleSetQuestionSection(index, e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="">—{t("tests.notLinked")}—</option>
+                          {(formData.sections || []).map(section => (
+                            <option key={section.id} value={section.id}>
+                              {section.title || `Matn ${section.id.substring(4, 8)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {/* Image upload for question */}
+                      <div className="form-group">
+                        <label>{t('lessons.uploadImage')} <small>({t('common.optional')})</small></label>
+                        <ImageUploader
+                          initialImageUrl={question.imageUrl}
+                          initialFileName={question.imageFileName}
+                          onImageChange={(data) => handleQuestionImageChange(index, data)}
+                          onRemove={() => handleQuestionImageRemove(index)}
+                        />
+                      </div>
                     </div>
-
-                    <div className="form-group">
-                      <label>{t('teacher.tests.addText')} <small>({t('common.optional')})</small></label>
-                      <select
-                        value={question.sectionId || ''}
-                        onChange={(e) => handleSetQuestionSection(index, e.target.value)}
-                        className="form-select"
-                      >
-                        <option value="">—{t("tests.notLinked")}—</option>
-                        {(formData.sections || []).map(section => (
-                          <option key={section.id} value={section.id}>
-                            {section.title || `Matn ${section.id.substring(4, 8)}`}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     <div className="form-group">
                       <label>{t('tests.questionText')} *</label>
                       {question.type === 'audio' ? (
@@ -1191,16 +1235,16 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                 {(question.bank || []).map((w, wi) => (
                                   <div key={wi} className="bank-item">
                                     <span>{w}</span>
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm btn-danger"
-                                        onClick={() => {
-                                          const newBank = question.bank.filter((_, i) => i !== wi);
-                                          handleQuestionChange(index, 'bank', newBank);
-                                          // update selects inside editor immediately with new bank
-                                          updateEditorSelects(index, newBank);
-                                        }}
-                                      >✖</button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-danger"
+                                      onClick={() => {
+                                        const newBank = question.bank.filter((_, i) => i !== wi);
+                                        handleQuestionChange(index, 'bank', newBank);
+                                        // update selects inside editor immediately with new bank
+                                        updateEditorSelects(index, newBank);
+                                      }}
+                                    >✖</button>
                                   </div>
                                 ))}
                               </div>
@@ -1293,17 +1337,6 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     </div>
                   </div>
                 )}
-
-                {/* Image upload for question */}
-                <div className="form-group">
-                  <label>{t('lessons.uploadImage')} <small>({t('common.optional')})</small></label>
-                  <ImageUploader
-                    initialImageUrl={question.imageUrl}
-                    initialFileName={question.imageFileName}
-                    onImageChange={(data) => handleQuestionImageChange(index, data)}
-                    onRemove={() => handleQuestionImageRemove(index)}
-                  />
-                </div>
 
                 {question.type === 'matching' && (
                   <div className="form-group">
@@ -1494,6 +1527,14 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                             </div>
                                           ))}
                                         </div>
+                                      </div>
+
+                                      <div className="bank-actions">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-primary"
+                                          onClick={() => insertBlankAtCursor(`${index}_${subIndex}`)}
+                                        >{t('tests.addBlank')}</button>
                                       </div>
                                     </div>
                                   </div>

@@ -21,6 +21,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
   const [matchingShuffled, setMatchingShuffled] = useState({});
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const svgRef = useRef(null);
+  const subQuestionSvgRefs = useRef({});
   const clozeRef = useRef(null);
   const subQuestionClozeRefs = useRef({});
 
@@ -69,99 +70,108 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
     return wrapper.innerHTML;
   };
 
-  // Render wordbank HTML when question changes
+  // Render wordbank HTML when test starts or question changes
   useEffect(() => {
-    const question = test.questions[currentQuestion];
-    if (!question) return;
-    
-    // Render main wordbank question
-    if (question.type === 'wordbank' && clozeRef.current) {
-      try {
-        const builtHtml = buildClozeHtml(question, answers[currentQuestion] || {});
-        clozeRef.current.innerHTML = builtHtml;
-        // Attach fresh change listeners
-        const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
-        sels.forEach(sel => {
-          sel.addEventListener('change', (e) => {
-            const id = e.target.getAttribute('data-blank-id');
-            setAnswers(prev => ({ ...prev, [currentQuestion]: { ...(prev[currentQuestion] || {}), [id]: e.target.value } }));
+    // Small delay to ensure ref is attached after DOM updates
+    const timer = setTimeout(() => {
+      const question = test.questions[currentQuestion];
+      if (!question) return;
+      
+      // Render main wordbank question
+      if (question.type === 'wordbank' && clozeRef.current) {
+        try {
+          const builtHtml = buildClozeHtml(question, answers[currentQuestion] || {});
+          clozeRef.current.innerHTML = builtHtml;
+          // Attach fresh change listeners
+          const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
+          sels.forEach(sel => {
+            sel.addEventListener('change', (e) => {
+              const id = e.target.getAttribute('data-blank-id');
+              setAnswers(prev => ({ ...prev, [currentQuestion]: { ...(prev[currentQuestion] || {}), [id]: e.target.value } }));
+            });
           });
-        });
-      } catch (err) {
-        console.error('Error rendering wordbank:', err);
+        } catch (err) {
+          console.error('Error rendering wordbank:', err);
+        }
       }
-    }
-    
-    // Render audio wordbank sub-questions
-    if (question.type === 'audio') {
-      (question.subQuestions || []).forEach((subQ, subIndex) => {
-        if (subQ.type === 'wordbank') {
-          const refKey = `${currentQuestion}_${subIndex}`;
-          const ref = subQuestionClozeRefs.current[refKey];
-          if (ref) {
-            try {
-              const builtHtml = buildClozeHtml(subQ, answers[currentQuestion]?.subAnswers?.[subIndex] || {});
-              ref.innerHTML = builtHtml;
-              // Attach fresh change listeners
-              const sels = ref.querySelectorAll('select[data-blank-id]');
-              sels.forEach(sel => {
-                sel.addEventListener('change', (e) => {
-                  const id = e.target.getAttribute('data-blank-id');
-                  setAnswers(prev => ({
-                    ...prev,
-                    [currentQuestion]: {
-                      ...(prev[currentQuestion] || {}),
-                      subAnswers: {
-                        ...(prev[currentQuestion]?.subAnswers || {}),
-                        [subIndex]: { ...(prev[currentQuestion]?.subAnswers?.[subIndex] || {}), [id]: e.target.value }
+      
+      // Render audio wordbank sub-questions
+      if (question.type === 'audio') {
+        (question.subQuestions || []).forEach((subQ, subIndex) => {
+          if (subQ.type === 'wordbank') {
+            const refKey = `${currentQuestion}_${subIndex}`;
+            const ref = subQuestionClozeRefs.current[refKey];
+            if (ref) {
+              try {
+                const builtHtml = buildClozeHtml(subQ, answers[currentQuestion]?.subAnswers?.[subIndex] || {});
+                ref.innerHTML = builtHtml;
+                // Attach fresh change listeners
+                const sels = ref.querySelectorAll('select[data-blank-id]');
+                sels.forEach(sel => {
+                  sel.addEventListener('change', (e) => {
+                    const id = e.target.getAttribute('data-blank-id');
+                    setAnswers(prev => ({
+                      ...prev,
+                      [currentQuestion]: {
+                        ...(prev[currentQuestion] || {}),
+                        subAnswers: {
+                          ...(prev[currentQuestion]?.subAnswers || {}),
+                          [subIndex]: { ...(prev[currentQuestion]?.subAnswers?.[subIndex] || {}), [id]: e.target.value }
+                        }
                       }
-                    }
-                  }));
+                    }));
+                  });
                 });
-              });
-            } catch (err) {
-              console.error('Error rendering audio wordbank subquestion:', err);
+              } catch (err) {
+                console.error('Error rendering audio wordbank subquestion:', err);
+              }
             }
           }
-        }
-      });
-    }
-  }, [currentQuestion, test.questions]);
+        });
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
+  }, [currentQuestion, test.questions, testStarted]);
 
   // Sync select values when answers change (but don't re-render HTML)
   useEffect(() => {
-    const question = test.questions[currentQuestion];
-    if (!question) return;
-    
-    if (question.type === 'wordbank' && clozeRef.current) {
-      const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
-      const studentAns = answers[currentQuestion] || {};
-      sels.forEach(sel => {
-        const id = sel.getAttribute('data-blank-id');
-        const val = studentAns[id];
-        if (typeof val !== 'undefined' && val !== null) {
-          sel.value = val;
-        }
-      });
-    } else if (question.type === 'audio') {
-      (question.subQuestions || []).forEach((subQ, subIndex) => {
-        if (subQ.type === 'wordbank') {
-          const refKey = `${currentQuestion}_${subIndex}`;
-          const ref = subQuestionClozeRefs.current[refKey];
-          if (ref) {
-            const sels = ref.querySelectorAll('select[data-blank-id]');
-            const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex] || {};
-            sels.forEach(sel => {
-              const id = sel.getAttribute('data-blank-id');
-              const val = subAnswer[id];
-              if (typeof val !== 'undefined' && val !== null) {
-                sel.value = val;
-              }
-            });
+    const timer = setTimeout(() => {
+      const question = test.questions[currentQuestion];
+      if (!question) return;
+      
+      if (question.type === 'wordbank' && clozeRef.current) {
+        const sels = clozeRef.current.querySelectorAll('select[data-blank-id]');
+        const studentAns = answers[currentQuestion] || {};
+        sels.forEach(sel => {
+          const id = sel.getAttribute('data-blank-id');
+          const val = studentAns[id];
+          if (typeof val !== 'undefined' && val !== null) {
+            sel.value = val;
           }
-        }
-      });
-    }
+        });
+      } else if (question.type === 'audio') {
+        (question.subQuestions || []).forEach((subQ, subIndex) => {
+          if (subQ.type === 'wordbank') {
+            const refKey = `${currentQuestion}_${subIndex}`;
+            const ref = subQuestionClozeRefs.current[refKey];
+            if (ref) {
+              const sels = ref.querySelectorAll('select[data-blank-id]');
+              const subAnswer = answers[currentQuestion]?.subAnswers?.[subIndex] || {};
+              sels.forEach(sel => {
+                const id = sel.getAttribute('data-blank-id');
+                const val = subAnswer[id];
+                if (typeof val !== 'undefined' && val !== null) {
+                  sel.value = val;
+                }
+              });
+            }
+          }
+        });
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, [answers, currentQuestion, test.questions]);
 
   const formatTime = (seconds) => {
@@ -180,21 +190,17 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
     return newArr;
   };
 
-  const drawMatchingLines = () => {
-    if (!svgRef.current) return;
-    const svg = svgRef.current;
+  const drawMatchingLines = (svgElement, state, matchingItems) => {
+    if (!svgElement) return;
+    const svg = svgElement;
     while (svg.firstChild) {
       svg.removeChild(svg.firstChild);
     }
-    const question = test.questions[currentQuestion];
-    if (question?.type !== 'matching') return;
-    const state = matchingState[currentQuestion] || {};
     if (!state.matchedPairs || state.matchedPairs.length === 0) return;
-    const leftItems = document.querySelectorAll('.matching-left-item');
-    const rightItems = document.querySelectorAll('.matching-right-item');
+    
     state.matchedPairs.forEach(pair => {
-      const leftEl = Array.from(leftItems).find(el => el.textContent.trim() === pair.left);
-      const rightEl = Array.from(rightItems).find(el => el.textContent.trim() === pair.right);
+      const leftEl = matchingItems.leftItems.find(el => el.textContent.trim() === pair.left);
+      const rightEl = matchingItems.rightItems.find(el => el.textContent.trim() === pair.right);
       if (leftEl && rightEl) {
         const leftRect = leftEl.getBoundingClientRect();
         const rightRect = rightEl.getBoundingClientRect();
@@ -208,18 +214,74 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
         line.setAttribute('y1', y1);
         line.setAttribute('x2', x2);
         line.setAttribute('y2', y2);
-        // Use neutral color for matched lines (do not reveal correctness)
-        line.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#1976d2');
+        line.setAttribute('stroke', "var(--primary)");
         line.setAttribute('stroke-width', '3');
         line.setAttribute('stroke-linecap', 'round');
         svg.appendChild(line);
       }
     });
   };
+  
+  const drawAllMatchingLines = () => {
+    const question = test.questions[currentQuestion];
+    if (!question) return;
+    
+    // Draw main question matching lines
+    if (question?.type === 'matching' && svgRef.current) {
+      const state = matchingState[currentQuestion] || {};
+      const leftItems = Array.from(document.querySelectorAll(`svg[data-matching="${currentQuestion}"] ~ .matching-connections ~ :not(svg) .matching-left-item`) || []);
+      const rightItems = Array.from(document.querySelectorAll(`svg[data-matching="${currentQuestion}"] ~ .matching-connections .matching-right-item`) || []);
+      
+      // Get all left and right items in the main matching section
+      const matchingContainer = svgRef.current.parentElement;
+      if (matchingContainer) {
+        const allLeftItems = Array.from(matchingContainer.querySelectorAll('.matching-left-item'));
+        const allRightItems = Array.from(matchingContainer.querySelectorAll('.matching-right-item'));
+        drawMatchingLines(svgRef.current, state, { leftItems: allLeftItems, rightItems: allRightItems });
+      }
+    }
+    
+    // Draw audio subquestion matching lines
+    if (question?.type === 'audio') {
+      (question.subQuestions || []).forEach((subQ, subIndex) => {
+        if (subQ.type === 'matching') {
+          const subAnswerKey = `${currentQuestion}_${subIndex}`;
+          const svgElement = subQuestionSvgRefs.current[subAnswerKey];
+          const state = matchingState[subAnswerKey] || {};
+          
+          if (svgElement && svgElement.parentElement) {
+            const matchingContainer = svgElement.parentElement;
+            const allLeftItems = Array.from(matchingContainer.querySelectorAll('.matching-left-item'));
+            const allRightItems = Array.from(matchingContainer.querySelectorAll('.matching-right-item'));
+            drawMatchingLines(svgElement, state, { leftItems: allLeftItems, rightItems: allRightItems });
+          }
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      drawMatchingLines();
+      drawAllMatchingLines();
+      
+      // Update SVG heights dynamically
+      const mainSvg = svgRef.current;
+      if (mainSvg && mainSvg.parentElement) {
+        const parentHeight = mainSvg.parentElement.offsetHeight;
+        const parentWidth = mainSvg.parentElement.offsetWidth;
+        mainSvg.setAttribute('height', parentHeight);
+        mainSvg.setAttribute('width', parentWidth);
+      }
+      
+      // Update audio subquestion SVG heights
+      Object.entries(subQuestionSvgRefs.current).forEach(([key, svgEl]) => {
+        if (svgEl && svgEl.parentElement) {
+          const parentHeight = svgEl.parentElement.offsetHeight;
+          const parentWidth = svgEl.parentElement.offsetWidth;
+          svgEl.setAttribute('height', parentHeight);
+          svgEl.setAttribute('width', parentWidth);
+        }
+      });
     }, 0);
     return () => clearTimeout(timer);
   }, [matchingState, currentQuestion]);
@@ -246,81 +308,95 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
   };
 
   const handleMatchingClick = (questionIndex, itemValue, isLeftItem) => {
-    // support keys for sub-questions like "{qIndex}_{subIndex}"
+    // Regular question yoki subquestion matching ni aniqlash
     let question;
+    let isSubQuestion = false;
+    let qIdx, subIdx;
+    
     if (typeof questionIndex === 'string' && questionIndex.includes('_')) {
-      const [qIdx, subIdx] = questionIndex.split('_').map(n => parseInt(n, 10));
+      // Audio subquestion matching format: "0_0"
+      isSubQuestion = true;
+      [qIdx, subIdx] = questionIndex.split('_').map(Number);
       question = test.questions[qIdx]?.subQuestions?.[subIdx];
     } else {
+      // Regular question matching
       question = test.questions[questionIndex];
     }
-    const state = matchingState[questionIndex] || { matchedPairs: [] };
-
-    // If clicked item is already part of a matched pair, remove that pair (allow changing answer)
-    const existingPairIndex = state.matchedPairs.findIndex(p => (p.left === itemValue || p.right === itemValue));
-    if (existingPairIndex !== -1) {
-      const removed = state.matchedPairs[existingPairIndex];
-      const newMatched = state.matchedPairs.filter((_, i) => i !== existingPairIndex);
+    
+    if (!question) return;
+    
+    const state = matchingState[questionIndex] || {};
+    if (state.errorPair) return;
+    
+    if (isLeftItem) {
+      const matchedPair = (state.matchedPairs || []).find(m => m.left === itemValue);
+      
+      // Agar matched left item qayta click qilinsa, o'chirib tashla
+      if (matchedPair) {
+        const newMatched = state.matchedPairs.filter(m => m.left !== itemValue);
+        setMatchingState(prev => ({
+          ...prev,
+          [questionIndex]: {
+            ...state,
+            matchedPairs: newMatched,
+            activeLeft: null,
+            activeRight: null,
+            correctCount: newMatched.filter(m => m.correct).length
+          }
+        }));
+        return;
+      }
+      
+      // Agar activeLeft o'ziga qo'yilsa, deselect qil
+      if (state.activeLeft === itemValue) {
+        setMatchingState(prev => ({
+          ...prev,
+          [questionIndex]: { ...state, activeLeft: null }
+        }));
+        return;
+      }
+      
+      // Yangi left item active qil
       setMatchingState(prev => ({
         ...prev,
-        [questionIndex]: { ...state, matchedPairs: newMatched }
+        [questionIndex]: { ...state, activeLeft: itemValue }
       }));
-      // Update answer stored
-      handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length });
       return;
     }
-
-    // If clicking an already-matched item -> remove that pair
-    // (handled above by existingPairIndex)
-
-    // Clicking an item toggles it as active; clicking a different item on the same side
-    // should move the active state to that item immediately.
-    if (isLeftItem) {
-      if (state.activeLeft === itemValue) {
-        setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeLeft: null } }));
-        return;
-      }
-
-      // If there's an active right selection, create pair immediately
-      if (state.activeRight) {
-        const leftValue = itemValue;
-        const rightValue = state.activeRight;
-        const matchingPair = (question?.pairs || []).find(p => p.left === leftValue);
-        const isCorrect = matchingPair && matchingPair.right === rightValue;
-        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: !!isCorrect }];
-        setMatchingState(prev => ({
-          ...prev,
-          [questionIndex]: {
-            ...state,
-            matchedPairs: newMatched,
-            activeLeft: null,
-            activeRight: null,
-            correctCount: newMatched.length
-          }
-        }));
-        handleAnswerChange({ matchedCount: newMatched.length, total: (question?.pairs || []).length });
-        return;
-      }
-
-      // Otherwise set activeLeft to the newly clicked left item (moves if another was active)
-      setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeLeft: itemValue } }));
-      return;
-    }
-
-    // Right side click
+    
+    // Right items uchun
     if (!isLeftItem) {
-      if (state.activeRight === itemValue) {
-        setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeRight: null } }));
+      // Agar right item activeRight aynan o'ziga qo'yilsa, deselect qil
+      if (state.activeRight === itemValue && !state.activeLeft) {
+        setMatchingState(prev => ({
+          ...prev,
+          [questionIndex]: { ...state, activeRight: null }
+        }));
         return;
       }
-
-      // If there's an active left selection, create pair immediately
+      
+      // Agar activeLeft yoq bo'lsa va bu matched item yoq bo'lsa
+      if (!state.activeLeft && !state.matchedPairs?.find(m => m.right === itemValue)) {
+        setMatchingState(prev => ({
+          ...prev,
+          [questionIndex]: { ...state, activeRight: itemValue }
+        }));
+        return;
+      }
+      
+      // Agar activeLeft bor bo'lsa, juftlik yarat yoki o'zgart
       if (state.activeLeft) {
-        const leftValue = state.activeLeft;
         const rightValue = itemValue;
-        const matchingPair = (question?.pairs || []).find(p => p.left === leftValue);
+        const leftValue = state.activeLeft;
+        const matchingPair = (question.pairs || []).find(p => p.left === leftValue);
         const isCorrect = matchingPair && matchingPair.right === rightValue;
-        const newMatched = [...state.matchedPairs, { left: leftValue, right: rightValue, correct: !!isCorrect }];
+        
+        // Eski matched pair o'chirib tashla (agar bor bo'lsa)
+        let newMatched = state.matchedPairs.filter(m => m.left !== leftValue);
+        
+        // Yangi juftlik qo'sh
+        newMatched = [...newMatched, { left: leftValue, right: rightValue, correct: isCorrect }];
+        
         setMatchingState(prev => ({
           ...prev,
           [questionIndex]: {
@@ -328,16 +404,27 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
             matchedPairs: newMatched,
             activeLeft: null,
             activeRight: null,
-            correctCount: newMatched.length
+            correctCount: newMatched.filter(m => m.correct).length
           }
         }));
-        handleAnswerChange({ matchedCount: newMatched.length, total: (question?.pairs || []).length });
-        return;
+        
+        if (newMatched.length === (question.pairs || []).length) {
+          if (isSubQuestion) {
+            // Audio subquestion matching - save to subAnswers
+            const newSubAnswers = {
+              ...(answers[qIdx]?.subAnswers || {}),
+              [subIdx]: { matchedCount: newMatched.length, total: question.pairs.length, pairs: newMatched }
+            };
+            handleAnswerChange({
+              type: 'audio',
+              subAnswers: newSubAnswers
+            });
+          } else {
+            // Regular question matching
+            handleAnswerChange({ matchedCount: newMatched.length, total: question.pairs.length, pairs: newMatched });
+          }
+        }
       }
-
-      // Otherwise set activeRight to the newly clicked right item
-      setMatchingState(prev => ({ ...prev, [questionIndex]: { ...state, activeRight: itemValue } }));
-      return;
     }
   };
 
@@ -440,11 +527,27 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
             return Object.values(subAnswer).every(val => val && val.toString().trim() !== '');
           }
           
+          if (subQ.type === 'matching') {
+            // Check if matching is complete
+            if (typeof subAnswer !== 'object' || !subAnswer.matchedCount) {
+              return false;
+            }
+            return subAnswer.matchedCount === subAnswer.total;
+          }
+          
           return true;
         });
       }
       
-      // Multiple, truefalse, matching - presence is enough
+      // Matching - check if all pairs are complete
+      if (question.type === 'matching') {
+        if (typeof answer !== 'object' || !answer.matchedCount) {
+          return false;
+        }
+        return answer.matchedCount === answer.total;
+      }
+      
+      // Multiple, truefalse - presence is enough
       return true;
     };
 
@@ -640,9 +743,6 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                           <div className="sub-question-title">
                             <h4>{t('tests.question')} {subIndex + 1}</h4>
                           </div>
-                          <div className="sub-question-text">
-                            <p>{subQ.text}</p>
-                          </div>
 
                           {subQ.type === 'multiple' && (
                             <div className="answers-section">
@@ -724,7 +824,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                           {subQ.type === 'wordbank' && (
                             <>
                               <div className="sub-question-instruction">
-                                <p>{t(tests.fillBlanks)}</p>
+                                <p>{t("tests.fillBlanks")}</p>
                               </div>
                               <div className="answers-section">
                                 <div 
@@ -739,7 +839,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   <h4 className="word-bank-title">{t('tests.keywords')}</h4>
                                   <div className="word-bank-list">
                                     {subQ.bank.map((word, wordIndex) => (
-                                      <span key={wordIndex} className="word-bank-item">{word}</span>
+                                      <span key={wordIndex} className="word-bank-item" dangerouslySetInnerHTML={{ __html: word }} />
                                     ))}
                                   </div>
                                 </div>
@@ -749,6 +849,20 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
 
                           {subQ.type === 'matching' && (
                             <div className="answers-section matching-answers">
+                              <svg
+                                ref={(el) => {
+                                  if (el) subQuestionSvgRefs.current[`${currentQuestion}_${subIndex}`] = el;
+                                }}
+                                className="matching-lines-svg"
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  pointerEvents: 'none',
+                                  width: '100%',
+                                  height: '100%'
+                                }}
+                              />
                               <div className="matching-left-items">
                                 {/* <div className="matching-column-label">So'zlar</div> */}
                                 {(subQ.pairs || []).map((pair, idx) => {
@@ -761,7 +875,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   return (
                                     <div
                                       key={idx}
-                                      className={`matching-left-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
+                                      className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
                                       onClick={() => handleMatchingClick(`${currentQuestion}_${subIndex}`, pair.left, true)}
                                     >
                                       {pair.left}
@@ -780,8 +894,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   return (
                                     <div
                                       key={idx}
-                                      className={`matching-right-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
-                                      onClick={() => handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
+                                      className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                      onClick={() => (state.activeLeft || isMatched) && handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
                                     >
                                       {rightItem}
                                     </div>
@@ -815,7 +929,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                           <h3 className="word-bank-title">{t('tests.keywords')}</h3>
                           <div className="word-bank-list">
                             {question.bank.map((word, index) => (
-                              <span key={index} className="word-bank-item">{word}</span>
+                              <span key={index} className="word-bank-item" dangerouslySetInnerHTML={{ __html: word }} />
                             ))}
                           </div>
                         </div>
@@ -841,23 +955,19 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
 
                       {question.type === 'multiple' && (
                         <div className="answers-section">
-                          {question.options.map((option, index) => {
-                            const letter = String.fromCharCode(65 + index); // 65 = 'A'
-                            return (
-                              <label key={index} className={`answer-option ${answers[currentQuestion] === index ? 'selected' : ''}`} style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
-                                <input
-                                  type="radio"
-                                  name={`answer-${currentQuestion}`}
-                                  value={index}
-                                  checked={answers[currentQuestion] === index}
-                                  disabled={readOnly}
-                                  onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
-                                />
-                                <span className="option-letter">{letter})</span>
-                                <span className="option-text">{option}</span>
-                              </label>
-                            );
-                          })}
+                          {question.options.map((option, index) => (
+                            <label key={index} className="answer-option" style={{pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.7 : 1}}>
+                              <input
+                                type="radio"
+                                name="answer"
+                                value={index}
+                                checked={answers[currentQuestion] === index}
+                                disabled={readOnly}
+                                onChange={(e) => handleAnswerChange(parseInt(e.target.value))}
+                              />
+                              <span className="option-text">{option}</span>
+                            </label>
+                          ))}
                         </div>
                       )}
 
@@ -911,8 +1021,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                               return (
                                 <div
                                   key={idx}
-                                  className={`matching-left-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
-                                  onClick={() => handleMatchingClick(currentQuestion, pair.left, true)}
+                                  className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => readOnly ? null : handleMatchingClick(currentQuestion, pair.left, true)}
                                 >
                                   {pair.left}
                                 </div>
@@ -940,8 +1050,8 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                               return (
                                 <div
                                   key={idx}
-                                  className={`matching-right-item ${isMatched ? 'matched' : ''} ${isActive ? 'active' : ''}`}
-                                  onClick={() => handleMatchingClick(currentQuestion, rightItem, false)}
+                                  className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
+                                  onClick={() => readOnly ? null : ((state.activeLeft || isMatched) ? handleMatchingClick(currentQuestion, rightItem, false) : null)}
                                 >
                                   {rightItem}
                                 </div>

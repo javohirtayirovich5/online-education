@@ -300,12 +300,15 @@ export const testService = {
         const pairs = question.pairs || [];
         maxScore += pairs.length;
         const studentAns = studentAnswers[index];
-        // Check if it's the new format (matchedCount) or check if all pairs were matched
-        if (typeof studentAns === 'object' && studentAns.matchedCount !== undefined) {
-          totalScore += studentAns.matchedCount;
-        } else if (typeof studentAns === 'object' && Array.isArray(studentAns.matchedPairs)) {
-          // Legacy format if needed
-          totalScore += studentAns.matchedPairs.length;
+        // Check if it's the new format with pairs array
+        if (typeof studentAns === 'object' && Array.isArray(studentAns.pairs)) {
+          // Count only correct pairs
+          totalScore += studentAns.pairs.filter(p => p.correct).length;
+        } else if (typeof studentAns === 'object' && studentAns.matchedCount !== undefined) {
+          // Legacy: if matchedCount is available but no pairs array, count correct matches
+          // This won't work accurately without pairs info, so we need the pairs array
+          const correctPairs = studentAns.pairs ? studentAns.pairs.filter(p => p.correct).length : 0;
+          totalScore += correctPairs || studentAns.matchedCount;
         }
       } else if (question.type === 'audio') {
         const subQuestions = question.subQuestions || [];
@@ -345,11 +348,13 @@ export const testService = {
           } else if (subQ.type === 'matching') {
             const pairs = subQ.pairs || [];
             maxScore += pairs.length;
-            // For matching, we need to check the matched pairs
-            // This would require additional state tracking in the component
-            // For now, we'll use a simple count if available
-            if (typeof subAnswer === 'object' && subAnswer.matchedCount !== undefined) {
-              totalScore += subAnswer.matchedCount;
+            // For matching, count only correct pairs
+            if (typeof subAnswer === 'object' && Array.isArray(subAnswer.pairs)) {
+              totalScore += subAnswer.pairs.filter(p => p.correct).length;
+            } else if (typeof subAnswer === 'object' && subAnswer.matchedCount !== undefined) {
+              // If we have pairs info, use it; otherwise use matchedCount as fallback
+              const correctPairs = subAnswer.pairs ? subAnswer.pairs.filter(p => p.correct).length : 0;
+              totalScore += correctPairs || subAnswer.matchedCount;
             }
           }
         });
