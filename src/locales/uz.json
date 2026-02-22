@@ -154,7 +154,7 @@
     "questionTypeMultiple": "Variantni tanlash",
     "questionTypeText": "Matnli javob",
     "questionTypeTrueFalse": "True / False",
-    "questionTypeWordBank": "Bo'shliqni to'ldrish",
+    "questionTypeWordBank": "Bo'shliqni to'ldirish",
     "questionTypeMatching": "Matching (Moslashtirish)",
     "questionTypeAudio": "Audio savol",
     "title": "Testlar",
@@ -188,7 +188,9 @@
     "notLinked": "Biriktirmagan",
     "correctAnswer": "To'g'ri javob",
     "fullscreen": "Fullscreen rejimi",
-    "addNewPair": "Yangi juftlik qo'shish"
+    "addNewPair": "Yangi juftlik qo'shish",
+    "leftSide": "Chap taraf",
+    "rightSide": "O'ng taraf"
   },
   "sidebar": {
     "dashboard": "Asosiy",

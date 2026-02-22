@@ -438,7 +438,9 @@
     "notLinked": "Not linked",
     "correctAnswer": "Correct Answer",
     "fullscreen": "Fullscreen",
-    "addNewPair": "Add new pair"
+    "addNewPair": "Add new pair",
+    "leftSide": "Left side",
+    "rightSide": "Right side"
   },
   "courseDetail": {
     "commentAdded": "Comment added",

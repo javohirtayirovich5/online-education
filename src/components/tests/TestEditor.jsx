@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { FiX, FiPlus, FiTrash2, FiChevronDown } from 'react-icons/fi';
+import { FiX, FiPlus, FiTrash2, FiChevronDown, FiMoreVertical} from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import AudioUploader from './AudioUploader';
 import ImageUploader from './ImageUploader';
@@ -47,6 +47,49 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
   const questionTextareaRef = useRef(null);
   const clozeEditorRefs = useRef({});
+
+  // Inline small dropdown to trigger file picker from menu
+  const ImageUploadDropdown = ({ onFile }) => {
+    const [open, setOpen] = useState(false);
+    const inputRef = useRef(null);
+
+    const handleMenuToggle = (e) => {
+      e.stopPropagation();
+      setOpen(prev => !prev);
+    };
+
+    const handleChooseUpload = (e) => {
+      e.stopPropagation();
+      setOpen(false);
+      if (inputRef.current) inputRef.current.click();
+    };
+
+    const handleFile = (e) => {
+      const file = e.target.files?.[0];
+      if (file && onFile) onFile(file);
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const onDoc = () => setOpen(false);
+      if (open) document.addEventListener('click', onDoc);
+      return () => document.removeEventListener('click', onDoc);
+    }, [open]);
+
+    return (
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <button type="button" onClick={handleMenuToggle} className="upload-button" aria-haspopup="true" aria-expanded={open}>
+          <FiMoreVertical />
+        </button>
+        {open && (
+          <div className="image-upload-dropdown" style={{ position: 'absolute', right: 0, top: '110%', zIndex: 40, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: 6, boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
+            <button type="button" className="btn btn-sm" onClick={handleChooseUpload}>Rasm yuklash</button>
+          </div>
+        )}
+        <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+      </div>
+    );
+  };
 
   // Sync cloze editor content only when question.text changes externally (not from user input)
   useEffect(() => {
@@ -165,7 +208,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       case 'wordbank':
         return { type: 'wordbank', text: '', bank: [], correctAnswers: {}, nextBlankId: 1 };
       case 'matching':
-        return { type: 'matching', text: '', pairs: [{ id: '1', left: '', right: '' }] };
+        return { type: 'matching', text: '', pairs: [{ id: '1', left: '', right: '', leftImage: null, rightImage: null }] };
       case 'audio':
         return {
           type: 'audio',
@@ -268,7 +311,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       ...prev,
       questions: prev.questions.map((q, i) =>
         i === questionIndex
-          ? { ...q, pairs: [...(q.pairs || []), { id: Date.now().toString(), left: '', right: '' }] }
+          ? { ...q, pairs: [...(q.pairs || []), { id: Date.now().toString(), left: '', right: '', leftImage: null, rightImage: null }] }
           : q
       )
     }));
@@ -490,17 +533,27 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     // Always select the empty option by default
     sel.value = '';
 
-    // Attach change listener to update state when instructor selects the correct answer
+    // Attach change listener to update state when instructor selects the correct answer.
+    // Use functional state updates to avoid stale closure problems so multiple blanks
+    // won't overwrite each other's values.
     sel.addEventListener('change', (e) => {
+      const val = e.target.value;
       if (isSubQuestion) {
-        handleSubQuestionChange(questionIdx, subQuestionIdx, 'correctAnswers', {
-          ...(formData.questions[questionIdx].subQuestions[subQuestionIdx].correctAnswers || {}),
-          [blankId]: e.target.value
+        setFormData(prev => {
+          const questions = prev.questions.map((qq, qi) => {
+            if (qi !== questionIdx) return qq;
+            const subQuestions = (qq.subQuestions || []).map((sqq, sqi) => {
+              if (sqi !== subQuestionIdx) return sqq;
+              return { ...sqq, correctAnswers: { ...(sqq.correctAnswers || {}), [blankId]: val } };
+            });
+            return { ...qq, subQuestions };
+          });
+          return { ...prev, questions };
         });
       } else {
-        handleQuestionChange(questionIdx, 'correctAnswers', {
-          ...(formData.questions[questionIdx].correctAnswers || {}),
-          [blankId]: e.target.value
+        setFormData(prev => {
+          const questions = prev.questions.map((qq, qi) => qi === questionIdx ? { ...qq, correctAnswers: { ...(qq.correctAnswers || {}), [blankId]: val } } : qq);
+          return { ...prev, questions };
         });
       }
     });
@@ -645,15 +698,29 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   };
 
   const syncEditorCorrectAnswers = (questionIndex) => {
-    const editor = questionTextareaRef.current;
-    if (!editor) return;
+    const refKey = `q${questionIndex}`;
+    const editor = (questionIndex === formData.questions.length - 1) ? questionTextareaRef.current : clozeEditorRefs.current[refKey];
+    if (!editor) return {};
     const selects = editor.querySelectorAll('select[data-blank-id]');
     const map = {};
     selects.forEach(sel => {
       const id = sel.getAttribute('data-blank-id');
       map[id] = sel.value;
     });
-    handleQuestionChange(questionIndex, 'correctAnswers', map);
+    return map;
+  };
+
+  const syncSubQuestionCorrectAnswers = (questionIndex, subQuestionIndex) => {
+    const refKey = `sq${questionIndex}_${subQuestionIndex}`;
+    const editor = clozeEditorRefs.current[refKey];
+    if (!editor) return {};
+    const selects = editor.querySelectorAll('select[data-blank-id]');
+    const map = {};
+    selects.forEach(sel => {
+      const id = sel.getAttribute('data-blank-id');
+      map[id] = sel.value;
+    });
+    return map;
   };
 
   const handleAddQuestion = () => {
@@ -727,9 +794,28 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       return;
     }
 
-    // Barcha savollarni tekshirish
-    for (let i = 0; i < formData.questions.length; i++) {
-      const q = formData.questions[i];
+    // Build a snapshot of questions reading current selects so correctAnswers exactly
+    // match the editor contents (this ensures we overwrite previous DB values)
+    const questionsSnapshot = JSON.parse(JSON.stringify(formData.questions || []));
+
+    questionsSnapshot.forEach((q, qi) => {
+      if (q.type === 'wordbank') {
+        const map = syncEditorCorrectAnswers(qi) || {};
+        q.correctAnswers = map;
+      }
+      if (q.type === 'audio' && Array.isArray(q.subQuestions)) {
+        q.subQuestions.forEach((sq, sqi) => {
+          if (sq.type === 'wordbank') {
+            const map = syncSubQuestionCorrectAnswers(qi, sqi) || {};
+            sq.correctAnswers = map;
+          }
+        });
+      }
+    });
+
+    // Validate using the snapshot
+    for (let i = 0; i < questionsSnapshot.length; i++) {
+      const q = questionsSnapshot[i];
 
       if (q.type !== 'audio' && !q.text.trim()) {
         toast.error(`Savol ${i + 1}: Savol matni bo'sh bo'lishi mumkin emas`);
@@ -816,6 +902,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
               return;
             }
           } else if (sq.type === 'wordbank') {
+            // ensure blanks exist and answers provided
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = sq.text || '';
             const selects = tempDiv.querySelectorAll('select[data-blank-id]');
@@ -859,7 +946,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     toast.success('Barcha savollar to\'liq va to\'g\'ri!');
 
     // Clean internal-only fields and local image data before saving
-    const questionsClean = formData.questions.map(q => {
+    const questionsClean = (typeof questionsSnapshot !== 'undefined' ? questionsSnapshot : formData.questions).map(q => {
       const clean = { ...q };
       delete clean._newBankWord;
       delete clean.nextBlankId;
@@ -1183,12 +1270,14 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                               // Update state without re-rendering to prevent cursor jumping
                               const editor = e.currentTarget;
                               handleQuestionChange(index, 'text', editor.innerHTML);
-                              syncEditorCorrectAnswers(index);
+                              const map = syncEditorCorrectAnswers(index) || {};
+                              handleQuestionChange(index, 'correctAnswers', map);
                             }}
                             onBlur={(e) => {
                               // Ensure content is saved on blur
                               handleQuestionChange(index, 'text', e.currentTarget.innerHTML);
-                              syncEditorCorrectAnswers(index);
+                              const map = syncEditorCorrectAnswers(index) || {};
+                              handleQuestionChange(index, 'correctAnswers', map);
                             }}
                           />
 
@@ -1343,30 +1432,89 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                     <label>{t('tests.questionTypeMatching')} *</label>
                     <div className="matching-pairs">
                       {(question.pairs || []).map((pair, pairIndex) => (
-                        <div key={pair.id} className="matching-pair-row">
-                          <input
-                            type="text"
-                            value={pair.left}
-                            onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'left', e.target.value)}
-                            className="form-input"
-                          />
-                          <span className="matching-arrow">↔</span>
-                          <input
-                            type="text"
-                            value={pair.right}
-                            onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'right', e.target.value)}
-                            className="form-input"
-                          />
-                          {(question.pairs || []).length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveMatchingPair(index, pair.id)}
-                              className="btn btn-sm btn-danger"
-                              title="O'chirish"
-                            >
-                              <FiTrash2 />
-                            </button>
-                          )}
+                        <div key={pair.id} className="matching-pair-block">
+                          <div className="matching-pair-row">
+                            <div className="matching-item-wrapper">
+                              <input
+                                type="text"
+                                value={pair.left}
+                                onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'left', e.target.value)}
+                                className="form-input"
+                                placeholder={t('tests.leftSide')}
+                              />
+                              {pair.leftImage && (
+                                <div className="matching-image-preview">
+                                  <img src={pair.leftImage} alt="Left" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateMatchingPair(index, pair.id, 'leftImage', null)}
+                                    className="btn btn-xs btn-danger"
+                                    title="O'chirish"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
+                              <div className="image-upload-label">
+                                <ImageUploadDropdown onFile={(file) => {
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      handleUpdateMatchingPair(index, pair.id, 'leftImage', event.target.result);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }} />
+                              </div>
+                            </div>
+
+                            <span className="matching-arrow">↔</span>
+
+                            <div className="matching-item-wrapper">
+                              <input
+                                type="text"
+                                value={pair.right}
+                                onChange={(e) => handleUpdateMatchingPair(index, pair.id, 'right', e.target.value)}
+                                className="form-input"
+                                placeholder={t('tests.rightSide')}
+                              />
+                              {pair.rightImage && (
+                                <div className="matching-image-preview">
+                                  <img src={pair.rightImage} alt="Right" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateMatchingPair(index, pair.id, 'rightImage', null)}
+                                    className="btn btn-xs btn-danger"
+                                    title="O'chirish"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
+                              <div className="image-upload-label">
+                                <ImageUploadDropdown onFile={(file) => {
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      handleUpdateMatchingPair(index, pair.id, 'rightImage', event.target.result);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }} />
+                              </div>
+                            </div>
+
+                            {(question.pairs || []).length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMatchingPair(index, pair.id)}
+                                className="btn btn-sm btn-danger"
+                                title="O'chirish"
+                              >
+                                <FiTrash2 />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1465,11 +1613,17 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                       className="cloze-editor"
                                       onInput={(e) => {
                                         // Update state without re-rendering to prevent cursor jumping
-                                        handleSubQuestionChange(index, subIndex, 'text', e.currentTarget.innerHTML);
+                                        const html = e.currentTarget.innerHTML;
+                                        handleSubQuestionChange(index, subIndex, 'text', html);
+                                        const map = syncSubQuestionCorrectAnswers(index, subIndex) || {};
+                                        handleSubQuestionChange(index, subIndex, 'correctAnswers', map);
                                       }}
                                       onBlur={(e) => {
                                         // Ensure content is saved on blur
-                                        handleSubQuestionChange(index, subIndex, 'text', e.currentTarget.innerHTML);
+                                        const html = e.currentTarget.innerHTML;
+                                        handleSubQuestionChange(index, subIndex, 'text', html);
+                                        const map = syncSubQuestionCorrectAnswers(index, subIndex) || {};
+                                        handleSubQuestionChange(index, subIndex, 'correctAnswers', map);
                                       }}
                                     />
                                     <div className="wordbank-controls">
@@ -1619,49 +1773,118 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                   <label>Moslashtirish juftlari *</label>
                                   <div className="matching-pairs">
                                     {(subQ.pairs || []).map((pair, pairIndex) => (
-                                      <div key={pair.id || pairIndex} className="matching-pair-row">
-                                        <input
-                                          type="text"
-                                          value={pair.left}
-                                          onChange={(e) => {
-                                            const newPairs = [...(subQ.pairs || [])];
-                                            newPairs[pairIndex] = { ...pair, left: e.target.value };
-                                            handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
-                                          }}
-                                          placeholder="Chap tomon"
-                                          className="form-input"
-                                        />
-                                        <span className="matching-arrow">↔</span>
-                                        <input
-                                          type="text"
-                                          value={pair.right}
-                                          onChange={(e) => {
-                                            const newPairs = [...(subQ.pairs || [])];
-                                            newPairs[pairIndex] = { ...pair, right: e.target.value };
-                                            handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
-                                          }}
-                                          placeholder="O'ng tomon"
-                                          className="form-input"
-                                        />
-                                        {(subQ.pairs || []).length > 1 && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              handleSubQuestionChange(index, subIndex, 'pairs', subQ.pairs.filter((_, pi) => pi !== pairIndex));
-                                            }}
-                                            className="btn btn-sm btn-danger"
-                                            title="O'chirish"
-                                          >
-                                            <FiTrash2 />
-                                          </button>
-                                        )}
+                                      <div key={pair.id || pairIndex} className="matching-pair-block">
+                                        <div className="matching-pair-row">
+                                          <div className="matching-item-wrapper">
+                                            <input
+                                              type="text"
+                                              value={pair.left}
+                                              onChange={(e) => {
+                                                const newPairs = [...(subQ.pairs || [])];
+                                                newPairs[pairIndex] = { ...pair, left: e.target.value };
+                                                handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                              }}
+                                              placeholder="Chap tomon"
+                                              className="form-input"
+                                            />
+                                            {pair.leftImage && (
+                                              <div className="matching-image-preview">
+                                                <img src={pair.leftImage} alt="Left" />
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const newPairs = [...(subQ.pairs || [])];
+                                                    newPairs[pairIndex] = { ...pair, leftImage: null };
+                                                    handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                                  }}
+                                                  className="btn btn-xs btn-danger"
+                                                  title="O'chirish"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            )}
+                                            <div className="image-upload-label">
+                                              <ImageUploadDropdown onFile={(file) => {
+                                                if (file) {
+                                                  const reader = new FileReader();
+                                                  reader.onload = (event) => {
+                                                    const newPairs = [...(subQ.pairs || [])];
+                                                    newPairs[pairIndex] = { ...pair, leftImage: event.target.result };
+                                                    handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                                  };
+                                                  reader.readAsDataURL(file);
+                                                }
+                                              }} />
+                                            </div>
+                                          </div>
+
+                                          <span className="matching-arrow">↔</span>
+
+                                          <div className="matching-item-wrapper">
+                                            <input
+                                              type="text"
+                                              value={pair.right}
+                                              onChange={(e) => {
+                                                const newPairs = [...(subQ.pairs || [])];
+                                                newPairs[pairIndex] = { ...pair, right: e.target.value };
+                                                handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                              }}
+                                              placeholder="O'ng tomon"
+                                              className="form-input"
+                                            />
+                                            {pair.rightImage && (
+                                              <div className="matching-image-preview">
+                                                <img src={pair.rightImage} alt="Right" />
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const newPairs = [...(subQ.pairs || [])];
+                                                    newPairs[pairIndex] = { ...pair, rightImage: null };
+                                                    handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                                  }}
+                                                  className="btn btn-xs btn-danger"
+                                                  title="O'chirish"
+                                                >
+                                                  ✕
+                                                </button>
+                                              </div>
+                                            )}
+                                            <div className="image-upload-label">
+                                              <ImageUploadDropdown onFile={(file) => {
+                                                if (file) {
+                                                  const reader = new FileReader();
+                                                  reader.onload = (event) => {
+                                                    const newPairs = [...(subQ.pairs || [])];
+                                                    newPairs[pairIndex] = { ...pair, rightImage: event.target.result };
+                                                    handleSubQuestionChange(index, subIndex, 'pairs', newPairs);
+                                                  };
+                                                  reader.readAsDataURL(file);
+                                                }
+                                              }} />
+                                            </div>
+                                          </div>
+
+                                          {(subQ.pairs || []).length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                handleSubQuestionChange(index, subIndex, 'pairs', subQ.pairs.filter((_, pi) => pi !== pairIndex));
+                                              }}
+                                              className="btn btn-sm btn-danger"
+                                              title="O'chirish"
+                                            >
+                                              <FiTrash2 />
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const newPair = { id: Date.now().toString(), left: '', right: '' };
+                                      const newPair = { id: Date.now().toString(), left: '', right: '', leftImage: null, rightImage: null };
                                       handleSubQuestionChange(index, subIndex, 'pairs', [...(subQ.pairs || []), newPair]);
                                     }}
                                     className="btn btn-sm btn-success"

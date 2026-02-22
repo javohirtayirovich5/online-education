@@ -878,7 +878,19 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                       className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
                                       onClick={() => handleMatchingClick(`${currentQuestion}_${subIndex}`, pair.left, true)}
                                     >
-                                      {pair.left}
+                                      {pair.leftImage && (
+                                        <img 
+                                          src={pair.leftImage} 
+                                          alt="Left item" 
+                                          className="matching-item-image" 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFullscreenImage(pair.leftImage);
+                                          }}
+                                          style={{ cursor: 'pointer' }}
+                                        />
+                                      )}
+                                      <span className="matching-item-text">{pair.left}</span>
                                     </div>
                                   );
                                 })}
@@ -891,13 +903,28 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   const isCorrect = matchedPair?.correct;
                                   const isActive = state.activeRight === rightItem && !isMatched;
                                   
+                                  // Find the original pair object to access rightImage
+                                  const originalPair = (subQ.pairs || []).find(p => p.right === rightItem);
+                                  
                                   return (
                                     <div
                                       key={idx}
                                       className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
                                       onClick={() => (state.activeLeft || isMatched) && handleMatchingClick(`${currentQuestion}_${subIndex}`, rightItem, false)}
                                     >
-                                      {rightItem}
+                                      {originalPair?.rightImage && (
+                                        <img 
+                                          src={originalPair.rightImage} 
+                                          alt="Right item" 
+                                          className="matching-item-image" 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setFullscreenImage(originalPair.rightImage);
+                                          }}
+                                          style={{ cursor: 'pointer' }}
+                                        />
+                                      )}
+                                      <span className="matching-item-text">{rightItem}</span>
                                     </div>
                                   );
                                 })}
@@ -1024,7 +1051,19 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                                   className={`matching-left-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
                                   onClick={() => readOnly ? null : handleMatchingClick(currentQuestion, pair.left, true)}
                                 >
-                                  {pair.left}
+                                  {pair.leftImage && (
+                                    <img 
+                                      src={pair.leftImage} 
+                                      alt="Left item" 
+                                      className="matching-item-image" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFullscreenImage(pair.leftImage);
+                                      }}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  )}
+                                  <span className="matching-item-text">{pair.left}</span>
                                 </div>
                               );
                             })}
@@ -1047,13 +1086,28 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
                               const isCorrect = matchedPair?.correct;
                               const isActive = state.activeRight === rightItem && !isMatched;
                               
+                              // Find the original pair object to access rightImage
+                              const originalPair = (question.pairs || []).find(p => p.right === rightItem);
+                              
                               return (
                                 <div
                                   key={idx}
                                   className={`matching-right-item ${isMatched ? (isCorrect ? 'correct' : 'incorrect') : ''} ${isActive ? 'active' : ''}`}
                                   onClick={() => readOnly ? null : ((state.activeLeft || isMatched) ? handleMatchingClick(currentQuestion, rightItem, false) : null)}
                                 >
-                                  {rightItem}
+                                  {originalPair?.rightImage && (
+                                    <img 
+                                      src={originalPair.rightImage} 
+                                      alt="Right item" 
+                                      className="matching-item-image" 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFullscreenImage(originalPair.rightImage);
+                                      }}
+                                      style={{ cursor: 'pointer' }}
+                                    />
+                                  )}
+                                  <span className="matching-item-text">{rightItem}</span>
                                 </div>
                               );
                             })}
@@ -1115,9 +1169,7 @@ const StudentTestTaker = ({ test, onComplete, onCancel, readOnly = false }) => {
       )}
       {readOnly && (
         <div className="test-taker-footer">
-          <button className="btn btn-outline" onClick={onCancel}>
-            {t('common.close')}
-          </button>
+         
           <div className="question-indicators">
             {test.questions.map((_, index) => (
               <button

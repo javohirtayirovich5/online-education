@@ -435,7 +435,9 @@
     "notLinked": "Не связано",
     "correctAnswer": "Правильный ответ",
     "fullscreen": "Полноэкранный режим",
-    "addNewPair": "Добавить новую пару"
+    "addNewPair": "Добавить новую пару",
+    "leftSide": "Левая сторона",
+    "rightSide": "Правая сторона"
   },
   "courseDetail": {
     "commentAdded": "Комментарий добавлен",

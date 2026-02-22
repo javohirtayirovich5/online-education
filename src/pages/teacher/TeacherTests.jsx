@@ -309,7 +309,17 @@ const TeacherTests = () => {
                 <div>
                   <h3>{test.title}</h3>
                   <p className="test-info">
-                    {test.questions?.length || 0} {t('tests.questionsFrom')} • {getGroupName(test)}
+                    {(() => {
+                      let total = 0;
+                      (test.questions || []).forEach(q => {
+                        if (q.type === 'audio' && q.subQuestions) {
+                          total += 1 + q.subQuestions.length;
+                        } else {
+                          total += 1;
+                        }
+                      });
+                      return total;
+                    })()} {t('tests.questionsFrom')} • {getGroupName(test)}
                     {activeTab === 'allTests' && test.createdByName && (
                       <> • <span className="teacher-name">{test.createdByName}</span></>
                     )}
