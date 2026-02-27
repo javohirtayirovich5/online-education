@@ -20,7 +20,9 @@ import {
   FiChevronRight,
   FiCalendar,
   FiHelpCircle,
-  FiBook
+  FiBook,
+  FiInfo,
+  FiDatabase
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -98,8 +100,9 @@ const Sidebar = memo(({ isOpen, closeSidebar }) => {
     { to: '/users', icon: FiUsers, label: t('sidebar.users') },
     { to: '/lessons', icon: FiVideo, label: t('sidebar.allLessons') },
     { to: '/admin/tests', icon: FiFileText, label: t('teacher.tests.title') },
-    { to: '/admin/resources', icon: FiBook, label: t('sidebar.Resources') },
+    { to: '/admin/resources', icon: FiDatabase, label: t('sidebar.Resources') },
     { to: '/analytics', icon: FiBarChart2, label: t('sidebar.statistics') },
+    { to: '/about', icon: FiInfo, label: t('sidebar.about') },
     { to: '/library', icon: FiBook, label: t('sidebar.library') },
     { to: '/settings', icon: FiSettings, label: t('common.settings') }
   ], [t]);
@@ -115,26 +118,28 @@ const Sidebar = memo(({ isOpen, closeSidebar }) => {
         { to: '/teacher/groups/grades', icon: FiStar, label: t('sidebar.grades') }
       ]
     },
-    { to: '/teacher/resources', icon: FiFileText, label: t('sidebar.Resources') },
+    { to: '/teacher/resources', icon: FiDatabase, label: t('sidebar.Resources') },
     { to: '/my-lessons', icon: FiVideo, label: t('sidebar.myCourses') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
     { to: '/teacher/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
-    { to: '/library', icon: FiBook, label: t('sidebar.library') }
+    { to: '/library', icon: FiBook, label: t('sidebar.library') },
+    { to: '/about', icon: FiInfo, label: t('sidebar.about') }
   ], [t]);
 
   const studentLinks = useMemo(() => [
     { to: '/dashboard', icon: FiHome, label: t('sidebar.dashboard') },
     { to: '/my-subjects', icon: FiBookOpen, label: t('sidebar.mySubjects') },
     { to: '/timetable', icon: FiCalendar, label: t('sidebar.schedule') },
-    { to: '/resources', icon: FiFileText, label: t('sidebar.Resources') },
+    { to: '/resources', icon: FiDatabase, label: t('sidebar.Resources') },
     { to: '/lessons', icon: FiVideo, label: t('sidebar.videoLessons') },
     { to: '/live-sessions', icon: FiClock, label: t('sidebar.liveLessons') },
     { to: '/assignments', icon: FiFileText, label: t('sidebar.assignments') },
     { to: '/tests', icon: FiHelpCircle, label: t('sidebar.tests') },
     { to: '/my-grades', icon: FiStar, label: t('sidebar.myGrades') },
     { to: '/attendance', icon: FiClipboard, label: t('sidebar.attendance') },
-    { to: '/library', icon: FiBook, label: t('sidebar.library') }
+    { to: '/library', icon: FiBook, label: t('sidebar.library') },
+    { to: '/about', icon: FiInfo, label: t('sidebar.about') }
   ], [t]);
 
   const links = useMemo(() => {

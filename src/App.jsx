@@ -20,6 +20,7 @@ const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
 
 // Public Pages (lazy loaded)
 const Landing = lazy(() => import('./pages/Landing'));
+const AboutWrapper = lazy(() => import('./pages/AboutWrapper'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 
@@ -109,6 +110,53 @@ function AppLayout() {
   );
 }
 
+// Public Layout (Navbar va Sidebar bilan, lekin proteksiya qilinmagan)
+function PublicLayout() {
+  const getInitialSidebarState = () => {
+    const saved = localStorage.getItem('sidebarOpen');
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    return window.innerWidth > 1024;
+  };
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(getInitialSidebarState);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    const newState = !isSidebarOpen;
+    setIsSidebarOpen(newState);
+    localStorage.setItem('sidebarOpen', newState.toString());
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    localStorage.setItem('sidebarOpen', 'false');
+  };
+
+  return (
+    <div className="app">
+      <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+      <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+      <main className={`app-main ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        <div className="app-content">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}
+
 // Google OAuth Client ID - Environment variable or default
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -156,6 +204,7 @@ function App() {
                 <Route path="/forgot-password" element={<LazyRoute><ForgotPassword /></LazyRoute>} />
                 <Route path="/privacy-policy" element={<LazyRoute><PrivacyPolicy /></LazyRoute>} />
                 <Route path="/terms-of-service" element={<LazyRoute><TermsOfService /></LazyRoute>} />
+                <Route path="/about" element={<LazyRoute><AboutWrapper /></LazyRoute>} />
 
                 {/* Protected Routes with Layout */}
                 <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>

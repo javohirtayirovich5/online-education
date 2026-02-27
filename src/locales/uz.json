@@ -207,6 +207,7 @@
     "liveLessons": "Jonli darslar",
     "assignments": "Topshiriqlar",
     "tests": "Testlar",
+    "about": "Biz haqimizda",
     "mySubjects": "Fanlarim",
     "schedule": "Dars jadvali",
     "videoLessons": "Video darslar",
@@ -786,5 +787,38 @@
     "backToLibrary": "Kutubxonaga qaytish",
     "bookNotFound": "Kitob topilmadi",
     "loadError": "Kitob yuklashda xatolik"
+  },
+  "about": {
+    "breadcrumb": "Haqida",
+    "heroTitle": "Loyiha Asoschisi",
+    "founderName": "Khamidova Nilufar Dzjumavayevna",
+    "founderTitle": "Associate Professor",
+    "credentials": {
+      "degree": "Ilmiy Darajasi",
+      "degreeValue": "PhD",
+      "institution": "Muassasa",
+      "institutionValue": "Toshkent Davlat Texnika Universiteti (TDTU)",
+      "field": "Soha",
+      "fieldValue": "Pedagogika va Ta'lim Texnologiyalari"
+    },
+    "contact": "Bog'lanish",
+    "bioTitle": "Haqida",
+    "bioText": "Nilufar Xamidova — Toshkent Davlat Texnika Universiteti dotsenti, pedagogika fanlari bo‘yicha falsafa doktori (PhD) hamda kafedra mudiri. Mazkur mutaxassisning ilmiy faoliyati asosan ta'lim texnologiyalari, onlayn o'qitish va zamonaviy o'quv dasturlarini ishlab chiqishga yo‘naltirilgan. Ushbu platforma aynan Nilufar Xamidova rahbarligida, keng jamoatchilik uchun sifatli va amaliy ta'lim imkoniyatlarini yaratish maqsadida hayotga tatbiq etildi. Pedagogik amaliyotni ilgari surish, o‘zaro hamkorlikni mustahkamlash va talabalar natijadorligini oshirish — olimaning faoliyatidagi bosh mezonlardir. Nilufar Xamidova o‘zining ilmiy izlanishlari va amaliy ishlari bilan ta'lim sohasiga sezilarli hissa qo‘shgan bo‘lib, uning rahbarligida ostida yaratilgan ushbu platforma zamonaviy ta'limning bir ko'rinishi sifatida namuna bo'la oladi.",
+    "publications": {
+      "title": "Ilmiy Nashrlar va Maqolalar",
+      "count": "30+ maqolalar",
+      "viewOnScholar": "Google Scholar'da ko'rish",
+      "cta": "Barcha nashrlarni ko'rish uchun",
+      "ctaButton": "Google Scholar Profilini Ochish →"
+    },
+    "email": "nilufarxamidova26@gmail.com",
+    "scholarProfile": "Google Scholar Profili",
+    "developer": {
+      "title": "Dasturiy Qo'llab-Quvvatlash",
+      "subtitle": "Platforma Dasturchisi",
+      "name": "Javohir Muhammadqulov",
+      "email": "javohir.tayirovich@gmail.com",
+      "telegram": "javohir_tayirovich"
+    }
   }
 }

@@ -400,7 +400,7 @@
       max-width: 400px;
     }
   
-    .profile-info {
+    .navbar .profile-info {
       display: none;
     }
   }

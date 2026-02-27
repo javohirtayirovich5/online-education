@@ -129,6 +129,7 @@
     "attendance": "Attendance",
     "grades": "Grades",
     "Resources": "Resources",
+    "about": "About Us",
     "myLessons": "My Lessons",
     "myCourses": "My Courses",
     "liveLessons": "Live Lessons",
@@ -785,5 +786,38 @@
     "backToLibrary": "Back to Library",
     "bookNotFound": "Book not found",
     "loadError": "Error loading book"
+  },
+  "about": {
+    "breadcrumb": "About",
+    "heroTitle": "Project Founder",
+    "founderName": "Khamidova Nilufar Dzjumavayevna",
+    "founderTitle": "Associate Professor",
+    "credentials": {
+      "degree": "Scientific Degree",
+      "degreeValue": "PhD",
+      "institution": "Institution",
+      "institutionValue": "Tashkent State Technical University (TSTU)",
+      "field": "Field",
+      "fieldValue": "Pedagogy and Educational Technologies"
+    },
+    "contact": "Contact",
+    "bioTitle": "About",
+    "bioText": "Nilufar Khamidova is an Associate Professor at Tashkent State Technical University, holding a PhD in Pedagogical Sciences and serving as a Head of Department. Her academic focus centers on educational technologies, online learning systems, and the development of modern curricula. This platform was launched under the leadership of Nilufar Khamidova with the primary goal of providing high-quality, practical, and accessible educational opportunities for the general public. Advancing pedagogical practices, fostering collaboration, and enhancing student outcomes remain the core pillars of her professional activities. Through her extensive research and practical contributions, Nilufar Khamidova has significantly impacted the field of education, and this platform stands as a prime example of modern educational innovation developed under her guidance.",
+    "publications": {
+      "title": "Scientific Publications and Articles",
+      "count": "30+ articles",
+      "viewOnScholar": "View on Google Scholar",
+      "cta": "To view all publications",
+      "ctaButton": "Open Google Scholar Profile →"
+    },
+    "email": "nilufarxamidova26@gmail.com",
+    "scholarProfile": "Google Scholar Profile",
+    "developer": {
+      "title": "Technical Support",
+      "subtitle": "Platform Developer",
+      "name": "Javohir Muhammadqulov",
+      "email": "javohir.tayirovich@gmail.com",
+      "telegram": "javohir_tayirovich"
+    }
   }
 }

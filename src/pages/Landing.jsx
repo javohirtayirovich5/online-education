@@ -82,8 +82,8 @@ const Landing = () => {
           scale: 1.00,
           scaleMobile: 1.00,
           backgroundColor: isDarkMode ? 0x111827 : 0xffffff,
-          birdSize: 1.20,
-          quantity: 1.00,
+          birdSize: 1.50,
+          quantity: 2.5,
           separation: 40
         });
       }
@@ -201,7 +201,7 @@ const Landing = () => {
                     </div>
                   )}
                 </div>
-
+                <Link to="/about" className="nav-link">{t('sidebar.about')}</Link>
                 <Link to="/login" className="nav-link">{t('landing.login')}</Link>
                 <Link to="/register" className="nav-link btn-primary">{t('landing.register')}</Link>
               </div>
@@ -340,6 +340,7 @@ const Landing = () => {
           <div className="landing-container">
             <div className="footer-content">
               <div className="footer-links">
+                <Link to="/about">Haqida</Link>
                 <Link to="/privacy-policy">{t('landing.privacyPolicy')}</Link>
                 <Link to="/terms-of-service">{t('landing.termsOfService')}</Link>
                 <a href="mailto:javohir.tayirovich@gmail.com">{t('landing.contactUs')}</a>

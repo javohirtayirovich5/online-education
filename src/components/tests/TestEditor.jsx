@@ -1307,7 +1307,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
             <button
               type="button"
               onClick={handleAddSection}
-              className="btn btn-sm btn-secondary"
+              className="btn btn-sm btn-primary"
             >
               <FiPlus />{t('teacher.tests.addText')}
             </button>
@@ -1506,7 +1506,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                 />
                                 <button
                                   type="button"
-                                  className="btn btn-sm btn-secondary"
+                                  className="btn btn-sm btn-primary"
                                   onClick={() => {
                                     const word = (question._newBankWord || '').trim();
                                     if (!word) return;
@@ -1851,7 +1851,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                           />
                                           <button
                                             type="button"
-                                            className="btn btn-sm btn-secondary"
+                                            className="btn btn-sm btn-primary"
                                             onClick={() => {
                                               const word = (subQ._newBankWord || '').trim();
                                               if (!word) return;
@@ -2108,7 +2108,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           <button
             type="button"
             onClick={handleAddQuestion}
-            className="btn btn-secondary btn-block"
+            className="btn btn-primary  btn-block"
           >
             <FiPlus /> {t('tests.addQuestion')}
           </button>

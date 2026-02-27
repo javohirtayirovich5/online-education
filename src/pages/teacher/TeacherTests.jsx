@@ -569,14 +569,6 @@ const TeacherTests = () => {
           {t('tests.pageHeaderLine1')}<br />
           {t('tests.pageHeaderLine2')}
         </h1>
-        {activeTab === 'myTests' && (
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <FiPlus /> {t('teacher.tests.newTest')}
-          </button>
-        )}
       </div>
 
       <div className="tests-tabs">
@@ -615,6 +607,15 @@ const TeacherTests = () => {
               </option>
             ))}
           </select>
+        )}
+
+                {activeTab === 'myTests' && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <FiPlus /> {t('teacher.tests.newTest')}
+          </button>
         )}
       </div>
 
