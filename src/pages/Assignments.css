@@ -34,6 +34,18 @@
   color: white;
 }
 
+.empty-state-large {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
 .assignments-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));

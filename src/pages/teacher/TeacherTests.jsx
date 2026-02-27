@@ -33,6 +33,8 @@ const TeacherTests = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [selectedTeacherFilter, setSelectedTeacherFilter] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -63,14 +65,98 @@ const TeacherTests = () => {
     setLoading(false);
   };
 
+  // Helper function to clean test data before saving to Firestore
+  const cleanTestDataForFirestore = (data) => {
+    const cleaned = { ...data };
+    
+    // Helper to check if string is base64 data URL
+    const isBase64DataUrl = (str) => {
+      return typeof str === 'string' && str.startsWith('data:');
+    };
+
+    // Remove non-serializable properties
+    if (cleaned.questions && Array.isArray(cleaned.questions)) {
+      cleaned.questions = cleaned.questions.map(question => {
+        const { 
+          imageFile, imageData, imageBlob, file, 
+          image, preview, tempId, editing,
+          ...cleanQ 
+        } = question;
+        
+        // Remove undefined values and functions
+        const finalQ = {};
+        Object.keys(cleanQ).forEach(key => {
+          const value = cleanQ[key];
+          
+          // Skip functions, undefined, null objects, and File/Blob types
+          if (typeof value !== 'function' && value !== undefined) {
+            if (value instanceof File || value instanceof Blob) {
+              return;
+            }
+            
+            // Skip base64 data URLs (they're huge and local-only)
+            if (isBase64DataUrl(value)) {
+              return;
+            }
+            
+            // For arrays (options, matching pairs), clean recursively
+            if (Array.isArray(value)) {
+              finalQ[key] = value.map(item => {
+                if (typeof item === 'object' && item !== null) {
+                  const cleaned = {};
+                  Object.keys(item).forEach(itemKey => {
+                    const itemValue = item[itemKey];
+                    // Remove base64 from objects in arrays
+                    if (!isBase64DataUrl(itemValue) && 
+                        !(itemValue instanceof File) && 
+                        !(itemValue instanceof Blob) &&
+                        typeof itemValue !== 'function') {
+                      cleaned[itemKey] = itemValue;
+                    }
+                  });
+                  return cleaned;
+                }
+                // Remove base64 from string arrays
+                if (!isBase64DataUrl(item)) {
+                  return item;
+                }
+                return null;
+              }).filter(item => item !== null);
+              return;
+            }
+            
+            finalQ[key] = value;
+          }
+        });
+        
+        return finalQ;
+      });
+    }
+    
+    // Remove any undefined values from top level
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined || typeof cleaned[key] === 'function') {
+        delete cleaned[key];
+      }
+    });
+    
+    return cleaned;
+  };
+
   const handleCreateTest = async (testData, imageFilesToUpload = [], removedImageFileNames = []) => {
     try {
+      setUploading(true);
+      setUploadProgress(0);
+
       const groupIds = Array.isArray(testData.groupIds) ? testData.groupIds : [];
       const primaryGroupId = groupIds[0] || testData.groupId || null;
 
-      // Step 1: Create test in Firestore
+      // Step 0: Clean testData - remove all non-serializable objects
+      const cleanTestData = cleanTestDataForFirestore(testData);
+
+      // Step 1: Create test in Firestore (without images)
       const result = await testService.createTest({
-        ...testData,
+        ...cleanTestData,
         createdBy: userData.uid,
         createdByName: userData.displayName,
         groupId: primaryGroupId,
@@ -79,32 +165,76 @@ const TeacherTests = () => {
 
       if (result.success) {
         const testId = result.data.id;
-        let updatedTestData = { ...testData };
+        let updatedTestData = { ...cleanTestData };
 
-        // Step 2: Upload images for questions that have them
+        // Step 2: Upload images sequentially with progress tracking
         if (imageFilesToUpload && imageFilesToUpload.length > 0) {
-          const uploadPromises = imageFilesToUpload.map(imageData =>
-            imageService.uploadTestImage(testId, imageData.file)
-          );
+          for (let i = 0; i < imageFilesToUpload.length; i++) {
+            const imageData = imageFilesToUpload[i];
+            const progressCallback = (progress) => {
+              // Each image gets an equal segment of the progress bar
+              const segmentSize = 100 / imageFilesToUpload.length;
+              // Progress from completed images
+              const completedProgress = (i / imageFilesToUpload.length) * 100;
+              // Progress from current image (0-100) normalized to its segment (0-segmentSize)
+              const currentProgress = (progress / 100) * segmentSize;
+              const totalProgress = completedProgress + currentProgress;
+              setUploadProgress(Math.min(totalProgress, 99));
+            };
 
-          const uploadResults = await Promise.all(uploadPromises);
+            const uploadResult = await imageService.uploadTestImage(
+              testId,
+              imageData.file,
+              progressCallback
+            );
 
-          // Step 3: Update test data with image URLs
-          uploadResults.forEach((uploadResult, index) => {
             if (uploadResult && uploadResult.success) {
-              const questionIndex = imageFilesToUpload[index].questionIndex;
-              updatedTestData.questions[questionIndex] = {
-                ...updatedTestData.questions[questionIndex],
-                imageUrl: uploadResult.url,
-                imageFileName: uploadResult.fileName
-              };
-            }
-          });
+              const questionIndex = imageData.questionIndex;
+              const question = updatedTestData.questions[questionIndex];
 
-          // Step 4: Update test in Firestore with image URLs
+              if (imageData.type === 'questionImage') {
+                // Simple question image
+                question.imageUrl = uploadResult.url;
+                question.imageFileName = uploadResult.fileName;
+              } else if (imageData.type === 'matchingLeft') {
+                // Matching pair left image
+                if (question.pairs && question.pairs[imageData.pairIndex]) {
+                  question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                  question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+                }
+              } else if (imageData.type === 'matchingRight') {
+                // Matching pair right image
+                if (question.pairs && question.pairs[imageData.pairIndex]) {
+                  question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                  question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+                }
+              } else if (imageData.type === 'subMatchingLeft') {
+                // Sub-question matching pair left image
+                if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                    question.subQuestions[imageData.subIndex].pairs && 
+                    question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+                }
+              } else if (imageData.type === 'subMatchingRight') {
+                // Sub-question matching pair right image
+                if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                    question.subQuestions[imageData.subIndex].pairs && 
+                    question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+                }
+              }
+            }
+
+            setUploadProgress(Math.round(((i + 1) / imageFilesToUpload.length) * 100));
+          }
+
+          // Step 3: Update test in Firestore with image URLs
           await testService.updateTest(testId, updatedTestData);
         }
 
+        setUploadProgress(100);
         toast.success('Test muvaffaqiyatli yaratildi');
         setShowCreateModal(false);
         loadData();
@@ -112,65 +242,183 @@ const TeacherTests = () => {
     } catch (error) {
       console.error('Create test error:', error);
       toast.error('Testni yaratishda xatolik');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
   const handleEditTest = async (testData, imageFilesToUpload = [], removedImageFileNames = []) => {
     try {
+      setUploading(true);
+      setUploadProgress(0);
+
       const testId = editingTest.id;
-      let finalTestData = { ...testData };
+      
+      // Step 0: Clean testData - remove all non-serializable objects
+      const cleanTestData = cleanTestDataForFirestore(testData);
 
-      // Step 1: Upload images first (if any) to get URLs
+      let finalTestData = { ...cleanTestData };
+      const totalSteps = (imageFilesToUpload?.length || 0) + (removedImageFileNames?.length || 0) + 1;
+      let completedSteps = 0;
+
+      // Step 1: Upload new images with progress tracking
       if (imageFilesToUpload && imageFilesToUpload.length > 0) {
-        const uploadPromises = imageFilesToUpload.map(imageData =>
-          imageService.uploadTestImage(testId, imageData.file)
-        );
+        for (let i = 0; i < imageFilesToUpload.length; i++) {
+          const imageData = imageFilesToUpload[i];
+          const progressCallback = (progress) => {
+            // Calculate progress based on completed steps and current image upload
+            const uploadStartStep = completedSteps;
+            const uploadSegmentSize = 100 / totalSteps;
+            // Progress from all completed steps
+            const stepsProgress = (uploadStartStep / totalSteps) * 100;
+            // Progress within this upload (0-100) normalized to this step's segment
+            const currentProgress = (progress / 100) * uploadSegmentSize;
+            const totalProgress = stepsProgress + currentProgress;
+            setUploadProgress(Math.min(totalProgress, 99));
+          };
 
-        const uploadResults = await Promise.all(uploadPromises);
+          const uploadResult = await imageService.uploadTestImage(
+            testId,
+            imageData.file,
+            progressCallback
+          );
 
-        // Update test data with new image URLs
-        uploadResults.forEach((uploadResult, index) => {
           if (uploadResult && uploadResult.success) {
-            const questionIndex = imageFilesToUpload[index].questionIndex;
-            finalTestData.questions[questionIndex] = {
-              ...finalTestData.questions[questionIndex],
-              imageUrl: uploadResult.url,
-              imageFileName: uploadResult.fileName
-            };
+            const questionIndex = imageData.questionIndex;
+            const question = finalTestData.questions[questionIndex];
+
+            if (imageData.type === 'questionImage') {
+              // Simple question image
+              question.imageUrl = uploadResult.url;
+              question.imageFileName = uploadResult.fileName;
+            } else if (imageData.type === 'matchingLeft') {
+              // Matching pair left image
+              if (question.pairs && question.pairs[imageData.pairIndex]) {
+                question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'matchingRight') {
+              // Matching pair right image
+              if (question.pairs && question.pairs[imageData.pairIndex]) {
+                question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'subMatchingLeft') {
+              // Sub-question matching pair left image
+              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                  question.subQuestions[imageData.subIndex].pairs && 
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'subMatchingRight') {
+              // Sub-question matching pair right image
+              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                  question.subQuestions[imageData.subIndex].pairs && 
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+              }
+            }
           }
-        });
+
+          completedSteps++;
+          setUploadProgress(Math.round((completedSteps / totalSteps) * 100));
+        }
       }
 
-      // Step 2: Delete removed images and replaced images
-      const deletePromises = [];
-      
-      // Delete explicitly removed images (remove button clicked)
+      // Step 2: Delete removed images
       if (removedImageFileNames && removedImageFileNames.length > 0) {
-        removedImageFileNames.forEach(fileName => {
-          deletePromises.push(imageService.deleteTestImage(testId, fileName));
-        });
+        const deletePromises = removedImageFileNames.map(fileName =>
+          imageService.deleteTestImage(testId, fileName)
+        );
+        await Promise.all(deletePromises);
+        completedSteps += removedImageFileNames.length;
+        setUploadProgress(Math.round((completedSteps / totalSteps) * 100));
       }
       
-      // Also delete old images if they were replaced
+      // Also delete old images if they were replaced (simple questions)
+      const replaceDeletePromises = [];
       editingTest.questions.forEach((oldQuestion, index) => {
         const newQuestion = finalTestData.questions[index];
         
-        // If old question had an image and new one doesn't, or image changed
+        // Delete old simple question image if replaced
         if (oldQuestion.imageFileName && 
             (!newQuestion.imageFileName || oldQuestion.imageFileName !== newQuestion.imageFileName) &&
-            !removedImageFileNames.includes(oldQuestion.imageFileName)) {
-          deletePromises.push(imageService.deleteTestImage(testId, oldQuestion.imageFileName));
+            !removedImageFileNames?.includes(oldQuestion.imageFileName)) {
+          replaceDeletePromises.push(imageService.deleteTestImage(testId, oldQuestion.imageFileName));
+        }
+
+        // Delete old matching pair images if replaced
+        if (oldQuestion.pairs && Array.isArray(oldQuestion.pairs)) {
+          const newPairs = newQuestion.pairs || [];
+          oldQuestion.pairs.forEach((oldPair, pairIndex) => {
+            const newPair = newPairs[pairIndex];
+            
+            // Check left image replacement
+            if (oldPair.leftImageFileName && newPair) {
+              if (!newPair.leftImageFileName || oldPair.leftImageFileName !== newPair.leftImageFileName) {
+                replaceDeletePromises.push(
+                  imageService.deleteTestImage(testId, oldPair.leftImageFileName)
+                );
+              }
+            }
+            
+            // Check right image replacement
+            if (oldPair.rightImageFileName && newPair) {
+              if (!newPair.rightImageFileName || oldPair.rightImageFileName !== newPair.rightImageFileName) {
+                replaceDeletePromises.push(
+                  imageService.deleteTestImage(testId, oldPair.rightImageFileName)
+                );
+              }
+            }
+          });
+        }
+
+        // Delete old sub-question matching pair images if replaced (for audio questions)
+        if (oldQuestion.subQuestions && Array.isArray(oldQuestion.subQuestions)) {
+          const newSubQuestions = newQuestion.subQuestions || [];
+          oldQuestion.subQuestions.forEach((oldSubQ, subIndex) => {
+            const newSubQ = newSubQuestions[subIndex];
+            
+            if (oldSubQ.pairs && Array.isArray(oldSubQ.pairs) && newSubQ) {
+              const newSubPairs = newSubQ.pairs || [];
+              oldSubQ.pairs.forEach((oldPair, pairIndex) => {
+                const newPair = newSubPairs[pairIndex];
+                
+                // Check left image replacement
+                if (oldPair.leftImageFileName && newPair) {
+                  if (!newPair.leftImageFileName || oldPair.leftImageFileName !== newPair.leftImageFileName) {
+                    replaceDeletePromises.push(
+                      imageService.deleteTestImage(testId, oldPair.leftImageFileName)
+                    );
+                  }
+                }
+                
+                // Check right image replacement
+                if (oldPair.rightImageFileName && newPair) {
+                  if (!newPair.rightImageFileName || oldPair.rightImageFileName !== newPair.rightImageFileName) {
+                    replaceDeletePromises.push(
+                      imageService.deleteTestImage(testId, oldPair.rightImageFileName)
+                    );
+                  }
+                }
+              });
+            }
+          });
         }
       });
 
-      if (deletePromises.length > 0) {
-        await Promise.all(deletePromises);
+      if (replaceDeletePromises.length > 0) {
+        await Promise.all(replaceDeletePromises);
       }
 
-      // Step 3: Update test in Firestore with all data (including new image URLs)
+      // Step 3: Update test in Firestore with all data
       const result = await testService.updateTest(testId, finalTestData);
 
       if (result.success) {
+        setUploadProgress(100);
         toast.success('Test muvaffaqiyatli o\'zgartirildi');
         setShowEditModal(false);
         setEditingTest(null);
@@ -179,15 +427,88 @@ const TeacherTests = () => {
     } catch (error) {
       console.error('Update test error:', error);
       toast.error('Testni o\'zgartirishda xatolik');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
   const handleDeleteTest = async () => {
     try {
-      const result = await testService.deleteTest(selectedTest.id);
+      const testId = selectedTest.id;
+      
+      // Step 1: Get test details to find all images
+      const testResult = await testService.getTestById(testId);
+      if (testResult.success) {
+        const test = testResult.data;
+        const deletePromises = [];
+
+        // Collect all image file names to delete from Storage
+        if (test.questions && Array.isArray(test.questions)) {
+          test.questions.forEach(question => {
+            // Delete simple question image
+            if (question.imageFileName) {
+              deletePromises.push(
+                imageService.deleteTestImage(testId, question.imageFileName)
+              );
+            }
+
+            // Delete matching pair images
+            if (question.pairs && Array.isArray(question.pairs)) {
+              question.pairs.forEach(pair => {
+                if (pair.leftImageFileName) {
+                  deletePromises.push(
+                    imageService.deleteTestImage(testId, pair.leftImageFileName)
+                  );
+                }
+                if (pair.rightImageFileName) {
+                  deletePromises.push(
+                    imageService.deleteTestImage(testId, pair.rightImageFileName)
+                  );
+                }
+              });
+            }
+
+            // Delete sub-question matching pair images (audio questions)
+            if (question.subQuestions && Array.isArray(question.subQuestions)) {
+              question.subQuestions.forEach(subQ => {
+                if (subQ.pairs && Array.isArray(subQ.pairs)) {
+                  subQ.pairs.forEach(pair => {
+                    if (pair.leftImageFileName) {
+                      deletePromises.push(
+                        imageService.deleteTestImage(testId, pair.leftImageFileName)
+                      );
+                    }
+                    if (pair.rightImageFileName) {
+                      deletePromises.push(
+                        imageService.deleteTestImage(testId, pair.rightImageFileName)
+                      );
+                    }
+                  });
+                }
+              });
+            }
+
+            // Delete audio file if exists
+            if (question.audioFileName) {
+              deletePromises.push(
+                imageService.deleteTestImage(testId, question.audioFileName)
+              );
+            }
+          });
+        }
+
+        // Delete all images from Storage
+        if (deletePromises.length > 0) {
+          await Promise.all(deletePromises);
+        }
+      }
+
+      // Step 2: Delete test from Firestore (this also deletes test answers)
+      const result = await testService.deleteTest(testId);
 
       if (result.success) {
-        toast.success('Test muvaffaqiyatli o\'chirildi');
+        toast.success('Test va uning rasmlar muvaffaqiyatli o\'chirildi');
         setShowDeleteConfirm(false);
         setSelectedTest(null);
         loadData();
@@ -424,15 +745,27 @@ const TeacherTests = () => {
       {/* Create Test Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => !uploading && setShowCreateModal(false)}
         title={t('teacher.tests.newTest')}
         size="large"
-        disableEscClose={true}
+        disableEscClose={uploading}
       >
+        {uploading && (
+          <div className="upload-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <span className="progress-text">{Math.round(uploadProgress)}% - {t('common.uploading')}</span>
+          </div>
+        )}
         <TestEditor
           groups={groups}
           onSave={handleCreateTest}
-          onCancel={() => setShowCreateModal(false)}
+          onCancel={() => !uploading && setShowCreateModal(false)}
+          disabled={uploading}
         />
       </Modal>
 
@@ -441,21 +774,37 @@ const TeacherTests = () => {
         <Modal
           isOpen={showEditModal}
           onClose={() => {
-            setShowEditModal(false);
-            setEditingTest(null);
+            if (!uploading) {
+              setShowEditModal(false);
+              setEditingTest(null);
+            }
           }}
           title={t('teacher.tests.edit')}
           size="large"
-          disableEscClose={true}
+          disableEscClose={uploading}
         >
+          {uploading && (
+            <div className="upload-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <span className="progress-text">{Math.round(uploadProgress)}% - {t('common.uploading')}</span>
+            </div>
+          )}
           <TestEditor
             initialData={editingTest}
             groups={groups}
             onSave={handleEditTest}
             onCancel={() => {
-              setShowEditModal(false);
-              setEditingTest(null);
+              if (!uploading) {
+                setShowEditModal(false);
+                setEditingTest(null);
+              }
             }}
+            disabled={uploading}
           />
         </Modal>
       )}

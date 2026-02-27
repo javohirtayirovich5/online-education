@@ -270,6 +270,13 @@ const TeacherResources = () => {
         );
 
         if (result.success) {
+          // If a new file was uploaded, the server returned its URL – make sure
+          // our optimistic row reflects that so the link works immediately.
+          if (result.fileUrl) {
+            setResources(prev => prev.map(r =>
+              r.id === editingResource.id ? { ...r, fileUrl: result.fileUrl } : r
+            ));
+          }
           toast.success('Resurs yangilandi');
         } else {
           // Restore if failed
@@ -297,7 +304,9 @@ const TeacherResources = () => {
           title: formData.title,
           lessonType: formData.lessonType,
           isGlobal: modalSelectedGroup?.id === 'global',
-          createdAt: new Date()
+          createdAt: new Date(),
+          // include placeholder for url so the UI doesn't break
+          fileUrl: ''
         };
 
         // Add to UI immediately
@@ -310,6 +319,16 @@ const TeacherResources = () => {
         );
 
         if (result.success) {
+          // After creation, the backend provides a real id and the fileUrl that
+          // we didn't have in the optimistic object. Replace the temporary
+          // entry so the title link immediately works and we don't end up with
+          // bogus "temp_" ids lingering in state.
+          setResources(prev => prev.map(r =>
+            r.id === newResource.id
+              ? { ...r, id: result.id, fileUrl: result.fileUrl }
+              : r
+          ));
+
           toast.success('Resurs qo\'shildi');
         } else {
           // Remove if failed
@@ -376,11 +395,14 @@ const TeacherResources = () => {
       const group = resource.isGlobal ? { id: 'global', name: 'Barcha guruhlar' } : currentGroup;
       setModalSelectedGroup(group);
       
-      // Fanni topish
-      if (group?.subjectTeachers) {
-        const subject = group.subjectTeachers.find(st => st.subjectId === resource.subjectId);
-        if (subject) {
-          setModalSelectedSubject({ id: subject.subjectId, name: subject.subjectName });
+      // Guruhga bog'liq fanlar ro'yxatini yuklab oling va state-ga saqlang
+      const subjects = loadModalSubjects(group.id);
+
+      // Agar resurs uchun allaqachon fan mavjud bo'lsa uni belgilaymiz
+      if (subjects && subjects.length) {
+        const match = subjects.find(s => s.id === resource.subjectId);
+        if (match) {
+          setModalSelectedSubject(match);
         }
       }
     }
@@ -821,6 +843,19 @@ const TeacherResources = () => {
     }
   };
 
+  // keep modalSubjects in sync when group changes programmatically
+  useEffect(() => {
+    if (modalSelectedGroup) {
+      const subjects = loadModalSubjects(modalSelectedGroup.id);
+      // if our current selection disappeared, clear it
+      if (modalSelectedSubject && !subjects.find(s => s.id === modalSelectedSubject.id)) {
+        setModalSelectedSubject(null);
+      }
+    } else {
+      setModalSubjects([]);
+    }
+  }, [modalSelectedGroup]);
+
   const loadCollectionModalSubjects = (groupId) => {
     if (!userData?.subjectIds) {
       setCollectionModalSubjects([]);
@@ -988,11 +1023,17 @@ const TeacherResources = () => {
                           <td>{index + 1}</td>
                           <td>
                             <a
-                              href={resource.fileUrl}
+                              href={resource.fileUrl || '#'}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="resource-title-link"
+                              className={`resource-title-link ${resource.fileUrl ? '' : 'disabled'}`}
                               download
+                              onClick={e => {
+                                if (!resource.fileUrl) {
+                                  // prevent navigation when URL not yet ready
+                                  e.preventDefault();
+                                }
+                              }}
                             >
                               {resource.title}
                             </a>
@@ -1643,4 +1684,4 @@ const TeacherResources = () => {
   );
 };
 
-export default TeacherResources;
+export default TeacherResources;    

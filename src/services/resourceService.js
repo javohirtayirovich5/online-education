@@ -173,7 +173,8 @@ export const resourceService = {
         updatedAt: serverTimestamp()
       });
       
-      return { success: true, id: docRef.id };
+      // Return fileUrl so caller can update optimistic state
+      return { success: true, id: docRef.id, fileUrl };
     } catch (error) {
       console.error('Add resource error:', error);
       return { success: false, error: error.message };
@@ -184,6 +185,7 @@ export const resourceService = {
   async updateResource(resourceId, updates, file, onProgress) {
     try {
       const updateData = { ...updates, updatedAt: serverTimestamp() };
+      let newFileUrl = null;
       
       // Agar yangi fayl yuklansa
       if (file) {
@@ -201,7 +203,8 @@ export const resourceService = {
             return { success: false, error: uploadResult.error || 'Fayl yuklashda xatolik' };
           }
           
-          updateData.fileUrl = uploadResult.url;
+          newFileUrl = uploadResult.url;
+          updateData.fileUrl = newFileUrl;
           updateData.fileName = file.name;
           updateData.fileSize = file.size;
         }
@@ -209,7 +212,7 @@ export const resourceService = {
       
       const docRef = doc(db, COLLECTION_NAME, resourceId);
       await updateDoc(docRef, updateData);
-      return { success: true };
+      return { success: true, fileUrl: newFileUrl };
     } catch (error) {
       console.error('Update resource error:', error);
       return { success: false, error: error.message };

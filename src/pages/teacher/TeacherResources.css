@@ -193,6 +193,13 @@
   color: var(--primary-dark, #6366f1);
 }
 
+/* when fileUrl isn’t yet available (optimistic state) */
+.resource-title-link.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: default;
+} 
+
 /* Collections Table */
 .collections-table-container {
   background: var(--bg-primary);

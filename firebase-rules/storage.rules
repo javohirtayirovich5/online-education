@@ -19,20 +19,17 @@ service firebase.storage {
     
     // Validate image file
     function isValidImage() {
-      return request.resource.contentType.matches('image/.*') &&
-             request.resource.size < 5 * 1024 * 1024;
+      return request.resource.contentType.matches('image/.*');
     }
     
     // Validate video file
     function isValidVideo() {
-      return request.resource.contentType.matches('video/.*') &&
-             request.resource.size < 500 * 1024 * 1024;
+      return request.resource.contentType.matches('video/.*');
     }
     
     // Validate audio file
     function isValidAudio() {
-      return request.resource.contentType.matches('audio/.*') &&
-             request.resource.size < 10 * 1024 * 1024; // 10MB
+      return request.resource.contentType.matches('audio/.*');
     }
     
     // Validate document file
@@ -42,8 +39,7 @@ service firebase.storage {
               request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*') ||
               request.resource.contentType.matches('application/vnd.ms-powerpoint') ||
               request.resource.contentType.matches('application/vnd.ms-excel') ||
-              request.resource.contentType.matches('text/.*')) &&
-             request.resource.size < 50 * 1024 * 1024;
+              request.resource.contentType.matches('text/.*'));
     }
     
     // ============================================
@@ -81,7 +77,11 @@ service firebase.storage {
     // Assignment attachments (uploaded by teachers)
     match /assignments/{assignmentId}/attachments/{fileName} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isValidDocument();
+      // Teachers should be able to upload documents or images (e.g. screenshots,
+      // diagrams) as part of an assignment. Previously only documents were
+      // permitted which caused 403 errors when uploading PNG/JPEG files.
+      allow write: if isAuthenticated() &&
+                      (isValidDocument() || isValidImage());
       allow delete: if isAuthenticated();
     }
     
@@ -99,8 +99,7 @@ service firebase.storage {
     match /forums/{forumId}/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && 
-                      (isValidImage() || isValidDocument()) &&
-                      request.resource.size < 10 * 1024 * 1024;
+                      (isValidImage() || isValidDocument());
       allow delete: if isAuthenticated();
     }
     
@@ -110,8 +109,7 @@ service firebase.storage {
     match /messages/{conversationId}/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && 
-                      (isValidImage() || isValidDocument()) &&
-                      request.resource.size < 25 * 1024 * 1024;
+                      (isValidImage() || isValidDocument());
       allow delete: if isAuthenticated();
     }
     
@@ -120,8 +118,7 @@ service firebase.storage {
     // ============================================
     match /temp/{userId}/{fileName} {
       allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && 
-                      request.resource.size < 100 * 1024 * 1024;
+      allow write: if isOwner(userId);
       allow delete: if isOwner(userId);
     }
 

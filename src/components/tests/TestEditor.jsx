@@ -318,6 +318,21 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   };
 
   const handleRemoveMatchingPair = (questionIndex, pairId) => {
+    // Collect image file names from the pair being deleted
+    const question = formData.questions[questionIndex];
+    const pairToDelete = question.pairs?.find(p => p.id === pairId);
+    const newRemovedFileNames = [...removedImageFileNames];
+
+    if (pairToDelete) {
+      if (pairToDelete.leftImageFileName) {
+        newRemovedFileNames.push(pairToDelete.leftImageFileName);
+      }
+      if (pairToDelete.rightImageFileName) {
+        newRemovedFileNames.push(pairToDelete.rightImageFileName);
+      }
+      setRemovedImageFileNames(newRemovedFileNames);
+    }
+
     setFormData(prev => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
@@ -339,6 +354,31 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }));
   };
 
+  // Remove sub-question matching pair with image cleanup
+  const handleRemoveSubQuestionMatchingPair = (questionIndex, subQuestionIndex, pairIndex) => {
+    const question = formData.questions[questionIndex];
+    const subQ = question.subQuestions?.[subQuestionIndex];
+    const pairToDelete = subQ?.pairs?.[pairIndex];
+    const newRemovedFileNames = [...removedImageFileNames];
+
+    if (pairToDelete) {
+      if (pairToDelete.leftImageFileName) {
+        newRemovedFileNames.push(pairToDelete.leftImageFileName);
+      }
+      if (pairToDelete.rightImageFileName) {
+        newRemovedFileNames.push(pairToDelete.rightImageFileName);
+      }
+      setRemovedImageFileNames(newRemovedFileNames);
+    }
+
+    handleSubQuestionChange(
+      questionIndex,
+      subQuestionIndex,
+      'pairs',
+      subQ.pairs.filter((_, pi) => pi !== pairIndex)
+    );
+  };
+
   // Audio question handlers
   const handleAudioChange = (questionIndex, audioData) => {
     setFormData(prev => ({
@@ -357,6 +397,14 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   };
 
   const handleRemoveAudio = (questionIndex) => {
+    const question = formData.questions[questionIndex];
+    const newRemovedFileNames = [...removedImageFileNames];
+
+    if (question.audioFileName) {
+      newRemovedFileNames.push(question.audioFileName);
+      setRemovedImageFileNames(newRemovedFileNames);
+    }
+
     setFormData(prev => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
@@ -398,6 +446,27 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
   };
 
   const handleDeleteSubQuestion = (questionIndex, subQuestionIndex) => {
+    // Collect all image file names from this sub-question to be deleted
+    const question = formData.questions[questionIndex];
+    const subQuestionToDelete = question.subQuestions?.[subQuestionIndex];
+    const newRemovedFileNames = [...removedImageFileNames];
+
+    if (subQuestionToDelete) {
+      // Add matching pair images from sub-question
+      if (subQuestionToDelete.pairs && Array.isArray(subQuestionToDelete.pairs)) {
+        subQuestionToDelete.pairs.forEach(pair => {
+          if (pair.leftImageFileName) {
+            newRemovedFileNames.push(pair.leftImageFileName);
+          }
+          if (pair.rightImageFileName) {
+            newRemovedFileNames.push(pair.rightImageFileName);
+          }
+        });
+      }
+
+      setRemovedImageFileNames(newRemovedFileNames);
+    }
+
     setFormData(prev => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
@@ -409,7 +478,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
           : q
       )
     }));
-    toast.success('Sub-savol o\'chirildi');
+    toast.success('Sub-savol va uning rasmlar o\'chirildi');
   };
 
   const handleSubQuestionChange = (questionIndex, subQuestionIndex, field, value) => {
@@ -750,12 +819,75 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
       return;
     }
 
+    // Collect all image file names from this question to be deleted
+    const questionToDelete = formData.questions[index];
+    const newRemovedFileNames = [...removedImageFileNames];
+
+    // Add simple question image
+    if (questionToDelete.imageFileName) {
+      newRemovedFileNames.push(questionToDelete.imageFileName);
+    }
+
+    // Add matching pair images
+    if (questionToDelete.pairs && Array.isArray(questionToDelete.pairs)) {
+      questionToDelete.pairs.forEach(pair => {
+        if (pair.leftImageFileName) {
+          newRemovedFileNames.push(pair.leftImageFileName);
+        }
+        if (pair.rightImageFileName) {
+          newRemovedFileNames.push(pair.rightImageFileName);
+        }
+      });
+    }
+
+    // Add sub-question matching pair images
+    if (questionToDelete.subQuestions && Array.isArray(questionToDelete.subQuestions)) {
+      questionToDelete.subQuestions.forEach(subQ => {
+        if (subQ.pairs && Array.isArray(subQ.pairs)) {
+          subQ.pairs.forEach(pair => {
+            if (pair.leftImageFileName) {
+              newRemovedFileNames.push(pair.leftImageFileName);
+            }
+            if (pair.rightImageFileName) {
+              newRemovedFileNames.push(pair.rightImageFileName);
+            }
+          });
+        }
+      });
+    }
+
+    // Add audio file
+    if (questionToDelete.audioFileName) {
+      newRemovedFileNames.push(questionToDelete.audioFileName);
+    }
+
+    setRemovedImageFileNames(newRemovedFileNames);
+
     setFormData(prev => ({
       ...prev,
       questions: prev.questions.filter((_, i) => i !== index)
     }));
 
-    toast.success('Savol o\'chirildi');
+    toast.success('Savol va uning rasmlar o\'chirildi');
+  };
+
+
+  // Helper function to convert base64 data URL to File object
+  const dataUrlToFile = (dataUrl, filename) => {
+    try {
+      const arr = dataUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, {type: mime});
+    } catch (error) {
+      console.error('Error converting data URL to file:', error);
+      return null;
+    }
   };
 
   const uploadPendingImages = async (testId) => {
@@ -985,12 +1117,79 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     const questionsForDB = payload.questions.map((q, index) => {
       const qForDB = { ...q };
 
-      // If there's an imageFile (new image selected), save it for uploading
+      // 1. Extract imageFile from simple questions
       if (q.imageFile) {
         imageFilesToUpload.push({
           questionIndex: index,
           file: q.imageFile,
-          fileName: q.imageFileName
+          fileName: q.imageFileName,
+          type: 'questionImage'
+        });
+      }
+
+      // 2. Extract images from matching pairs (main question and sub-questions)
+      if (q.pairs && Array.isArray(q.pairs)) {
+        q.pairs.forEach((pair, pairIndex) => {
+          if (pair.leftImage && pair.leftImage.startsWith('data:')) {
+            const file = dataUrlToFile(pair.leftImage, `match-${index}-${pairIndex}-left.png`);
+            if (file) {
+              imageFilesToUpload.push({
+                questionIndex: index,
+                pairIndex,
+                file,
+                fileName: `match-${index}-${pairIndex}-left.png`,
+                type: 'matchingLeft'
+              });
+            }
+          }
+          if (pair.rightImage && pair.rightImage.startsWith('data:')) {
+            const file = dataUrlToFile(pair.rightImage, `match-${index}-${pairIndex}-right.png`);
+            if (file) {
+              imageFilesToUpload.push({
+                questionIndex: index,
+                pairIndex,
+                file,
+                fileName: `match-${index}-${pairIndex}-right.png`,
+                type: 'matchingRight'
+              });
+            }
+          }
+        });
+      }
+
+      // 3. Extract images from sub-question matching pairs (audio questions)
+      if (q.subQuestions && Array.isArray(q.subQuestions)) {
+        q.subQuestions.forEach((subQ, subIndex) => {
+          if (subQ.pairs && Array.isArray(subQ.pairs)) {
+            subQ.pairs.forEach((pair, pairIndex) => {
+              if (pair.leftImage && pair.leftImage.startsWith('data:')) {
+                const file = dataUrlToFile(pair.leftImage, `submatch-${index}-${subIndex}-${pairIndex}-left.png`);
+                if (file) {
+                  imageFilesToUpload.push({
+                    questionIndex: index,
+                    subIndex,
+                    pairIndex,
+                    file,
+                    fileName: `submatch-${index}-${subIndex}-${pairIndex}-left.png`,
+                    type: 'subMatchingLeft'
+                  });
+                }
+              }
+              if (pair.rightImage && pair.rightImage.startsWith('data:')) {
+                const file = dataUrlToFile(pair.rightImage, `submatch-${index}-${subIndex}-${pairIndex}-right.png`);
+                if (file) {
+                  imageFilesToUpload.push({
+                    questionIndex: index,
+                    subIndex,
+                    pairIndex,
+                    file,
+                    fileName: `submatch-${index}-${subIndex}-${pairIndex}-right.png`,
+                    type: 'subMatchingRight'
+                  });
+                }
+              }
+            });
+          }
         });
       }
 
@@ -1869,7 +2068,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                handleSubQuestionChange(index, subIndex, 'pairs', subQ.pairs.filter((_, pi) => pi !== pairIndex));
+                                                handleRemoveSubQuestionMatchingPair(index, subIndex, pairIndex);
                                               }}
                                               className="btn btn-sm btn-danger"
                                               title="O'chirish"

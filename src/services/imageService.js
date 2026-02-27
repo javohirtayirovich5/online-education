@@ -4,6 +4,9 @@ export const imageService = {
   // Upload image for test question
   async uploadTestImage(testId, file, onProgress) {
     try {
+      if (!file) {
+        return { success: false, error: 'No file provided' };
+      }
       const extension = file.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;
       const path = `tests/${testId}/questions/${fileName}`;

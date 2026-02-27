@@ -221,11 +221,15 @@ const StudentResources = () => {
                               <td>{index + 1}</td>
                               <td>
                                 <a
-                                  href={resource.fileUrl}
+                                  href={resource.fileUrl || '#'}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="resource-title-link"
+                                  className={`resource-title-link ${resource.fileUrl ? '' : 'disabled'}`}
                                   onClick={(e) => {
+                                    if (!resource.fileUrl) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     e.preventDefault();
                                     handleDownload(resource);
                                   }}
