@@ -239,7 +239,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
         i === index
           ? {
             ...q,
-            imageUrl: imageData.url || imageData.file ? URL.createObjectURL(imageData.file) : null,
+            imageUrl: imageData.url ? imageData.url : (imageData.file ? URL.createObjectURL(imageData.file) : null),
             imageFileName: imageData.fileName,
             imageFile: imageData.file || null, // Store file for later upload
             isImageLocal: imageData.isLocal || false // Mark if image is local (not yet uploaded)
@@ -928,7 +928,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
     // Build a snapshot of questions reading current selects so correctAnswers exactly
     // match the editor contents (this ensures we overwrite previous DB values)
-    const questionsSnapshot = JSON.parse(JSON.stringify(formData.questions || []));
+    const questionsSnapshot = (formData.questions || []).map(q => ({ ...q }));
 
     questionsSnapshot.forEach((q, qi) => {
       if (q.type === 'wordbank') {

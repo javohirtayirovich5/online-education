@@ -4,8 +4,8 @@ export const imageService = {
   // Upload image for test question
   async uploadTestImage(testId, file, onProgress) {
     try {
-      if (!file) {
-        return { success: false, error: 'No file provided' };
+      if (!file || !file.name) {
+        return { success: false, error: 'No valid file provided for upload' };
       }
       const extension = file.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${extension}`;

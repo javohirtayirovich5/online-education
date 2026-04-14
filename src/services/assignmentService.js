@@ -7,7 +7,9 @@ import {
   updateDoc, 
   doc, 
   getDoc,
-  deleteDoc 
+  deleteDoc,
+  orderBy,
+  increment
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { notificationService } from './notificationService';
@@ -15,13 +17,23 @@ import { notificationService } from './notificationService';
 const COLLECTION_NAME = 'assignments';
 const SUBMISSIONS_COLLECTION = 'submissions';
 
+const chunkArray = (arr, size) => {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+};
+
 export const assignmentService = {
   // Create assignment
   async createAssignment(assignmentData) {
     try {
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
         ...assignmentData,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        submissionCount: 0,
+        ungradedCount: 0
       });
 
       // Send notifications to students in the group
@@ -64,15 +76,9 @@ export const assignmentService = {
   // Get all assignments
   async getAllAssignments() {
     try {
-      const q = query(collection(db, COLLECTION_NAME));
+      const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       const assignments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Client-side sorting
-      assignments.sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0);
-        const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA; // Descending order
-      });
       return { success: true, data: assignments };
     } catch (error) {
       console.error('Get assignments error:', error);
@@ -100,19 +106,67 @@ export const assignmentService = {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
-        where('createdBy', '==', teacherId)
+        where('createdBy', '==', teacherId),
+        orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
       const assignments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Client-side sorting
-      assignments.sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0);
-        const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA; // Descending order
-      });
       return { success: true, data: assignments };
     } catch (error) {
       console.error('Get teacher assignments error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getSubmissionsByAssignmentIds(assignmentIds) {
+    try {
+      if (!Array.isArray(assignmentIds) || assignmentIds.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      const chunks = chunkArray(assignmentIds, 10);
+      const submissions = [];
+
+      for (const chunk of chunks) {
+        const q = query(
+          collection(db, SUBMISSIONS_COLLECTION),
+          where('assignmentId', 'in', chunk)
+        );
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach(doc => submissions.push({ id: doc.id, ...doc.data() }));
+      }
+
+      submissions.sort((a, b) => {
+        const dateA = new Date(a.submittedAt || 0);
+        const dateB = new Date(b.submittedAt || 0);
+        return dateB - dateA;
+      });
+
+      return { success: true, data: submissions };
+    } catch (error) {
+      console.error('Get submissions by assignment IDs error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getSubmissionsByStudent(studentId) {
+    try {
+      const q = query(
+        collection(db, SUBMISSIONS_COLLECTION),
+        where('studentId', '==', studentId)
+      );
+      const snapshot = await getDocs(q);
+      const submissions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      submissions.sort((a, b) => {
+        const dateA = new Date(a.submittedAt || 0);
+        const dateB = new Date(b.submittedAt || 0);
+        return dateB - dateA;
+      });
+
+      return { success: true, data: submissions };
+    } catch (error) {
+      console.error('Get submissions by student error:', error);
       return { success: false, error: error.message };
     }
   },
@@ -151,6 +205,20 @@ export const assignmentService = {
         gradedAt: null,
         gradedBy: null
       });
+
+      // Increment submission counters on assignment document
+      if (submissionData.assignmentId) {
+        try {
+          const assignmentRef = doc(db, COLLECTION_NAME, submissionData.assignmentId);
+          await updateDoc(assignmentRef, {
+            submissionCount: increment(1),
+            ungradedCount: increment(1)
+          });
+        } catch (updateError) {
+          console.error('Error updating assignment counters after submission:', updateError);
+        }
+      }
+
       return { success: true, submissionId: docRef.id };
     } catch (error) {
       console.error('Create submission error:', error);
@@ -209,10 +277,34 @@ export const assignmentService = {
       const submissionDoc = await getDoc(docRef);
       const submissionData = submissionDoc.data();
 
-      await updateDoc(docRef, {
-        ...updates,
-        gradedAt: updates.grade !== undefined ? new Date().toISOString() : undefined
-      });
+      const updatePayload = { ...updates };
+      if (updates.grade !== undefined) {
+        updatePayload.gradedAt = new Date().toISOString();
+      }
+      await updateDoc(docRef, updatePayload);
+
+      // Update assignment counters if grade status changed
+      if (submissionData?.assignmentId && updates.grade !== undefined) {
+        try {
+          const assignmentRef = doc(db, COLLECTION_NAME, submissionData.assignmentId);
+          let assignmentUpdates = {};
+
+          const oldWasUngraded = submissionData.grade === null || submissionData.grade === undefined;
+          const newIsUngraded = updates.grade === null || updates.grade === undefined;
+
+          if (oldWasUngraded && !newIsUngraded) {
+            assignmentUpdates.ungradedCount = increment(-1);
+          } else if (!oldWasUngraded && newIsUngraded) {
+            assignmentUpdates.ungradedCount = increment(1);
+          }
+
+          if (Object.keys(assignmentUpdates).length > 0) {
+            await updateDoc(assignmentRef, assignmentUpdates);
+          }
+        } catch (updateError) {
+          console.error('Error updating assignment counters after grading:', updateError);
+        }
+      }
 
       // Send notification to student if grade is given
       if (updates.grade !== undefined && submissionData?.studentId) {

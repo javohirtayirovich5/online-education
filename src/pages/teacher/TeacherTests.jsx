@@ -168,15 +168,14 @@ const TeacherTests = () => {
         let updatedTestData = { ...cleanTestData };
 
         // Step 2: Upload images sequentially with progress tracking
+        const uploadErrors = [];
         if (imageFilesToUpload && imageFilesToUpload.length > 0) {
           for (let i = 0; i < imageFilesToUpload.length; i++) {
             const imageData = imageFilesToUpload[i];
             const progressCallback = (progress) => {
               // Each image gets an equal segment of the progress bar
               const segmentSize = 100 / imageFilesToUpload.length;
-              // Progress from completed images
               const completedProgress = (i / imageFilesToUpload.length) * 100;
-              // Progress from current image (0-100) normalized to its segment (0-segmentSize)
               const currentProgress = (progress / 100) * segmentSize;
               const totalProgress = completedProgress + currentProgress;
               setUploadProgress(Math.min(totalProgress, 99));
@@ -188,46 +187,49 @@ const TeacherTests = () => {
               progressCallback
             );
 
-            if (uploadResult && uploadResult.success) {
-              const questionIndex = imageData.questionIndex;
-              const question = updatedTestData.questions[questionIndex];
+            if (!uploadResult || !uploadResult.success) {
+              uploadErrors.push(uploadResult?.error || 'Unknown upload error');
+              break;
+            }
 
-              if (imageData.type === 'questionImage') {
-                // Simple question image
-                question.imageUrl = uploadResult.url;
-                question.imageFileName = uploadResult.fileName;
-              } else if (imageData.type === 'matchingLeft') {
-                // Matching pair left image
-                if (question.pairs && question.pairs[imageData.pairIndex]) {
-                  question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
-                  question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
-                }
-              } else if (imageData.type === 'matchingRight') {
-                // Matching pair right image
-                if (question.pairs && question.pairs[imageData.pairIndex]) {
-                  question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
-                  question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
-                }
-              } else if (imageData.type === 'subMatchingLeft') {
-                // Sub-question matching pair left image
-                if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
-                    question.subQuestions[imageData.subIndex].pairs && 
-                    question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
-                }
-              } else if (imageData.type === 'subMatchingRight') {
-                // Sub-question matching pair right image
-                if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
-                    question.subQuestions[imageData.subIndex].pairs && 
-                    question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
-                }
+            const questionIndex = imageData.questionIndex;
+            const question = updatedTestData.questions[questionIndex];
+
+            if (imageData.type === 'questionImage') {
+              question.imageUrl = uploadResult.url;
+              question.imageFileName = uploadResult.fileName;
+            } else if (imageData.type === 'matchingLeft') {
+              if (question.pairs && question.pairs[imageData.pairIndex]) {
+                question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'matchingRight') {
+              if (question.pairs && question.pairs[imageData.pairIndex]) {
+                question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'subMatchingLeft') {
+              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                  question.subQuestions[imageData.subIndex].pairs && 
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+              }
+            } else if (imageData.type === 'subMatchingRight') {
+              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                  question.subQuestions[imageData.subIndex].pairs && 
+                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
               }
             }
 
             setUploadProgress(Math.round(((i + 1) / imageFilesToUpload.length) * 100));
+          }
+
+          if (uploadErrors.length > 0) {
+            await testService.deleteTest(testId);
+            throw new Error(uploadErrors.join('; '));
           }
 
           // Step 3: Update test in Firestore with image URLs
@@ -241,7 +243,7 @@ const TeacherTests = () => {
       }
     } catch (error) {
       console.error('Create test error:', error);
-      toast.error('Testni yaratishda xatolik');
+      toast.error(error?.message ? `Rasm yuklashda xatolik: ${error.message}` : 'Testni yaratishda xatolik');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -259,20 +261,18 @@ const TeacherTests = () => {
       const cleanTestData = cleanTestDataForFirestore(testData);
 
       let finalTestData = { ...cleanTestData };
-      const totalSteps = (imageFilesToUpload?.length || 0) + (removedImageFileNames?.length || 0) + 1;
+      const totalSteps = (imageFilesToUpload?.length || 0) + 1;
       let completedSteps = 0;
 
       // Step 1: Upload new images with progress tracking
+      const uploadErrors = [];
       if (imageFilesToUpload && imageFilesToUpload.length > 0) {
         for (let i = 0; i < imageFilesToUpload.length; i++) {
           const imageData = imageFilesToUpload[i];
           const progressCallback = (progress) => {
-            // Calculate progress based on completed steps and current image upload
             const uploadStartStep = completedSteps;
             const uploadSegmentSize = 100 / totalSteps;
-            // Progress from all completed steps
             const stepsProgress = (uploadStartStep / totalSteps) * 100;
-            // Progress within this upload (0-100) normalized to this step's segment
             const currentProgress = (progress / 100) * uploadSegmentSize;
             const totalProgress = stepsProgress + currentProgress;
             setUploadProgress(Math.min(totalProgress, 99));
@@ -284,42 +284,40 @@ const TeacherTests = () => {
             progressCallback
           );
 
-          if (uploadResult && uploadResult.success) {
-            const questionIndex = imageData.questionIndex;
-            const question = finalTestData.questions[questionIndex];
+          if (!uploadResult || !uploadResult.success) {
+            uploadErrors.push(uploadResult?.error || 'Unknown upload error');
+            break;
+          }
 
-            if (imageData.type === 'questionImage') {
-              // Simple question image
-              question.imageUrl = uploadResult.url;
-              question.imageFileName = uploadResult.fileName;
-            } else if (imageData.type === 'matchingLeft') {
-              // Matching pair left image
-              if (question.pairs && question.pairs[imageData.pairIndex]) {
-                question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
-                question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
-              }
-            } else if (imageData.type === 'matchingRight') {
-              // Matching pair right image
-              if (question.pairs && question.pairs[imageData.pairIndex]) {
-                question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
-                question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
-              }
-            } else if (imageData.type === 'subMatchingLeft') {
-              // Sub-question matching pair left image
-              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
-                  question.subQuestions[imageData.subIndex].pairs && 
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
-                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
-                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
-              }
-            } else if (imageData.type === 'subMatchingRight') {
-              // Sub-question matching pair right image
-              if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
-                  question.subQuestions[imageData.subIndex].pairs && 
-                  question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
-                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
-                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
-              }
+          const questionIndex = imageData.questionIndex;
+          const question = finalTestData.questions[questionIndex];
+
+          if (imageData.type === 'questionImage') {
+            question.imageUrl = uploadResult.url;
+            question.imageFileName = uploadResult.fileName;
+          } else if (imageData.type === 'matchingLeft') {
+            if (question.pairs && question.pairs[imageData.pairIndex]) {
+              question.pairs[imageData.pairIndex].leftImage = uploadResult.url;
+              question.pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+            }
+          } else if (imageData.type === 'matchingRight') {
+            if (question.pairs && question.pairs[imageData.pairIndex]) {
+              question.pairs[imageData.pairIndex].rightImage = uploadResult.url;
+              question.pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
+            }
+          } else if (imageData.type === 'subMatchingLeft') {
+            if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                question.subQuestions[imageData.subIndex].pairs && 
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+              question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImage = uploadResult.url;
+              question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].leftImageFileName = uploadResult.fileName;
+            }
+          } else if (imageData.type === 'subMatchingRight') {
+            if (question.subQuestions && question.subQuestions[imageData.subIndex] && 
+                question.subQuestions[imageData.subIndex].pairs && 
+                question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex]) {
+              question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImage = uploadResult.url;
+              question.subQuestions[imageData.subIndex].pairs[imageData.pairIndex].rightImageFileName = uploadResult.fileName;
             }
           }
 
@@ -328,93 +326,11 @@ const TeacherTests = () => {
         }
       }
 
-      // Step 2: Delete removed images
-      if (removedImageFileNames && removedImageFileNames.length > 0) {
-        const deletePromises = removedImageFileNames.map(fileName =>
-          imageService.deleteTestImage(testId, fileName)
-        );
-        await Promise.all(deletePromises);
-        completedSteps += removedImageFileNames.length;
-        setUploadProgress(Math.round((completedSteps / totalSteps) * 100));
-      }
-      
-      // Also delete old images if they were replaced (simple questions)
-      const replaceDeletePromises = [];
-      editingTest.questions.forEach((oldQuestion, index) => {
-        const newQuestion = finalTestData.questions[index];
-        
-        // Delete old simple question image if replaced
-        if (oldQuestion.imageFileName && 
-            (!newQuestion.imageFileName || oldQuestion.imageFileName !== newQuestion.imageFileName) &&
-            !removedImageFileNames?.includes(oldQuestion.imageFileName)) {
-          replaceDeletePromises.push(imageService.deleteTestImage(testId, oldQuestion.imageFileName));
-        }
-
-        // Delete old matching pair images if replaced
-        if (oldQuestion.pairs && Array.isArray(oldQuestion.pairs)) {
-          const newPairs = newQuestion.pairs || [];
-          oldQuestion.pairs.forEach((oldPair, pairIndex) => {
-            const newPair = newPairs[pairIndex];
-            
-            // Check left image replacement
-            if (oldPair.leftImageFileName && newPair) {
-              if (!newPair.leftImageFileName || oldPair.leftImageFileName !== newPair.leftImageFileName) {
-                replaceDeletePromises.push(
-                  imageService.deleteTestImage(testId, oldPair.leftImageFileName)
-                );
-              }
-            }
-            
-            // Check right image replacement
-            if (oldPair.rightImageFileName && newPair) {
-              if (!newPair.rightImageFileName || oldPair.rightImageFileName !== newPair.rightImageFileName) {
-                replaceDeletePromises.push(
-                  imageService.deleteTestImage(testId, oldPair.rightImageFileName)
-                );
-              }
-            }
-          });
-        }
-
-        // Delete old sub-question matching pair images if replaced (for audio questions)
-        if (oldQuestion.subQuestions && Array.isArray(oldQuestion.subQuestions)) {
-          const newSubQuestions = newQuestion.subQuestions || [];
-          oldQuestion.subQuestions.forEach((oldSubQ, subIndex) => {
-            const newSubQ = newSubQuestions[subIndex];
-            
-            if (oldSubQ.pairs && Array.isArray(oldSubQ.pairs) && newSubQ) {
-              const newSubPairs = newSubQ.pairs || [];
-              oldSubQ.pairs.forEach((oldPair, pairIndex) => {
-                const newPair = newSubPairs[pairIndex];
-                
-                // Check left image replacement
-                if (oldPair.leftImageFileName && newPair) {
-                  if (!newPair.leftImageFileName || oldPair.leftImageFileName !== newPair.leftImageFileName) {
-                    replaceDeletePromises.push(
-                      imageService.deleteTestImage(testId, oldPair.leftImageFileName)
-                    );
-                  }
-                }
-                
-                // Check right image replacement
-                if (oldPair.rightImageFileName && newPair) {
-                  if (!newPair.rightImageFileName || oldPair.rightImageFileName !== newPair.rightImageFileName) {
-                    replaceDeletePromises.push(
-                      imageService.deleteTestImage(testId, oldPair.rightImageFileName)
-                    );
-                  }
-                }
-              });
-            }
-          });
-        }
-      });
-
-      if (replaceDeletePromises.length > 0) {
-        await Promise.all(replaceDeletePromises);
+      if (uploadErrors.length > 0) {
+        throw new Error(uploadErrors.join('; '));
       }
 
-      // Step 3: Update test in Firestore with all data
+      // Step 2: Update test in Firestore with all data
       const result = await testService.updateTest(testId, finalTestData);
 
       if (result.success) {
@@ -426,7 +342,7 @@ const TeacherTests = () => {
       }
     } catch (error) {
       console.error('Update test error:', error);
-      toast.error('Testni o\'zgartirishda xatolik');
+      toast.error(error?.message ? `Rasm yuklashda xatolik: ${error.message}` : 'Testni o\'zgartirishda xatolik');
     } finally {
       setUploading(false);
       setUploadProgress(0);

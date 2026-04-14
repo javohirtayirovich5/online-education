@@ -58,37 +58,28 @@ const Assignments = () => {
         const result = await assignmentService.getAssignmentsByTeacher(userData.uid);
         if (result.success) {
           setAssignments(result.data);
-          
-          // Load ungraded submissions count for each assignment
+
           const ungradedMap = {};
-          for (const assignment of result.data) {
-            const submissionsResult = await assignmentService.getSubmissionsByAssignment(assignment.id);
-            if (submissionsResult.success) {
-              const ungraded = submissionsResult.data.filter(
-                s => s.grade === null || s.grade === undefined
-              ).length;
-              ungradedMap[assignment.id] = ungraded;
-            }
-          }
+          result.data.forEach(assignment => {
+            ungradedMap[assignment.id] = assignment.ungradedCount || 0;
+          });
           setUngradedCounts(ungradedMap);
         }
       } else {
         const result = await assignmentService.getAllAssignments();
         if (result.success) {
           setAssignments(result.data);
-          
-          // Load student submissions for all assignments to show status
-          const submissionsMap = {};
-          for (const assignment of result.data) {
-            const submissionResult = await assignmentService.getSubmissionByStudentAndAssignment(
-              userData.uid,
-              assignment.id
-            );
-            if (submissionResult.success) {
-              submissionsMap[assignment.id] = submissionResult.data;
-            }
+
+          const submissionsResult = await assignmentService.getSubmissionsByStudent(userData.uid);
+          if (submissionsResult.success) {
+            const submissionsMap = {};
+            submissionsResult.data.forEach(submission => {
+              submissionsMap[submission.assignmentId] = submission;
+            });
+            setStudentSubmissions(submissionsMap);
+          } else {
+            setStudentSubmissions({});
           }
-          setStudentSubmissions(submissionsMap);
         }
       }
     } catch (error) {
