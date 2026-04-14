@@ -249,6 +249,22 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
     }));
   };
 
+  const cloneQuestions = (questions) => {
+    return questions.map(q => ({
+      ...q,
+      options: q.options ? [...q.options] : q.options,
+      bank: q.bank ? [...q.bank] : q.bank,
+      pairs: q.pairs ? q.pairs.map(pair => ({ ...pair })) : q.pairs,
+      subQuestions: q.subQuestions ? q.subQuestions.map(subQ => ({
+        ...subQ,
+        options: subQ.options ? [...subQ.options] : subQ.options,
+        bank: subQ.bank ? [...subQ.bank] : subQ.bank,
+        pairs: subQ.pairs ? subQ.pairs.map(pair => ({ ...pair })) : subQ.pairs
+      })) : q.subQuestions,
+      correctAnswers: q.correctAnswers ? (Array.isArray(q.correctAnswers) ? [...q.correctAnswers] : { ...q.correctAnswers }) : q.correctAnswers
+    }));
+  };
+
   const handleQuestionImageRemove = (index) => {
     setFormData(prev => {
       const q = prev.questions[index];
@@ -928,7 +944,11 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
     // Build a snapshot of questions reading current selects so correctAnswers exactly
     // match the editor contents (this ensures we overwrite previous DB values)
+<<<<<<< HEAD
     const questionsSnapshot = (formData.questions || []).map(q => ({ ...q }));
+=======
+    const questionsSnapshot = cloneQuestions(formData.questions || []);
+>>>>>>> ed54a8c647cb2b60dd70dbb7650801962f0a4faa
 
     questionsSnapshot.forEach((q, qi) => {
       if (q.type === 'wordbank') {

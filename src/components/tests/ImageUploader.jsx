@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FiUpload, FiX, FiImage, FiPlus } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import './ImageUploader.css';
@@ -7,6 +7,14 @@ const ImageUploader = ({ initialImageUrl, initialFileName, onImageChange, onRemo
   const [imageUrl, setImageUrl] = useState(initialImageUrl || null);
   const [fileName, setFileName] = useState(initialFileName || null);
   const [imageFile, setImageFile] = useState(null); // Local file for preview
+
+  useEffect(() => {
+    setImageUrl(initialImageUrl || null);
+    setFileName(initialFileName || null);
+    if (!initialImageUrl) {
+      setImageFile(null);
+    }
+  }, [initialImageUrl, initialFileName]);
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (e) => {
