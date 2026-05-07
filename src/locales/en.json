@@ -107,6 +107,20 @@
     "namePlaceholder": "First Last Name",
     "phonePlaceholder": "+998901234567"
   },
+  "terms": {
+    "title": "Terms",
+    "results_label": "results found",
+    "search_terms": "Search terms...",
+    "no_terms_found": "No terms found",
+    "error_loading_terms": "Error loading terms",
+    "table_header_index": "#",
+    "table_header_english": "English",
+    "table_header_russian": "Russian",
+    "table_header_uzbek": "Uzbek",
+    "read_english": "Read English",
+    "read_russian": "Read Russian",
+    "read_uzbek": "Read Uzbek"
+  },
   "navbar": {
     "notifications": "Notifications",
     "lightMode": "Light Mode",
@@ -139,7 +153,8 @@
     "schedule": "Schedule",
     "videoLessons": "Video Lessons",
     "myGrades": "My Grades",
-    "library": "Library"
+    "library": "Library",
+    "terms": "Terms"
   },
   "dashboard": {
     "welcome": "Welcome",

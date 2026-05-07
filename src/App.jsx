@@ -23,6 +23,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const AboutWrapper = lazy(() => import('./pages/AboutWrapper'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const Terms = lazy(() => import('./pages/Terms'));
 
 // Pages (lazy loaded)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -198,13 +199,16 @@ function App() {
             <AuthProvider>
               <Routes>
                 {/* Public Routes */}
-                <Route path="/" element={<LazyRoute><Landing /></LazyRoute>} />
-                <Route path="/login" element={<LazyRoute><Login /></LazyRoute>} />
-                <Route path="/register" element={<LazyRoute><Register /></LazyRoute>} />
-                <Route path="/forgot-password" element={<LazyRoute><ForgotPassword /></LazyRoute>} />
-                <Route path="/privacy-policy" element={<LazyRoute><PrivacyPolicy /></LazyRoute>} />
-                <Route path="/terms-of-service" element={<LazyRoute><TermsOfService /></LazyRoute>} />
-                <Route path="/about" element={<LazyRoute><AboutWrapper /></LazyRoute>} />
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<LazyRoute><Landing /></LazyRoute>} />
+                  <Route path="/login" element={<LazyRoute><Login /></LazyRoute>} />
+                  <Route path="/register" element={<LazyRoute><Register /></LazyRoute>} />
+                  <Route path="/forgot-password" element={<LazyRoute><ForgotPassword /></LazyRoute>} />
+                  <Route path="/privacy-policy" element={<LazyRoute><PrivacyPolicy /></LazyRoute>} />
+                  <Route path="/terms-of-service" element={<LazyRoute><TermsOfService /></LazyRoute>} />
+                  <Route path="/terms" element={<LazyRoute><Terms /></LazyRoute>} />
+                  <Route path="/about" element={<LazyRoute><AboutWrapper /></LazyRoute>} />
+                </Route>
 
                 {/* Protected Routes with Layout */}
                 <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>

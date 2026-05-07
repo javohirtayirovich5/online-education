@@ -106,7 +106,24 @@
     "namePlaceholder": "Ism Familiya",
     "phonePlaceholder": "+998901234567",
     "privacyPolicy": "Maxfiylik Siyosati",
-    "termsOfService": "Xizmat Shartlari"
+    "termsOfService": "Xizmat Shartlari",
+    "search_terms": "Terminlarni qidirish...",
+    "no_terms_found": "Hech narsa topilmadi",
+    "error_loading_terms": "Terminlarni yuklashda xatolik"
+  },
+  "terms": {
+    "title": "Terminlar",
+    "results_label": "ta natija topildi",
+    "search_terms": "Terminlarni qidirish...",
+    "no_terms_found": "Hech narsa topilmadi",
+    "error_loading_terms": "Terminlarni yuklashda xatolik",
+    "table_header_index": "#",
+    "table_header_english": "English",
+    "table_header_russian": "Русский",
+    "table_header_uzbek": "O‘zbek",
+    "read_english": "Inglizcha o'qish",
+    "read_russian": "Ruscha o'qish",
+    "read_uzbek": "O'zbekcha o'qish"
   },
   "navbar": {
     "notifications": "Bildirishnomalar",
@@ -212,7 +229,8 @@
     "schedule": "Dars jadvali",
     "videoLessons": "Video darslar",
     "myGrades": "Baholarim",
-    "library": "Kutubxona"
+    "library": "Kutubxona",
+    "terms": "Terminlar"
   },
   "dashboard": {
     "welcome": "Xush kelibsiz",

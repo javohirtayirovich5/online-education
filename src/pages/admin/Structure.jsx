@@ -31,7 +31,7 @@ import './Structure.css';
 const Structure = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('faculties');
+  const [activeTab, setActiveTab] = useState('tree');
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -63,6 +63,11 @@ const Structure = () => {
   });
   const [availableTeachers, setAvailableTeachers] = useState([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [studentList, setStudentList] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [activeStudentGroupName, setActiveStudentGroupName] = useState('');
 
   // Hafta kunlari
   const WEEK_DAYS = [
@@ -247,6 +252,22 @@ const Structure = () => {
     });
     setAvailableTeachers([]);
     setShowAssignModal(true);
+  };
+
+  const openStudentListModal = async (group) => {
+    setShowStudentsModal(true);
+    setStudentsLoading(true);
+    setActiveStudentGroupName(group.name || '');
+    setStudentList([]);
+
+    const result = await groupService.getGroupStudents(group.id);
+    if (result.success) {
+      setStudentList(result.data || []);
+    } else {
+      toast.error(result.error || 'Talabalar ro‘yxatini yuklashda xatolik');
+    }
+
+    setStudentsLoading(false);
   };
 
   // Hafta kunini tanlash/o'chirish
@@ -668,12 +689,6 @@ const Structure = () => {
       {/* Tabs */}
       <div className="structure-tabs">
         <button 
-          className={`tab-btn ${activeTab === 'faculties' ? 'active' : ''}`}
-          onClick={() => setActiveTab('faculties')}
-        >
-          <FiBook /> {t('admin.structure.faculties')} ({faculties.length})
-        </button>
-        <button 
           className={`tab-btn ${activeTab === 'tree' ? 'active' : ''}`}
           onClick={() => setActiveTab('tree')}
         >
@@ -705,11 +720,6 @@ const Structure = () => {
           />
         </div>
         <div className="toolbar-actions">
-          {activeTab === 'faculties' && (
-            <button className="btn btn-primary" onClick={() => openCreateModal('faculty')}>
-              <FiPlus /> Fakultet
-            </button>
-          )}
           {activeTab === 'tree' && (
             <>
               <button className="btn btn-secondary" onClick={() => openCreateModal('department')}>
@@ -735,50 +745,6 @@ const Structure = () => {
 
       {/* Content */}
       <div className="structure-content">
-        {/* Faculties Tab */}
-        {activeTab === 'faculties' && (
-          <div className="cards-grid">
-            {filteredFaculties.map(faculty => (
-              <div key={faculty.id} className="structure-card faculty-card">
-                <div className="card-header">
-                  <div className="card-icon faculty">
-                    <FiBook />
-                  </div>
-                  <div className="card-actions">
-                    <button 
-                      className="action-btn edit"
-                      onClick={() => openEditModal('faculty', faculty)}
-                    >
-                      <FiEdit2 />
-                    </button>
-                    <button 
-                      className="action-btn delete"
-                      onClick={() => handleDelete('faculty', faculty.id)}
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                </div>
-                <h3 className="card-title">{faculty.name}</h3>
-                {faculty.code && <span className="card-code">{faculty.code}</span>}
-                {faculty.dean && <p className="card-meta">Dekan: {faculty.dean}</p>}
-                <div className="card-stats">
-                  <span>{getDepartmentsByFaculty(faculty.id).length} yo'nalish</span>
-                </div>
-              </div>
-            ))}
-            {filteredFaculties.length === 0 && (
-              <div className="empty-state">
-                <FiBook size={48} />
-                <p>Fakultetlar topilmadi</p>
-                <button className="btn btn-primary" onClick={() => openCreateModal('faculty')}>
-                  <FiPlus /> Fakultet yaratish
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Tree View Tab */}
         {activeTab === 'tree' && (
           <div className="tree-view">
@@ -840,7 +806,13 @@ const Structure = () => {
                                     {group.name}
                                   </span>
                                   <span className="tree-info">{group.year}-kurs</span>
-                                  <span className="tree-badge">{group.students?.length || 0} talaba</span>
+                                  <button
+                                    className="tree-badge clickable"
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); openStudentListModal(group); }}
+                                  >
+                                    {group.students?.length || 0} talaba
+                                  </button>
                                   <div className="tree-actions">
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); openAssignModal(group); }}
@@ -933,9 +905,13 @@ const Structure = () => {
                         <td>{dept?.name || '-'}</td>
                         <td><span className="badge badge-info">{group.year}-kurs</span></td>
                         <td>
-                          <span className="badge badge-primary">
+                          <button
+                            className="badge badge-primary clickable"
+                            type="button"
+                            onClick={() => openStudentListModal(group)}
+                          >
                             {group.students?.length || 0} ta
-                          </span>
+                          </button>
                         </td>
                         <td>
                           <div className="subject-teachers-count">
@@ -1055,6 +1031,43 @@ const Structure = () => {
       </Modal>
 
       {/* Assign Teacher Modal */}
+      <Modal 
+        isOpen={showStudentsModal}
+        onClose={() => setShowStudentsModal(false)}
+        title={`Guruh talabalari - ${activeStudentGroupName}`}
+      >
+        <div className="modal-content">
+          {studentsLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <div className="student-list-modal">
+              {studentList.length > 0 ? (
+                <ol className="student-list">
+                  {studentList.map((student, index) => (
+                    <li key={student.id} className="student-list-item">
+                      <span className="student-index">{index + 1}.</span>
+                      <span className="student-name">{student.displayName || student.name || 'Noma\'lum'}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="empty-state">
+                  <p>Bu guruhda talabalar mavjud emas</p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="modal-actions">
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setShowStudentsModal(false)}
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal 
         isOpen={showAssignModal} 
         onClose={() => setShowAssignModal(false)} 

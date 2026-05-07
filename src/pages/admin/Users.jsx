@@ -342,7 +342,7 @@ const Users = () => {
               <th>Email</th>
               <th>Rol</th>
               <th>Status</th>
-              <th>Ro'yxatdan o'tgan</th>
+              {/* <th>Ro'yxatdan o'tgan</th> */}
               <th>Amallar</th>
             </tr>
           </thead>
@@ -368,7 +368,7 @@ const Users = () => {
                     <span className="status-badge pending">Kutilmoqda</span>
                   )}
                 </td>
-                <td>{formatDate(user.createdAt, 'dd.MM.yyyy')}</td>
+                {/* <td>{formatDate(user.createdAt, 'dd.MM.yyyy')}</td> */}
                 <td>
                   <div className="action-buttons">
                     {!user.isApproved && user.role === 'teacher' && (
@@ -467,14 +467,7 @@ const Users = () => {
                 <span className="label">Fakultet:</span>
                 <span>{selectedUser.department || '-'}</span>
               </div>
-              <div className="detail-item">
-                <span className="label">Ro'yxatdan o'tgan:</span>
-                <span>{formatDate(selectedUser.createdAt)}</span>
-              </div>
-              <div className="detail-item">
-                <span className="label">Oxirgi faollik:</span>
-                <span>{formatDate(selectedUser.lastActive)}</span>
-              </div>
+
             </div>
           </div>
         )}

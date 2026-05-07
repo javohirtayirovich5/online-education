@@ -394,7 +394,7 @@ service cloud.firestore {
     match /resourceCollections/{collectionId} {
       // Admins can read all collections; authenticated users can read public
       // collections or collections for their group
-      allow read: if isAdmin() || (isAuthenticated() && 
+      allow read: if isTeacherOrAdmin() || (isAuthenticated() && 
                      (resource.data.isPublic == true || 
                       (resource.data.groupId == null) ||
                       (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 

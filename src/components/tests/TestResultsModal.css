@@ -260,7 +260,7 @@
   transition: width 0.3s ease;
 }
 
-.col-date {
+.col-group {
   text-align: center;
   color: var(--text-tertiary);
   font-size: 12px;
@@ -298,7 +298,7 @@
   }
 
   .col-percentage,
-  .col-date {
+  .col-group {
     display: none;
   }
 

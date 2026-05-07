@@ -944,11 +944,7 @@ const TestEditor = ({ initialData = null, groups = [], onSave, onCancel }) => {
 
     // Build a snapshot of questions reading current selects so correctAnswers exactly
     // match the editor contents (this ensures we overwrite previous DB values)
-<<<<<<< HEAD
-    const questionsSnapshot = (formData.questions || []).map(q => ({ ...q }));
-=======
     const questionsSnapshot = cloneQuestions(formData.questions || []);
->>>>>>> ed54a8c647cb2b60dd70dbb7650801962f0a4faa
 
     questionsSnapshot.forEach((q, qi) => {
       if (q.type === 'wordbank') {

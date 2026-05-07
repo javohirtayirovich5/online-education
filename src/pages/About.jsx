@@ -332,7 +332,6 @@ const About = () => {
               <FiGithub size={24} className="developer-icon" />
               <div className="developer-info">
                 <h4 className="developer-name">{t('about.developer.name')}</h4>
-                <p className="developer-subtitle">{t('about.developer.subtitle')}</p>
               </div>
             </div>
             

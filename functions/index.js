@@ -1,13 +1,15 @@
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
 const {getFirestore} = require("firebase-admin/firestore");
+const {getStorage} = require("firebase-admin/storage");
 
 // Initialize Firebase Admin
 initializeApp();
 
 const auth = getAuth();
 const db = getFirestore();
+const storage = getStorage();
 
 /**
  * Delete user from both Firestore and Firebase Authentication
@@ -102,6 +104,57 @@ exports.deleteUser = onCall({
       "internal",
       error.message || "Foydalanuvchini o'chirishda xatolik yuz berdi"
     );
+  }
+});
+
+exports.getTermsList = onRequest({
+  cors: true,
+  region: 'us-central1',
+}, async (req, res) => {
+  try {
+    // Set CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    // Check authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // Get token from header
+    const token = authHeader.split('Bearer ')[1];
+    if (!token) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+
+    // Verify token (optional - for production)
+    // const decodedToken = await getAuth().verifyIdToken(token);
+
+    const bucket = getStorage().bucket();
+    const file = bucket.file('terminlar/terminlar.json');
+    const [contents] = await file.download();
+    const terms = JSON.parse(contents.toString('utf-8'));
+
+    res.set('Content-Type', 'application/json');
+    res.json({
+      success: true,
+      terms,
+    });
+  } catch (error) {
+    console.error('Get terms list error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error loading terms',
+    });
   }
 });
 

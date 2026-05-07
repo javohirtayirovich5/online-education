@@ -107,6 +107,20 @@
     "namePlaceholder": "Имя Фамилия",
     "phonePlaceholder": "+998901234567"
   },
+  "terms": {
+    "title": "Термины",
+    "results_label": "результатов найдено",
+    "search_terms": "Поиск терминов...",
+    "no_terms_found": "Ничего не найдено",
+    "error_loading_terms": "Ошибка загрузки терминов",
+    "table_header_index": "#",
+    "table_header_english": "English",
+    "table_header_russian": "Русский",
+    "table_header_uzbek": "Узбек",
+    "read_english": "Прочитать на английском",
+    "read_russian": "Прочитать на русском",
+    "read_uzbek": "Прочитать на узбекском"
+  },
   "navbar": {
     "notifications": "Уведомления",
     "lightMode": "Светлый режим",
@@ -139,7 +153,8 @@
     "schedule": "Расписание",
     "videoLessons": "Видео уроки",
     "myGrades": "Мои оценки",
-    "library": "Библиотека"
+    "library": "Библиотека",
+    "terms": "Термины"
   },
   "dashboard": {
     "welcome": "Добро пожаловать",
@@ -816,4 +831,5 @@
       "telegram": "javohir_tayirovich"
     }
   }
+
 }

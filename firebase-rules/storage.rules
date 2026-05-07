@@ -164,5 +164,15 @@ service firebase.storage {
       allow write: if isAuthenticated() && isValidImage();
       allow delete: if isAuthenticated();
     }
+
+    // ============================================
+    // TERMS GLOSSARY
+    // ============================================
+    match /terminlar/{allPaths=**} {
+      allow read: if isAuthenticated();
+      // Only allow write/delete through admin backend, not direct client access
+      allow write: if false;
+      allow delete: if false;
+    }
   }
 }

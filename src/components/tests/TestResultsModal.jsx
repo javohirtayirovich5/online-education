@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { testService } from '../../services/testService';
+import { groupService } from '../../services/groupService';
 import { FiX } from 'react-icons/fi';
 import LoadingSpinner from '../common/LoadingSpinner';
 import './TestResultsModal.css';
@@ -8,6 +9,7 @@ import './TestResultsModal.css';
 const TestResultsModal = ({ isOpen, onClose, test }) => {
   const { t } = useTranslation();
   const [submissions, setSubmissions] = useState([]);
+  const [groupNames, setGroupNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('score'); // 'score' or 'name'
 
@@ -23,6 +25,23 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
       const result = await testService.getTestSubmissions(test.id);
       if (result.success) {
         setSubmissions(result.data);
+
+        const groupIds = [...new Set(result.data
+          .map((submission) => submission.groupId)
+          .filter(Boolean))];
+
+        if (groupIds.length > 0) {
+          const loadedGroupNames = {};
+          await Promise.all(groupIds.map(async (groupId) => {
+            const groupResult = await groupService.getGroupById(groupId);
+            if (groupResult.success) {
+              loadedGroupNames[groupId] = groupResult.data.name;
+            }
+          }));
+          setGroupNames(loadedGroupNames);
+        } else {
+          setGroupNames({});
+        }
       }
     } catch (error) {
       console.error('Load results error:', error);
@@ -105,7 +124,7 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
                 <div className="col-name">{t('teacher.grades.studentName')}</div>
                 <div className="col-score">{t('tests.score')}</div>
                 <div className="col-percentage">{t('attendance.percentage')}</div>
-                <div className="col-date">{t('common.date')}</div>
+                <div className="col-group">{t('group')}</div>
               </div>
 
               {sortedSubmissions.map((submission, index) => (
@@ -128,8 +147,8 @@ const TestResultsModal = ({ isOpen, onClose, test }) => {
                     </div>
                     <span>{submission.percentage}%</span>
                   </div>
-                  <div className="col-date">
-                    {new Date(submission.submittedAt).toLocaleDateString('uz-UZ')}
+                  <div className="col-group">
+                    {groupNames[submission.groupId] || submission.groupName || submission.groupId || t('common.notSet')}
                   </div>
                 </div>
               ))}
